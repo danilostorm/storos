@@ -1,0 +1,15 @@
+name: Project continuity
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  continuity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check changelog, project state and documentation links
+        env:
+          CHANGE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python3 scripts/check_continuity.py "$CHANGE_BASE"
