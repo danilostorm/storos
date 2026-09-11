@@ -1,0 +1,27 @@
+[Unit]
+Description=StorOS read-only host and VM observer
+After=libvirtd.service virtqemud.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/storosctl daemon
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+RuntimeDirectory=storos
+RuntimeDirectoryMode=0750
+UMask=0027
+User=root
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+PrivateTmp=yes
+ReadWritePaths=/run/storos
+
+[Install]
+WantedBy=multi-user.target

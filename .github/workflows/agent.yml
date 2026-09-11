@@ -1,0 +1,14 @@
+name: Host agent
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test discovery and snapshot failure handling
+        env:
+          PYTHONPATH: src:scripts
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -m unittest discover -s tests -v

@@ -5,3 +5,8 @@
 !image/
 !image/check-image.sh
 !image/storos-release
+!image/storos-agent.service
+!src/
+!src/storos_agent.py
+!bin/
+!bin/storosctl

@@ -71,6 +71,8 @@ Aceite: matriz com evidências, instruções reproduzíveis, decisão arquitetur
 
 ### Fase 1 — Compute mínimo
 
+Primeiro incremento iniciado: [agente de inventário e descoberta](docs/AGENT.md), em paralelo às validações pendentes da Fase 0. CLI e coleta local implementadas; criação/alteração de VMs, autenticação web e políticas persistentes continuam pendentes.
+
 Entregar criar/iniciar/parar/importar VMs, descoberta por UUID, API tipada, workers sem shell arbitrário, configuração transacional, tarefas com progresso, autenticação/permissões e auditoria. Preparar backup de configuração desde o início.
 
 Aceite: duas VMs funcionais; configurações sobrevivem a 10 reinícios; salvar/reler confirma valores; falha de aplicação não aparece como sucesso; descoberta não depende de ativar automação; ação sem permissão é rejeitada.

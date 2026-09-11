@@ -54,3 +54,5 @@ Usar guests/discos descartáveis. Virtualização aninhada ajuda no contrato/API
 Duas pessoas usam VMs separadas e entrada/áudio independentes; streaming não comprova GPU compartilhada. NAS/apps/cluster ficam fora do caminho crítico.
 
 O protótipo começa pelo Containerfile e verificação de imagem. Painel, gerenciamento automático e preparação de mídia de boot ainda não implementados. O fluxo pretendido é boot direto pela mídia preparada e configuração web, conforme [BOOT_MEDIA.md](BOOT_MEDIA.md). ISO é opcional; a base imutável não comprova execução integral em RAM nem persistência adequada a pendrive comum.
+
+Primeiro componente implementado: [agente local](AGENT.md), em Python, consulta `virsh --readonly` com timeout e UUID. A CLI e o serviço compartilham o mesmo código. O serviço grava snapshot atômico em `/run/storos`, com permissões administrativas; não abre endpoint de rede. O futuro backend autenticado consumirá esse contrato e terá persistência própria para políticas, separada da descoberta.

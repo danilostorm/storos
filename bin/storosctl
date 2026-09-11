@@ -1,0 +1,5 @@
+#!/usr/bin/python3
+import sys
+sys.path.insert(0, '/usr/libexec/storos')
+from storos_agent import main
+raise SystemExit(main())

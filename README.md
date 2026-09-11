@@ -37,3 +37,5 @@ Toda atualização publicada deve atualizar changelog e estado do projeto, com m
 Base do protótipo: **Fedora/uCore HCI**. [Decisão, build e limitações](docs/BASE_FEDORA.md). A entrega pretendida é preparar a mídia, dar boot e configurar pelo navegador; [ISO não é requisito](docs/BOOT_MEDIA.md).
 
 O primeiro build passou; veja [versões e evidências](docs/BUILD_EVIDENCE.md). O próximo marco é inicializar a imagem em uma VM descartável.
+
+O [agente do host](docs/AGENT.md) é o primeiro componente funcional: inventário, descoberta de VMs por UUID, serviço periódico e interface `storosctl`. A integração é testada no CI; boot e VMs reais continuam pendentes.
