@@ -5,7 +5,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 ## 2026-09-11 — BOOT-001 — Pipeline QCOW2 e prova automatizada de boot
 
 - **Motivo:** avançar do OCI validado para uma mídia virtual realmente inicializável, sem transformar ISO em requisito do StorOS.
-- **Mudou:** workflow `boot-media.yml` para construir a imagem bootc de desenvolvimento, passá-la por um registro local efêmero do runner, gerar QCOW2 com o Image Builder oficial, inicializar o disco em QEMU/TCG e confirmar pelo console serial que o systemd alcançou `storos-agent.service`. Adicionada configuração do Image Builder para console serial e lint bootc no workflow.
+- **Mudou:** workflow `boot-media.yml` para construir a imagem bootc de desenvolvimento, passá-la por um registro local efêmero do runner, gerar QCOW2 com o Image Builder oficial, inicializar o disco em QEMU/TCG e confirmar pelo console serial que o systemd alcançou `storos-agent.service`. Adicionada configuração do Image Builder para console serial e lint bootc no workflow. O workflow roda em push da branch e em pull request para deixar a prova visível no PR.
 - **Verificação:** sintaxe Bash e TOML revisadas antes da publicação. O resultado real do build/boot remoto deve ser consultado no workflow disparado pelo incremento; esta entrada não afirma sucesso do boot antes do CI terminar.
 - **Limites:** ainda não houve boot físico por USB, persistência após reinício, painel web ou teste de GPU. QCOW2 é artefato de laboratório, não release.
 - **Próximo passo:** obter o primeiro workflow verde; se o console comprovar a inicialização do agente StorOS, registrar a evidência e testar persistência/reboot antes de avançar ao painel.
