@@ -20,8 +20,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build-evidence
-          docker pull ghcr.io/ublue-os/ucore-hci:stable
-          base_ref=$(docker image inspect ghcr.io/ublue-os/ucore-hci:stable --format '{{index .RepoDigests 0}}')
+          base_ref=$(sed -n 's/^ARG BASE_IMAGE=//p' Containerfile)
+          [[ "$base_ref" =~ ^ghcr.io/ublue-os/ucore-hci@sha256:[a-f0-9]{64}$ ]]
+          docker pull "$base_ref"
           printf '%s\n' "$base_ref" > build-evidence/base-image.txt
           docker build --file Containerfile --build-arg "BASE_IMAGE=$base_ref" --build-arg "STOROS_REVISION=$GITHUB_SHA" --tag storos:ci .
           docker image inspect storos:ci > build-evidence/image.json

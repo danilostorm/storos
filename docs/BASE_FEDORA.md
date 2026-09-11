@@ -6,7 +6,7 @@ O [uCore](https://github.com/ublue-os/ucore) oferece imagem Fedora CoreOS com fe
 
 ## Primeira implementação
 
-[Containerfile](../Containerfile) deriva a imagem e inclui identificação e coletor somente leitura. [Workflow](../.github/workflows/image.yml) resolve a tag para digest, usa esse digest no build, verifica ferramentas e salva inventário de pacotes/evidências. O digest permite repetir a base exata enquanto disponível no registro. A tag pode mudar entre execuções: ainda não há base fixa de release.
+[Containerfile](../Containerfile) deriva a imagem e inclui identificação e coletor somente leitura. [Workflow](../.github/workflows/image.yml) usa o digest fixado no Containerfile, verifica ferramentas e salva inventário de pacotes/evidências. A base padrão foi fixada após o [primeiro build bem-sucedido](BUILD_EVIDENCE.md); ainda é um protótipo, sem release instalável.
 
 Build local para desenvolvedores com Docker em Linux x86_64:
 
@@ -21,8 +21,8 @@ Para reproduzir uma execução, passar `--build-arg BASE_IMAGE=<referência-com-
 
 Esta entrega verifica composição de imagem, não inicialização. Executar um comando dentro do container não comprova boot do sistema, funcionamento do libvirt nem aceleração de GPU.
 
-1. Obter build verde e registrar versões efetivas de QEMU/kernel/driver.
-2. Fixar digest e verificar assinatura upstream antes de distribuir imagens instaláveis; desenvolver assinatura própria e política de atualizações StorOS. O build inicial usa transporte HTTPS, mas ainda não verifica assinatura da base.
+1. Build inicial verde: QEMU 10.2.2 e libvirt 12.0.0 registrados. Kernel em execução e driver gráfico aguardam teste de boot/hardware.
+2. Digest fixado. Verificar assinatura upstream antes de distribuir imagens instaláveis; desenvolver assinatura própria e política de atualizações StorOS. O build inicial usa transporte HTTPS, mas ainda não verifica assinatura da base.
 3. Preparar provisionamento descartável e teste de boot, rede, libvirt e reinício. Não usar imagem de desenvolvimento para rebase do MOS.
 4. Executar matriz GPU em hardware e implementar o contrato CPU/RAM. Não considerar a variante NVIDIA como prova de compartilhamento entre VMs.
 5. Só então preparar instalador e canal de releases com recuperação testada. Rollback do sistema não restaura os dados das VMs.

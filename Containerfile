@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ghcr.io/ublue-os/ucore-hci:stable
+ARG BASE_IMAGE=ghcr.io/ublue-os/ucore-hci@sha256:7dbb268b3d556e8bfa95bb922185c6a2ad9f580896bf25c6d3a81df541732464
 FROM ${BASE_IMAGE}
 ARG STOROS_REVISION=development
 LABEL org.opencontainers.image.title="StorOS development base" \

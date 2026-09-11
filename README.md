@@ -35,3 +35,5 @@ Toda atualização publicada deve atualizar changelog e estado do projeto, com m
 ## Desenvolvimento iniciado
 
 Base do protótipo: **Fedora/uCore HCI**. [Decisão, build e limitações](docs/BASE_FEDORA.md). Há receita de imagem e CI; ainda não há ISO instalável, painel StorOS ou GPU homologada.
+
+O primeiro build passou; veja [versões e evidências](docs/BUILD_EVIDENCE.md). O próximo marco é inicializar a imagem em uma VM descartável.
