@@ -4,7 +4,7 @@
 
 Projeto em planejamento para várias VMs usarem o hardware do mesmo servidor simultaneamente. NAS, Docker e catálogo de apps são complementares. A base está aberta: MOS não é obrigatório.
 
-**Estado: roadmap revisão 2, de 11/09/2026.** A mudança de foco e as regras de continuidade foram solicitadas por Danilo. Não existe ISO, sistema implementado ou GPU homologada.
+**Estado: revisão 2 aprovada e Fase 0 iniciada em 11/09/2026.** O PR #1 foi integrado. Não existe ISO, sistema implementado ou GPU homologada.
 
 ## Para continuar o projeto
 
@@ -14,6 +14,8 @@ Projeto em planejamento para várias VMs usarem o hardware do mesmo servidor sim
 4. Revise [ROADMAP.md](ROADMAP.md) e [aprovações](docs/APROVACAO.md).
 
 Outros documentos: [arquitetura](docs/ARQUITETURA.md), [referências](docs/REFERENCIAS.md) e [PR #1](https://github.com/danilostorm/storos/pull/1).
+
+Pesquisa inicial: [triagem GPU e bases](docs/FASE0_GPU.md), [protocolo de laboratório](docs/FASE0_LAB.md) e coletor de inventário. Testes físicos pendentes.
 
 ## Prioridades
 

@@ -1,6 +1,6 @@
 # Roadmap StorOS — revisão 2
 
-**11/09/2026.** Responsável pelo produto: Danilo. Estado: planejamento. Substitui a revisão 1 centrada em NAS/MOS, preservada no histórico Git.
+**11/09/2026.** Responsável pelo produto: Danilo. Estado: revisão 2 aprovada; pesquisa da Fase 0 em andamento. Substitui a revisão 1 centrada em NAS/MOS, preservada no histórico Git.
 
 ## Direção confirmada
 
@@ -41,7 +41,7 @@ Todas as fases de implementação estão pendentes. As estimativas da revisão 1
 
 | Fase | Prioridade | Entrega | Dependência / saída |
 | --- | --- | --- | --- |
-| 0 — Viabilidade | P0 | GPU simultânea, laboratório CPU/RAM, comparação de bases/licenças | Aprovação para executar pesquisa/testes; decisão de plataforma |
+| 0 — Viabilidade | P0 | GPU simultânea, laboratório CPU/RAM, comparação de bases/licenças | Pesquisa autorizada e iniciada; laboratório e decisão de plataforma pendentes |
 | 1 — Compute mínimo | P0 | VMs, estado persistente, tarefas, autenticação e painel | Base escolhida e reconstruível |
 | 2 — CPU/RAM automáticas | P0 | Mínimos/máximos, prioridades, admissão e reserva do host | Fase 1; métricas confiáveis |
 | 3 — GPU compartilhada | P0 | Integrar a combinação validada para várias VMs | Prova física na 0; gestão nas 1–2 |
@@ -54,6 +54,8 @@ Todas as fases de implementação estão pendentes. As estimativas da revisão 1
 Pesquisa CPU/RAM pode acompanhar a investigação GPU. Isso não autoriza desenvolver uma distribuição extensa antes de decidir a base.
 
 ### Fase 0 — Viabilidade e escolha
+
+Progresso: [triagem documental](docs/FASE0_GPU.md) iniciada e [protocolo de laboratório](docs/FASE0_LAB.md) preparado. Sem testes físicos; fase ainda aberta.
 
 - Inventariar equipamento disponível e montar guests/discos descartáveis.
 - Investigar primeiro as placas do Danilo; suporte a outro modelo não comprova suporte à placa dele.
@@ -126,4 +128,4 @@ STOR-001–008 permanecem no histórico da revisão 1 e precisam ser reclassific
 
 Toda atualização publicada mantém [CHANGELOG.md](CHANGELOG.md) e [PROJECT_STATE.md](PROJECT_STATE.md), conforme [AGENTS.md](AGENTS.md). Registrar fatos, testes, falhas, bloqueios e próxima tarefa. Pesquisa não equivale a implementação.
 
-Danilo autorizou esta revisão e a regra de continuidade. Execução da Fase 0 e alterações de servidor seguem [APROVACAO.md](docs/APROVACAO.md).
+Danilo aprovou esta revisão e o início da Fase 0 com “Ta aprovado.” em 11/09/2026. Escopo e limites de execução seguem [APROVACAO.md](docs/APROVACAO.md).

@@ -1,45 +1,44 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **11/09/2026**, atualização **DOC-002**. Responsável pelas decisões: Danilo.
+Atualizado em **11/09/2026**, atualização **PH0-001**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: danilostorm/storos.
-- Branch de trabalho: proposal/storos-roadmap.
-- Revisão: [PR #1](https://github.com/danilostorm/storos/pull/1), proposta não mesclada no momento deste registro.
-- Base anterior desta atualização: 689871f2d6df26f8c78b4e72a26491de9ffc2588. Consulte o head atual do PR antes de editar.
-- Fase atual: planejamento; roadmap revisão 2. Ainda não existe implementação, ISO ou laboratório homologado.
+- Roadmap revisão 2 aprovado; [PR #1](https://github.com/danilostorm/storos/pull/1) mesclado.
+- Base desta atualização: `3746474390e96175278ea39bd9b8bf1982d4bb25` em main.
+- Branch: `phase0/gpu-feasibility`; consultar seu PR/head antes de editar.
+- Fase 0 em andamento: pesquisa documental e preparação do laboratório. Sem ISO, sistema implementado ou hardware homologado.
 
 ## Decisões confirmadas
 
-Danilo liberou a escolha de outra base operacional e definiu prioridade em VMs com CPU/RAM/GPU compartilhadas, especialmente GPU simultânea. Docker e outros complementos não são o foco. Solicitou atualização do roadmap e changelog obrigatório para continuidade.
+Danilo aprovou a revisão 2 com **“Ta aprovado.”** nesta conversa. Prioridade: VMs compartilhando CPU/RAM/GPU, especialmente GPU simultânea. A base pode mudar; MOS não é obrigatório. Docker/NAS são complementares. Changelog e estado são obrigatórios em cada atualização publicada.
 
-A revisão documental está autorizada. A Fase 0 permanece proposta para aprovação de execução. Não há base/driver escolhidos, GPU comprovada, licença final do código novo ou prazo fechado.
+A aprovação permite iniciar a Fase 0. Não escolhe base, não homologa GPU e não autoriza modificar produção, firmware ou drivers do servidor atual.
 
 ## Concluído nesta atualização
 
-- Roadmap e arquitetura reposicionados para viabilidade GPU antes da escolha da base.
-- Critérios distinguem GPU simultânea de passthrough exclusivo e de acesso remoto.
-- Instruções AGENTS, changelog, este estado e verificação automática de continuidade adicionados.
-- Referências históricas preservadas e prioridades alinhadas.
+- Aprovação registrada e roadmap integrado.
+- [Triagem GPU e bases](docs/FASE0_GPU.md) com fontes oficiais NVIDIA, Microsoft, AMD e Mesa; virtualização do fabricante e aceleração de APIs para guests Linux tratadas separadamente.
+- [Protocolo de laboratório](docs/FASE0_LAB.md) e coletor Python somente leitura preparados.
+- Suporte das placas citadas permanece não comprovado. Ausência em listas oficiais não significa impossibilidade de toda alternativa.
 
 ## Verificação e limitações
 
-- Links relativos Markdown e coerência documental verificados localmente.
-- Verificador exercitado com mudança válida e com ausência de changelog, que deve falhar.
-- Consultar o resultado real de Actions no PR; o check de continuidade não certifica hardware ou sistema.
-- Nenhum teste físico, benchmark, build de distribuição ou alteração no servidor foi executado.
-- Nenhuma credencial/acesso ao host StorOS está configurada aqui. RTX 3080 Ti/RX 550 são placas citadas, não homologadas.
-- Não há proteção de branch confirmada para tornar o check obrigatório ao merge.
+- Coletor executado somente no ambiente de desenvolvimento; JSON válido. Não valida o host de Danilo.
+- Verificador de continuidade e links relativos executado localmente; consultar Actions do PR para resultado remoto.
+- Sem /dev/kvm ou /dev/dri disponíveis neste ambiente. Nenhum guest, teste de GPU ou benchmark executado.
+- Sem acesso ao host do usuário ou inventário confirmado. RTX 3080 Ti/RX 550 são candidatas citadas, não homologadas.
+- Base, versões, licenças finais, custos e prazo pendentes. Não há proteção de branch confirmada para exigir o check ao merge.
 
 ## Próxima tarefa concreta
 
-1. Conferir PR/head e eventual nova orientação/aprovação de Danilo; não assumir aprovação por causa deste arquivo.
-2. Quando autorizada a Fase 0, começar por STOR-009: matriz de suporte GPU/driver/guest/hipervisor/licença com fontes oficiais por versão/modelo.
-3. Separar resultados documentados de resultados testados. Identificar equipamento disponível e propor laboratório descartável antes de modificar hosts.
-4. Comparar bases em STOR-010 e preparar protocolo de duas VMs em STOR-011. Não escolher MOS automaticamente nem repetir a arquitetura NAS da revisão 1.
-5. Encerrar a pesquisa com relatório go/no-go, alternativas/custos e estimativas revistas; atualizar changelog e estado.
+1. Identificar host de laboratório e obter inventário com `python3 scripts/collect_host.py`; levantar versões de QEMU/Mesa e workloads/guests desejados.
+2. STOR-009: completar matriz com modelo/versão real e requisitos de licença. Triagem iniciada, homologação pendente.
+3. STOR-010: comparar bases após inventário. Linux KVM/QEMU com VirGL/Venus é hipótese de laboratório, não decisão final nem promessa para Windows.
+4. STOR-011: executar protocolo em guests/discos descartáveis quando houver equipamento e acesso apropriados. Protocolo preparado, testes pendentes.
+5. STOR-012/014: produzir go/no-go, alternativas/custos e estimativas com evidências. Não encerrar Fase 0 com pesquisa documental isolada.
 
 ## Para uma nova IA
 
-Leia AGENTS.md primeiro. O README de main pode conter só a inicialização enquanto o PR está aberto; use a branch de trabalho acima. A memória do chat pode chamar este projeto de plugin Unraid, mas isso não descreve o StorOS: o Guardian era um projeto MOS separado e é somente referência técnica. Consulte o Git antes de refazer trabalho ou anunciar progresso.
+Leia AGENTS.md e confira Git/PR. A aprovação acima já foi dada; não peça novamente para continuar a pesquisa. O Resource Guardian é um projeto MOS separado, não uma versão funcional do StorOS. Não repetir a revisão NAS inicial nem presumir que documentos significam implementação.
