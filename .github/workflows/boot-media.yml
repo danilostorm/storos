@@ -56,6 +56,7 @@ jobs:
           set -euo pipefail
           echo "STOROS_IMAGE=localhost:5000/storos-ci:boot-${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "BIB_CHOWN=$(id -u):$(id -g)" >> "$GITHUB_ENV"
+          echo "QCOW2=$GITHUB_WORKSPACE/output/qcow2/disk.qcow2" >> "$GITHUB_ENV"
 
       - name: Build and stage bootc image
         shell: bash
@@ -75,22 +76,40 @@ jobs:
           docker run --rm --network none --entrypoint bash "$STOROS_IMAGE" /usr/libexec/storos/check-image.sh
           docker push "$STOROS_IMAGE"
 
+      - name: Prepare rootful Podman storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /var/lib/containers/storage
+          sudo mkdir -p /etc/containers
+          cat <<'EOF' | sudo tee /etc/containers/storage.conf >/dev/null
+          [storage]
+          driver = "overlay"
+          runroot = "/run/containers/storage"
+          graphroot = "/var/lib/containers/storage"
+          EOF
+          sudo podman pull quay.io/centos-bootc/bootc-image-builder:latest
+          sudo podman pull --tls-verify=false "$STOROS_IMAGE"
+
       - name: Build StorOS QCOW2
-        id: media
-        uses: osbuild/bootc-image-builder-action@019bb59c5100ecec4e78c9e94e18a840110f7a0b
-        with:
-          config-file: ${{ github.workspace }}/image/bootc-image-builder.toml
-          image: ${{ env.STOROS_IMAGE }}
-          types: |
-            qcow2
-          rootfs: xfs
-          tls-verify: false
-          chown: ${{ env.BIB_CHOWN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          sudo podman run --rm --privileged \
+            --security-opt label=type:unconfined_t \
+            --volume /var/lib/containers/storage:/var/lib/containers/storage \
+            --volume "$GITHUB_WORKSPACE/output:/output" \
+            --volume "$GITHUB_WORKSPACE/image/bootc-image-builder.toml:/config.toml:ro" \
+            quay.io/centos-bootc/bootc-image-builder:latest \
+            --output /output \
+            --chown "$BIB_CHOWN" \
+            --rootfs xfs \
+            --type qcow2 \
+            "$STOROS_IMAGE"
 
       - name: Inspect QCOW2
         shell: bash
-        env:
-          QCOW2: ${{ steps.media.outputs.qcow2-output-path }}
         run: |
           set -euo pipefail
           test -s "$QCOW2"
@@ -99,8 +118,6 @@ jobs:
 
       - name: Boot QCOW2 and wait for StorOS agent
         shell: bash
-        env:
-          QCOW2: ${{ steps.media.outputs.qcow2-output-path }}
         run: |
           set -euo pipefail
 
@@ -147,7 +164,7 @@ jobs:
         with:
           name: storos-boot-evidence
           path: |
-            ${{ steps.media.outputs.output-directory }}
+            output
             storos-qcow2.sha256
             boot-console.log
             boot-proof.txt
