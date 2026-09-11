@@ -79,7 +79,7 @@ jobs:
         id: media
         uses: osbuild/bootc-image-builder-action@019bb59c5100ecec4e78c9e94e18a840110f7a0b
         with:
-          config-file: image/bootc-image-builder.toml
+          config-file: ${{ github.workspace }}/image/bootc-image-builder.toml
           image: ${{ env.STOROS_IMAGE }}
           types: |
             qcow2
