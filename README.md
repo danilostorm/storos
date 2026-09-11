@@ -2,9 +2,9 @@
 
 **Virtualização com CPU, RAM e GPU compartilhadas entre máquinas virtuais.**
 
-Projeto em planejamento para várias VMs usarem o hardware do mesmo servidor simultaneamente. NAS, Docker e catálogo de apps são complementares. A base está aberta: MOS não é obrigatório.
+Projeto em desenvolvimento inicial para várias VMs usarem o hardware do mesmo servidor simultaneamente. NAS, Docker e catálogo de apps são complementares. Fedora/uCore HCI é a base do protótipo; a homologação ainda depende de testes.
 
-**Estado: revisão 2 aprovada e Fase 0 iniciada em 11/09/2026.** O PR #1 foi integrado. Não existe ISO, sistema implementado ou GPU homologada.
+**Estado: Fase 0 em andamento; primeiro build da composição da imagem aprovado no CI.** Ainda não há mídia de boot pronta, painel StorOS ou GPU homologada.
 
 ## Para continuar o projeto
 
@@ -34,6 +34,6 @@ Toda atualização publicada deve atualizar changelog e estado do projeto, com m
 
 ## Desenvolvimento iniciado
 
-Base do protótipo: **Fedora/uCore HCI**. [Decisão, build e limitações](docs/BASE_FEDORA.md). Há receita de imagem e CI; ainda não há ISO instalável, painel StorOS ou GPU homologada.
+Base do protótipo: **Fedora/uCore HCI**. [Decisão, build e limitações](docs/BASE_FEDORA.md). A entrega pretendida é preparar a mídia, dar boot e configurar pelo navegador; [ISO não é requisito](docs/BOOT_MEDIA.md).
 
 O primeiro build passou; veja [versões e evidências](docs/BUILD_EVIDENCE.md). O próximo marco é inicializar a imagem em uma VM descartável.

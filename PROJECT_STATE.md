@@ -1,14 +1,14 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **11/09/2026**, atualização **PH0-003**. Responsável pelas decisões: Danilo.
+Atualizado em **11/09/2026**, atualização **PH0-004**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: danilostorm/storos.
 - Roadmap revisão 2 aprovado; [PR #1](https://github.com/danilostorm/storos/pull/1) mesclado.
-- Base desta atualização: `0258381f4d3d0982bd9113fdbb331db29fb290a9` no PR #2.
+- Base desta atualização: `1d7b10cd932ce90a339245bffb54a8d3872be3d3` no PR #2.
 - Branch: `phase0/gpu-feasibility`; consultar seu PR/head antes de editar.
-- Fase 0 em andamento: receita da imagem construída com sucesso; boot e hardware pendentes. Sem ISO instalável ou painel StorOS.
+- Fase 0 em andamento: receita da imagem construída com sucesso; boot e hardware pendentes. Sem mídia de boot pronta ou painel StorOS. ISO não é requisito.
 
 ## Decisões confirmadas
 
@@ -17,6 +17,9 @@ Danilo aprovou a revisão 2 com **“Ta aprovado.”** nesta conversa. Prioridad
 Nova aprovação “Fecho pode começar” autoriza Fedora/uCore HCI como base do protótipo e início de código/CI. Detalhes em [BASE_FEDORA.md](docs/BASE_FEDORA.md). Isso não homologa GPU e não autoriza modificar produção, firmware ou drivers do servidor atual.
 
 ## Concluído nesta atualização
+
+- Corrigido o marco de entrega após observação de Danilo: mídia de boot pronta, com configuração web, sem obrigatoriedade de ISO. Ver [BOOT_MEDIA.md](docs/BOOT_MEDIA.md).
+- Documentados os fluxos oficiais MOS/Unraid e a distinção entre imagem OCI, mídia inicializável e sistema integralmente em RAM. Apenas documentação alterada; sem novo teste de boot.
 
 - Containerfile, identidade do protótipo e verificação de ferramentas adicionados.
 - Primeiro build passou; QEMU 10.2.2 e libvirt 12.0.0 encontrados. Digest da base fixado para builds seguintes; evidências em [BUILD_EVIDENCE.md](docs/BUILD_EVIDENCE.md).
@@ -37,7 +40,7 @@ Nova aprovação “Fecho pode começar” autoriza Fedora/uCore HCI como base d
 
 ## Próxima tarefa concreta
 
-1. Conferir CI do PR #2 e verificar assinatura upstream; preparar boot em VM descartável, usando o protocolo upstream citado nas evidências como referência. Primeiro build já passou e digest já está fixado. Não pedir a Danilo para escolher novamente o sistema operacional.
+1. Conferir CI do PR #2 e verificar assinatura upstream; preparar imagem de disco e boot em VM descartável, usando o protocolo upstream citado nas evidências como referência. Seguir BOOT_MEDIA.md: ISO não é requisito; imagem OCI não é mídia USB pronta. Primeiro build já passou e digest já está fixado. Não pedir a Danilo para escolher novamente o sistema operacional.
 2. STOR-009: completar matriz com modelo/versão real e requisitos de licença. Triagem iniciada, homologação pendente.
 3. STOR-010: comparar bases após inventário. Linux KVM/QEMU com VirGL/Venus é hipótese de laboratório, não decisão final nem promessa para Windows.
 4. STOR-011: executar protocolo em guests/discos descartáveis quando houver equipamento e acesso apropriados. Protocolo preparado, testes pendentes.

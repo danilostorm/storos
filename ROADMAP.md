@@ -37,6 +37,8 @@ Streaming ou computação não comprovam, isoladamente, adequação a dois deskt
 
 ## Fases propostas
 
+Entrega do sistema: [mídia de boot pronta](docs/BOOT_MEDIA.md), com configuração pelo navegador. Não usar “ISO instalável” como requisito de conclusão. A imagem OCI de desenvolvimento ainda precisa ser empacotada e testada para esse fluxo.
+
 A composição da imagem de desenvolvimento foi iniciada na Fase 0; as entregas funcionais seguintes continuam pendentes. As estimativas da revisão 1 foram retiradas: a GPU pode mudar arquitetura, equipe e esforço.
 
 | Fase | Prioridade | Entrega | Dependência / saída |

@@ -2,6 +2,15 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-11 — PH0-004 — Mídia de boot, sem ISO obrigatória
+
+- **Motivo:** Danilo apontou que o fluxo MOS/Unraid é preparar mídia e inicializar o sistema; o assistente vinha tratando ISO como marco obrigatório.
+- **Mudou:** README, roadmap, arquitetura e base Fedora passam a descrever mídia de boot e configuração web. BOOT_MEDIA.md separa OCI, imagem de disco, ZIP e ISO opcional; não presume que uCore rode integralmente em RAM.
+- **Referências:** consultados guia oficial de mídia MOS e downloads/instalador Unraid. O Unraid atual também oferece ISO opcional; não registrar ausência universal desse formato.
+- **Verificação:** revisão documental e links relativos locais. Sem mudança na receita ou novo teste de boot; builds anteriores continuam como evidência de composição.
+- **Próximo passo:** empacotar e testar disco virtual inicializável; definir persistência e comportamento da mídia física.
+- **Referência de trabalho:** [PR #2](https://github.com/danilostorm/storos/pull/2), base 1d7b10cd932ce90a339245bffb54a8d3872be3d3. Entradas históricas preservadas.
+
 ## 2026-09-11 — PH0-003 — Primeiro build validado e base fixada
 
 - **Mudou:** fixado o digest uCore testado no Containerfile e no workflow; evidências essenciais preservadas em docs/BUILD_EVIDENCE.md.

@@ -6,7 +6,7 @@ O [uCore](https://github.com/ublue-os/ucore) oferece imagem Fedora CoreOS com fe
 
 ## Primeira implementação
 
-[Containerfile](../Containerfile) deriva a imagem e inclui identificação e coletor somente leitura. [Workflow](../.github/workflows/image.yml) usa o digest fixado no Containerfile, verifica ferramentas e salva inventário de pacotes/evidências. A base padrão foi fixada após o [primeiro build bem-sucedido](BUILD_EVIDENCE.md); ainda é um protótipo, sem release instalável.
+[Containerfile](../Containerfile) deriva a imagem e inclui identificação e coletor somente leitura. [Workflow](../.github/workflows/image.yml) usa o digest fixado no Containerfile, verifica ferramentas e salva inventário de pacotes/evidências. A base padrão foi fixada após o [primeiro build bem-sucedido](BUILD_EVIDENCE.md); ainda é um protótipo, sem mídia de boot publicada.
 
 Build local para desenvolvedores com Docker em Linux x86_64:
 
@@ -25,6 +25,6 @@ Esta entrega verifica composição de imagem, não inicialização. Executar um 
 2. Digest fixado. Verificar assinatura upstream antes de distribuir imagens instaláveis; desenvolver assinatura própria e política de atualizações StorOS. O build inicial usa transporte HTTPS, mas ainda não verifica assinatura da base.
 3. Preparar provisionamento descartável e teste de boot, rede, libvirt e reinício. Não usar imagem de desenvolvimento para rebase do MOS.
 4. Executar matriz GPU em hardware e implementar o contrato CPU/RAM. Não considerar a variante NVIDIA como prova de compartilhamento entre VMs.
-5. Só então preparar instalador e canal de releases com recuperação testada. Rollback do sistema não restaura os dados das VMs.
+5. Preparar mídia de boot e canal de releases com recuperação testada, seguindo [BOOT_MEDIA.md](BOOT_MEDIA.md). ISO é opcional. Rollback do sistema não restaura os dados das VMs.
 
 Fase 0 permanece aberta. MOS é referência e ambiente atual do usuário; não será modificado por esta entrega.
