@@ -2,6 +2,15 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-11 — BOOT-001 — Pipeline QCOW2 e prova automatizada de boot
+
+- **Motivo:** avançar do OCI validado para uma mídia virtual realmente inicializável, sem transformar ISO em requisito do StorOS.
+- **Mudou:** workflow `boot-media.yml` para construir a imagem bootc de desenvolvimento, passá-la por um registro local efêmero do runner, gerar QCOW2 com o Image Builder oficial, inicializar o disco em QEMU/TCG e confirmar pelo console serial que o systemd alcançou `storos-agent.service`. Adicionada configuração do Image Builder para console serial e lint bootc no workflow.
+- **Verificação:** sintaxe Bash e TOML revisadas antes da publicação. O resultado real do build/boot remoto deve ser consultado no workflow disparado pelo incremento; esta entrada não afirma sucesso do boot antes do CI terminar.
+- **Limites:** ainda não houve boot físico por USB, persistência após reinício, painel web ou teste de GPU. QCOW2 é artefato de laboratório, não release.
+- **Próximo passo:** obter o primeiro workflow verde; se o console comprovar a inicialização do agente StorOS, registrar a evidência e testar persistência/reboot antes de avançar ao painel.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base `83feeec44cbf55a878b503bc03e4a7ceceb8c548`; fluxo descrito em [BOOT_MEDIA.md](docs/BOOT_MEDIA.md).
+
 ## 2026-09-11 — DEV-001 — Agente funcional e descoberta de VMs
 
 - **Motivo:** iniciar a parte funcional autorizada por Danilo; evitar a falha de descoberta silenciosa observada no protótipo Guardian.
