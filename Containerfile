@@ -10,4 +10,5 @@ COPY bin/storosctl /usr/bin/storosctl
 COPY image/storos-agent.service /usr/lib/systemd/system/storos-agent.service
 COPY image/check-image.sh /usr/libexec/storos/check-image.sh
 COPY image/storos-release /usr/share/storos/release
+COPY image/storos-disk.yaml /usr/lib/image-builder/bootc/disk.yaml
 RUN chmod 0755 /usr/bin/storosctl && systemctl enable storos-agent.service && bash /usr/libexec/storos/check-image.sh
