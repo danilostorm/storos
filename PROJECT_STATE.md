@@ -1,14 +1,14 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **11/09/2026**, atualização **DEV-001**. Responsável pelas decisões: Danilo.
+Atualizado em **11/09/2026**, atualização **BOOT-001**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: danilostorm/storos.
 - Roadmap revisão 2 aprovado; [PR #1](https://github.com/danilostorm/storos/pull/1) mesclado.
-- Base desta atualização: `ee334162f9aedc8c837b7fb43a2e12ef4bf90eb0` no PR #2.
-- Branch: `phase0/gpu-feasibility`; consultar seu PR/head antes de editar.
-- Fase 0 com boot/hardware pendentes; primeiro componente da Fase 1 implementado: agente de inventário, descoberta de VMs e CLI. Sem mídia de boot pronta ou painel StorOS. ISO não é requisito.
+- Branch: `phase0/gpu-feasibility`, [PR #2](https://github.com/danilostorm/storos/pull/2).
+- Base desta atualização: `83feeec44cbf55a878b503bc03e4a7ceceb8c548`; conferir o head atual antes de editar.
+- Fase 0 continua aberta para hardware/GPU. A Fase 1 já tem agente de descoberta; BOOT-001 adiciona a pipeline para transformar a imagem bootc em QCOW2 e provar boot via console. O resultado remoto deste novo workflow deve ser consultado antes de marcar o boot como validado.
 
 ## Decisões confirmadas
 
@@ -16,41 +16,43 @@ Danilo aprovou a revisão 2 com **“Ta aprovado.”** nesta conversa. Prioridad
 
 Nova aprovação “Fecho pode começar” autoriza Fedora/uCore HCI como base do protótipo e início de código/CI. Detalhes em [BASE_FEDORA.md](docs/BASE_FEDORA.md). Isso não homologa GPU e não autoriza modificar produção, firmware ou drivers do servidor atual.
 
+A correção posterior de Danilo confirmou que **ISO instalável não é requisito**. A experiência desejada é preparar mídia, dar boot e configurar pelo navegador. QCOW2/RAW são formatos de laboratório/empacotamento; ISO pode existir opcionalmente.
+
 ## Concluído nesta atualização
 
-- Implementados agente e CLI storosctl, com consulta de UUIDs/estado/recursos informados pelo libvirt, conexão somente leitura e falhas explícitas.
-- Serviço systemd incluído e habilitado na receita da imagem. Snapshot atômico local, com detecção de coleta antiga; nenhum endpoint de rede.
-- Dez testes locais passaram; ciclo daemon/CLI exercitado com virsh ausente. Documentado em [AGENT.md](docs/AGENT.md). Check da imagem agora integra com `test:///default`; verificar resultado remoto.
+- Adicionado workflow `.github/workflows/boot-media.yml` para construir a imagem bootc derivada do StorOS, colocá-la em um registro Docker local efêmero do runner, gerar QCOW2 com `osbuild/bootc-image-builder-action` e inicializá-la em QEMU usando TCG.
+- O workflow só considera o boot comprovado quando o console serial mostra o systemd alcançando `storos-agent.service` (`StorOS read-only host and VM observer`); depois disso grava `STOROS_BOOT_OK` apenas no artefato de evidência do CI.
+- Nenhuma credencial padrão ou serviço adicional foi criado apenas para o teste.
+- O workflow executa `bootc container lint` antes do empacotamento e mantém o `check-image.sh` existente com o driver `test:///default`.
+- Configuração do Image Builder adiciona console serial e `systemd.show_status=yes` ao kernel para tornar o boot de CI observável.
+- Sintaxe dos novos trechos Bash e TOML foi revisada antes da publicação. O resultado do GitHub Actions do incremento BOOT-001 ainda precisa ser consultado; não registrar boot bem-sucedido apenas porque o workflow foi criado.
 
-- Corrigido o marco de entrega após observação de Danilo: mídia de boot pronta, com configuração web, sem obrigatoriedade de ISO. Ver [BOOT_MEDIA.md](docs/BOOT_MEDIA.md).
-- Documentados os fluxos oficiais MOS/Unraid e a distinção entre imagem OCI, mídia inicializável e sistema integralmente em RAM. Apenas documentação alterada; sem novo teste de boot.
+### Trabalho funcional anterior preservado
 
-- Containerfile, identidade do protótipo e verificação de ferramentas adicionados.
-- Primeiro build passou; QEMU 10.2.2 e libvirt 12.0.0 encontrados. Digest da base fixado para builds seguintes; evidências em [BUILD_EVIDENCE.md](docs/BUILD_EVIDENCE.md).
-- Sem distribuição/instalação da imagem; assinatura upstream e boot são próximos gates.
-
-- Aprovação registrada e roadmap integrado.
-- [Triagem GPU e bases](docs/FASE0_GPU.md) com fontes oficiais NVIDIA, Microsoft, AMD e Mesa; virtualização do fabricante e aceleração de APIs para guests Linux tratadas separadamente.
-- [Protocolo de laboratório](docs/FASE0_LAB.md) e coletor Python somente leitura preparados.
-- Suporte das placas citadas permanece não comprovado. Ausência em listas oficiais não significa impossibilidade de toda alternativa.
+- Agente e CLI `storosctl`, com consulta de UUIDs/estado/recursos informados pelo libvirt, conexão somente leitura e falhas explícitas.
+- Serviço systemd do agente incluído e habilitado na imagem. Snapshot atômico local, com detecção de coleta antiga; nenhum endpoint de rede.
+- Dez testes locais passaram no incremento DEV-001; integração simulada usa `test:///default`.
+- Containerfile, identidade do protótipo e digest uCore fixado; primeiro build de composição passou com QEMU 10.2.2 e libvirt 12.0.0.
+- Triagem GPU, protocolo de laboratório e roadmap continuam válidos; nenhuma placa está homologada.
 
 ## Verificação e limitações
 
-- Coletor executado somente no ambiente de desenvolvimento; JSON válido. Não valida o host de Danilo.
-- Verificador de continuidade e links relativos executado localmente; consultar Actions do PR para resultado remoto.
-- Sem /dev/kvm ou /dev/dri disponíveis neste ambiente. Nenhum guest, teste de GPU ou benchmark executado.
-- Sem acesso ao host do usuário ou inventário confirmado. RTX 3080 Ti/RX 550 são candidatas citadas, não homologadas.
-- Base de desenvolvimento definida; homologação final, licenças finais, custos e prazo pendentes. Não há proteção de branch confirmada para exigir o check ao merge.
+- BOOT-001 ainda depende do resultado remoto do novo workflow para comprovar geração do QCOW2 e chegada ao marcador de boot.
+- Nenhum boot físico por USB foi executado nesta sessão.
+- Persistência de configuração após reinício ainda não foi implementada/testada.
+- Sem painel web, criação/alteração de VMs ou políticas automáticas de CPU/RAM.
+- Sem `/dev/kvm` ou hardware GPU do usuário neste ambiente; QEMU do CI usa TCG para prova funcional de boot, não benchmark.
+- Sem teste de GPU compartilhada. RTX 3080 Ti/RX 550 continuam candidatas citadas, não homologadas.
+- A imagem intermediária `storos-ci` fica em um registro local efêmero do runner e não é release do StorOS.
 
 ## Próxima tarefa concreta
 
-1. Conferir CI do agente e imagem no PR #2; resolver falhas de integração se houver. Verificar assinatura upstream e preparar boot em VM descartável, validando também o serviço storos-agent, SELinux e consulta real ao libvirt. Seguir BOOT_MEDIA.md: ISO não é requisito; OCI não é mídia USB pronta. Não pedir a Danilo para escolher novamente a distribuição.
-2. Após boot e agente validados, desenvolver configuração persistente e painel autenticado sobre o contrato de descoberta. Não anunciar ajustes automáticos existentes: a CLI atual somente observa.
-2. STOR-009: completar matriz com modelo/versão real e requisitos de licença. Triagem iniciada, homologação pendente.
-3. STOR-010: comparar bases após inventário. Linux KVM/QEMU com VirGL/Venus é hipótese de laboratório, não decisão final nem promessa para Windows.
-4. STOR-011: executar protocolo em guests/discos descartáveis quando houver equipamento e acesso apropriados. Protocolo preparado, testes pendentes.
-5. STOR-012/014: produzir go/no-go, alternativas/custos e estimativas com evidências. Não encerrar Fase 0 com pesquisa documental isolada.
+1. Consultar o workflow **Bootable media** deste incremento. Se falhar, corrigir o primeiro erro real sem esconder a falha. Se passar, registrar run/commit como primeira evidência de boot StorOS em VM descartável.
+2. Depois do primeiro boot verde, testar **dois boots consecutivos** no mesmo QCOW2 e persistência de um valor em `/var`/configuração para provar sobrevivência ao reinício.
+3. Em seguida, implementar configuração persistente transacional e a fundação do painel web autenticado, consumindo o contrato de descoberta existente.
+4. STOR-009/010/011 continuam pendentes para GPU/base/hardware; não encerrar Fase 0 com CI virtual apenas.
+5. Não anunciar GPU compartilhada, ajustes automáticos, mídia USB pronta ou suporte de produção sem evidência correspondente.
 
 ## Para uma nova IA
 
-Leia AGENTS.md e confira Git/PR. A aprovação acima já foi dada; não peça novamente para continuar a pesquisa. O Resource Guardian é um projeto MOS separado, não uma versão funcional do StorOS. Não repetir a revisão NAS inicial nem presumir que documentos significam implementação.
+Leia AGENTS.md e confira Git/PR. A aprovação acima já foi dada; não peça novamente para começar. O Resource Guardian é um projeto MOS separado, não uma versão funcional do StorOS. Não repetir a revisão NAS inicial nem presumir que documentação ou workflow criado equivale a boot validado.
