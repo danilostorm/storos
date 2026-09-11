@@ -30,3 +30,7 @@ O [PR #1](https://github.com/danilostorm/storos/pull/1) foi mesclado em main no 
 Não foram autorizadas migração de produção, alterações de firmware/drivers ou modificações no servidor atual. O laboratório físico ainda precisa ser identificado. Documentação não comprova funcionamento do hardware.
 
 Documentos: [roadmap](../ROADMAP.md), [arquitetura](ARQUITETURA.md), [referências](REFERENCIAS.md), [estado](../PROJECT_STATE.md), [changelog](../CHANGELOG.md).
+
+## Base de desenvolvimento autorizada
+
+Em 11/09/2026, Danilo respondeu **“Fecho pode começar”** à proposta Fedora/uCore. Autorizados protótipo da imagem, código e CI; decisão técnica detalhada em [BASE_FEDORA.md](BASE_FEDORA.md). Isso não autoriza instalar no servidor atual nem homologa GPU.

@@ -1,0 +1,35 @@
+name: Development image
+on:
+  push:
+    branches: [main, phase0/gpu-feasibility]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve base and build development image
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-evidence
+          docker pull ghcr.io/ublue-os/ucore-hci:stable
+          base_ref=$(docker image inspect ghcr.io/ublue-os/ucore-hci:stable --format '{{index .RepoDigests 0}}')
+          printf '%s\n' "$base_ref" > build-evidence/base-image.txt
+          docker build --file Containerfile --build-arg "BASE_IMAGE=$base_ref" --build-arg "STOROS_REVISION=$GITHUB_SHA" --tag storos:ci .
+          docker image inspect storos:ci > build-evidence/image.json
+          docker run --rm --network none --entrypoint bash storos:ci /usr/libexec/storos/check-image.sh | tee build-evidence/check.txt
+          docker run --rm --network none --entrypoint rpm storos:ci -qa | sort > build-evidence/packages.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: image-evidence
+          path: build-evidence/
+          retention-days: 14

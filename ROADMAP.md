@@ -10,7 +10,7 @@ Compartilhar RAM significa redistribuir memória física disponível entre guest
 
 ## GPU antes da escolha do sistema
 
-A Fase 0 verifica combinações de GPU, driver, hipervisor e guest. Não existe arquitetura escolhida nem promessa de suporte à RTX 3080 Ti/RX 550.
+A Fase 0 verifica combinações de GPU, driver, hipervisor e guest. Fedora/uCore HCI é a base de desenvolvimento autorizada; não há promessa de suporte à RTX 3080 Ti/RX 550. Veja [decisão](docs/BASE_FEDORA.md).
 
 Candidatos a comparar: MOS/Devuan, Debian/Linux com KVM/libvirt, Proxmox e alternativa Windows/Hyper-V para estudo de viabilidade. Essa lista não afirma suporte ao hardware do usuário. Uma alternativa proprietária não será apresentada como distribuição totalmente aberta nem adotada sem decisão explícita.
 
@@ -37,7 +37,7 @@ Streaming ou computação não comprovam, isoladamente, adequação a dois deskt
 
 ## Fases propostas
 
-Todas as fases de implementação estão pendentes. As estimativas da revisão 1 foram retiradas: a GPU pode mudar arquitetura, equipe e esforço.
+A composição da imagem de desenvolvimento foi iniciada na Fase 0; as entregas funcionais seguintes continuam pendentes. As estimativas da revisão 1 foram retiradas: a GPU pode mudar arquitetura, equipe e esforço.
 
 | Fase | Prioridade | Entrega | Dependência / saída |
 | --- | --- | --- | --- |

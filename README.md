@@ -31,3 +31,7 @@ Pesquisa inicial: [triagem GPU e bases](docs/FASE0_GPU.md), [protocolo de labora
 Passthrough exclusivo é uma opção auxiliar, não a entrega do requisito de GPU compartilhada. RTX 3080 Ti/RX 550 citadas por Danilo são candidatas a investigação, sem suporte comprovado.
 
 Toda atualização publicada deve atualizar changelog e estado do projeto, com mudanças, verificações, pendências e próximos passos.
+
+## Desenvolvimento iniciado
+
+Base do protótipo: **Fedora/uCore HCI**. [Decisão, build e limitações](docs/BASE_FEDORA.md). Há receita de imagem e CI; ainda não há ISO instalável, painel StorOS ou GPU homologada.

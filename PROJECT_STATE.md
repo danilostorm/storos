@@ -1,12 +1,12 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **11/09/2026**, atualização **PH0-001**. Responsável pelas decisões: Danilo.
+Atualizado em **11/09/2026**, atualização **PH0-002**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: danilostorm/storos.
 - Roadmap revisão 2 aprovado; [PR #1](https://github.com/danilostorm/storos/pull/1) mesclado.
-- Base desta atualização: `3746474390e96175278ea39bd9b8bf1982d4bb25` em main.
+- Base desta atualização: `6fe21efeb5e9b9cc9ce37d50e262e363e252caec` no PR #2.
 - Branch: `phase0/gpu-feasibility`; consultar seu PR/head antes de editar.
 - Fase 0 em andamento: pesquisa documental e preparação do laboratório. Sem ISO, sistema implementado ou hardware homologado.
 
@@ -14,9 +14,13 @@ Atualizado em **11/09/2026**, atualização **PH0-001**. Responsável pelas deci
 
 Danilo aprovou a revisão 2 com **“Ta aprovado.”** nesta conversa. Prioridade: VMs compartilhando CPU/RAM/GPU, especialmente GPU simultânea. A base pode mudar; MOS não é obrigatório. Docker/NAS são complementares. Changelog e estado são obrigatórios em cada atualização publicada.
 
-A aprovação permite iniciar a Fase 0. Não escolhe base, não homologa GPU e não autoriza modificar produção, firmware ou drivers do servidor atual.
+Nova aprovação “Fecho pode começar” autoriza Fedora/uCore HCI como base do protótipo e início de código/CI. Detalhes em [BASE_FEDORA.md](docs/BASE_FEDORA.md). Isso não homologa GPU e não autoriza modificar produção, firmware ou drivers do servidor atual.
 
 ## Concluído nesta atualização
+
+- Containerfile, identidade do protótipo e verificação de ferramentas adicionados.
+- Workflow constrói imagem por digest resolvido e coleta evidências; resultado remoto deve ser consultado no PR #2.
+- Sem distribuição/instalação da imagem; assinatura upstream e boot são próximos gates.
 
 - Aprovação registrada e roadmap integrado.
 - [Triagem GPU e bases](docs/FASE0_GPU.md) com fontes oficiais NVIDIA, Microsoft, AMD e Mesa; virtualização do fabricante e aceleração de APIs para guests Linux tratadas separadamente.
@@ -33,7 +37,7 @@ A aprovação permite iniciar a Fase 0. Não escolhe base, não homologa GPU e n
 
 ## Próxima tarefa concreta
 
-1. Identificar host de laboratório e obter inventário com `python3 scripts/collect_host.py`; levantar versões de QEMU/Mesa e workloads/guests desejados.
+1. Conferir workflow de imagem do PR #2, resolver falhas de build, fixar digest/verificar assinatura e preparar boot descartável. Identificar host de laboratório e obter inventário com `python3 scripts/collect_host.py`; levantar versões de QEMU/Mesa e workloads/guests desejados.
 2. STOR-009: completar matriz com modelo/versão real e requisitos de licença. Triagem iniciada, homologação pendente.
 3. STOR-010: comparar bases após inventário. Linux KVM/QEMU com VirGL/Venus é hipótese de laboratório, não decisão final nem promessa para Windows.
 4. STOR-011: executar protocolo em guests/discos descartáveis quando houver equipamento e acesso apropriados. Protocolo preparado, testes pendentes.

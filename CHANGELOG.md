@@ -2,6 +2,15 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-11 — PH0-002 — Protótipo Fedora/uCore
+
+- **Motivo:** Danilo autorizou começar com Fedora/uCore (“Fecho pode começar”).
+- **Mudou:** Containerfile derivado de ucore-hci, identificação, check de ferramentas e workflow de build com inventário e digest da base; decisão arquitetural registrada.
+- **Verificação:** sintaxe shell e continuidade locais; resultado do build remoto deve ser consultado no PR.
+- **Limites:** sem boot, instalador, assinatura própria, GPU testada ou mudanças no MOS; receita experimental.
+- **Próximo passo:** obter build verde, fixar/verificar base e preparar boot descartável.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base 6fe21efeb5e9b9cc9ce37d50e262e363e252caec.
+
 ## 2026-09-11 — PH0-001 — Aprovação e início da Fase 0
 
 - **Decisão:** Danilo aprovou a revisão 2 com “Ta aprovado.”; PR #1 mesclado em `3746474390e96175278ea39bd9b8bf1982d4bb25`.

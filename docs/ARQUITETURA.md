@@ -1,6 +1,6 @@
 # Arquitetura — revisão 2
 
-**Base ainda não escolhida.** A proposta de adotar MOS/Devuan por padrão foi substituída pelo foco em virtualização e compartilhamento de hardware.
+**Base de desenvolvimento: Fedora/uCore HCI**, autorizada por Danilo; homologação final pendente. Veja [a decisão e o build](BASE_FEDORA.md). A proposta de adotar MOS/Devuan por padrão foi substituída pelo foco em virtualização e compartilhamento de hardware.
 
 ## Escolha por capacidade
 
@@ -53,4 +53,4 @@ Usar guests/discos descartáveis. Virtualização aninhada ajuda no contrato/API
 
 Duas pessoas usam VMs separadas e entrada/áudio independentes; streaming não comprova GPU compartilhada. NAS/apps/cluster ficam fora do caminho crítico.
 
-A organização do código será definida após a base. Hoje há documentação e verificação de continuidade documental, sem sistema implementado.
+O protótipo começa pelo Containerfile e verificação de imagem. Painel, gerenciamento automático e instalador ainda não implementados.

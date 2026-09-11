@@ -1,0 +1,7 @@
+*
+!Containerfile
+!scripts/
+!scripts/collect_host.py
+!image/
+!image/check-image.sh
+!image/storos-release

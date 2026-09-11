@@ -1,0 +1,4 @@
+NAME=StorOS
+CHANNEL=development
+STATUS=prototype
+BASE=ucore-hci
