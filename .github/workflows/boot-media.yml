@@ -121,30 +121,45 @@ jobs:
         run: |
           set -euo pipefail
 
-          firmware=""
-          for candidate in \
-            /usr/share/OVMF/OVMF_CODE.fd \
-            /usr/share/OVMF/OVMF_CODE_4M.fd; do
-            if [[ -f "$candidate" ]]; then
-              firmware="$candidate"
+          firmware_code=""
+          firmware_vars=""
+          for pair in \
+            "/usr/share/OVMF/OVMF_CODE_4M.fd:/usr/share/OVMF/OVMF_VARS_4M.fd" \
+            "/usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd"; do
+            code=${pair%%:*}
+            vars=${pair#*:}
+            if [[ -r "$code" && -r "$vars" ]]; then
+              firmware_code="$code"
+              firmware_vars="$vars"
               break
             fi
           done
+
+          if [[ -z "$firmware_code" || -z "$firmware_vars" ]]; then
+            echo "No compatible OVMF CODE/VARS pair found." >&2
+            find /usr/share/OVMF -maxdepth 1 -type f -o -type l 2>/dev/null | sort || true
+            exit 1
+          fi
+
+          vars_copy="$RUNNER_TEMP/storos-OVMF_VARS.fd"
+          cp --dereference "$firmware_vars" "$vars_copy"
+          chmod u+w "$vars_copy"
+          test -s "$firmware_code"
+          test -s "$vars_copy"
 
           qemu_args=(
             -machine q35,accel=tcg
             -cpu max
             -smp 2
             -m 2048
+            -drive "if=pflash,format=raw,unit=0,readonly=on,file=$firmware_code"
+            -drive "if=pflash,format=raw,unit=1,file=$vars_copy"
             -drive "file=$QCOW2,format=qcow2,if=virtio"
             -display none
             -monitor none
             -serial stdio
             -no-reboot
           )
-          if [[ -n "$firmware" ]]; then
-            qemu_args+=(-bios "$firmware")
-          fi
 
           set +e
           timeout 300s qemu-system-x86_64 "${qemu_args[@]}" > boot-console.log 2>&1
@@ -152,11 +167,13 @@ jobs:
           set -e
 
           cat boot-console.log
-          grep -q 'StorOS read-only host and VM observer' boot-console.log
-          printf '%s\n' 'STOROS_BOOT_OK: systemd reached storos-agent.service' | tee boot-proof.txt
           if [[ "$qemu_rc" -ne 0 && "$qemu_rc" -ne 124 ]]; then
+            echo "QEMU exited unexpectedly with code $qemu_rc" >&2
             exit "$qemu_rc"
           fi
+
+          grep -q 'StorOS read-only host and VM observer' boot-console.log
+          printf '%s\n' 'STOROS_BOOT_OK: systemd reached storos-agent.service' | tee boot-proof.txt
 
       - name: Upload boot evidence
         if: always()
@@ -164,9 +181,18 @@ jobs:
         with:
           name: storos-boot-evidence
           path: |
-            output
             storos-qcow2.sha256
             boot-console.log
             boot-proof.txt
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Upload bootable StorOS QCOW2
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storos-qcow2
+          path: output/qcow2/disk.qcow2
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
