@@ -1,32 +1,26 @@
-# Aprovação da proposta StorOS
+# Aprovação — revisão 2
 
-**Pendente de aprovação de Danilo.** Documento de decisão, não autorização já concedida para implementar ou migrar o servidor.
+## Direção confirmada por Danilo
 
-## Pacote recomendado
+- VMs com compartilhamento de CPU, RAM e GPU são o foco principal.
+- A base operacional pode mudar; MOS não é obrigatório.
+- Docker e complementos têm prioridade menor.
+- Atualizar roadmap e exigir changelog/estado para continuidade entre chats e IAs.
 
-| Decisão | Recomendação | Consequência |
-| --- | --- | --- |
-| Base | Derivar MOS mantendo Devuan inicialmente | Menor mudança inicial; exige auditar/reconstruir múltiplos componentes |
-| Primeira versão | NAS + VMs/LXC + apps + Guardian + backup em um nó | Produto utilizável antes de enfrentar HA |
-| Recursos da VM | Seleção simples de vCPU e RAM, automação nativa opcional | Dispensa o fluxo de configurar primeiro e cadastrar novamente no plugin |
-| Armazenamento | Perfis distintos: mídia flexível e ZFS para usos adequados | Evita tratar paridade por sync como proteção contínua |
-| Workspaces | VMs por pessoa; protótipo de dois postos | Depende de GPUs/periféricos; pode seguir trilha experimental |
-| Cluster | Multisservidor antes de HA | Atrasar a promessa de alta disponibilidade até ter quorum/fencing testados |
-| Código e distribuição | Aberto, preservando licenças upstream; proposta AGPLv3 para painel/API novos | Código correspondente e atribuições fazem parte da distribuição |
-| Comercial | Sem cobrança ou planos definidos nesta fase | Suporte pago pode ser discutido depois sem bloquear uso local |
-| Prazo | Estimar de novo após Fase 0 | Faixas do roadmap não são compromisso de entrega |
-| Marca | StorOS como nome de trabalho | Verificar marca/domínio antes de lançamento comercial |
+Esta revisão documental foi autorizada. Isso não comprova viabilidade nem autoriza alterações no servidor.
 
-## Como aprovar
+## Decisões para execução
 
-Danilo pode aprovar este PR ou responder: **“Aprovo o roadmap StorOS e o início da Fase 0.”** Para ajustar, indicar as decisões/fases que deseja mudar. A aprovação deve ser registrada no PR antes de alterar o estado deste documento.
+| Decisão | Proposta |
+| --- | --- |
+| Primeiro trabalho | Fase 0: GPU simultânea e comparação de bases |
+| Placas atuais | Investigar RTX 3080 Ti/RX 550; suporte desconhecido |
+| Caso incompatível | Apresentar hardware/plataforma e custos alternativos |
+| Base | Escolher após evidências, preservando licenças |
+| Produto inicial | Compute + Guardian + GPU compartilhada + recuperação |
+| Prazo | Reestimar após viabilidade; estimativa antiga retirada |
+| Produção | Fora dos testes iniciais; laboratório descartável |
 
-A entrega seguinte à aprovação será o inventário técnico, build de referência, protótipo dos fluxos e relatório de viabilidade. O encerramento da Fase 0 terá nova revisão para fixar o escopo de implementação.
+O [PR #1](https://github.com/danilostorm/storos/pull/1) permanece para revisão. A resposta **“Aprovo a revisão 2 e o início da Fase 0”** registra autorização de execução. Registrar futuras aprovações no estado do projeto; não inferir homologação pela existência dos documentos.
 
-## Evidências entregues para esta revisão
-
-- [Roadmap](../ROADMAP.md) com escopo, dependências, estimativas, critérios de aceite e backlog.
-- [Referências](REFERENCIAS.md) de todos os sistemas citados, com fontes e limites de reaproveitamento.
-- [Arquitetura](ARQUITETURA.md), incluindo o fluxo desejado de CPU/RAM automáticas e múltiplos postos.
-
-Nenhum código do MOS foi importado, nenhum sistema operacional foi instalado e nenhuma VM/disco do servidor foi alterado nesta proposta. A criação destes documentos no GitHub foi solicitada por Danilo; a implementação aguarda esta aprovação.
+Documentos: [roadmap](../ROADMAP.md), [arquitetura](ARQUITETURA.md), [referências](REFERENCIAS.md), [estado](../PROJECT_STATE.md), [changelog](../CHANGELOG.md).

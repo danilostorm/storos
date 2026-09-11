@@ -1,30 +1,31 @@
 # StorOS
 
-**Seu servidor, seus arquivos e seus computadores em um único painel.**
+**Virtualização com CPU, RAM e GPU compartilhadas entre máquinas virtuais.**
 
-Proposta de sistema aberto derivado do MOS, com identidade própria, para NAS, máquinas virtuais, aplicativos e postos de trabalho. Foco inicial: homelabs, criadores de conteúdo e pequenos negócios.
+Projeto em planejamento para várias VMs usarem o hardware do mesmo servidor simultaneamente. NAS, Docker e catálogo de apps são complementares. A base está aberta: MOS não é obrigatório.
 
-**Estado: proposta para aprovação de Danilo — 11/09/2026.** Este repositório contém planejamento. Não há ISO, instalador, versão funcional ou compatibilidade de hardware certificada.
+**Estado: roadmap revisão 2, de 11/09/2026.** A mudança de foco e as regras de continuidade foram solicitadas por Danilo. Não existe ISO, sistema implementado ou GPU homologada.
 
-## Documentos para aprovação
+## Para continuar o projeto
 
-- [Roadmap e critérios de entrega](ROADMAP.md)
-- [Comparativo das referências e fontes](docs/REFERENCIAS.md)
-- [Arquitetura proposta e experiência de uso](docs/ARQUITETURA.md)
-- [Decisões para aprovação](docs/APROVACAO.md)
+1. Leia [AGENTS.md](AGENTS.md): regras para pessoas e assistentes.
+2. Leia [PROJECT_STATE.md](PROJECT_STATE.md): onde paramos, decisões e próxima tarefa.
+3. Consulte [CHANGELOG.md](CHANGELOG.md): histórico das atualizações.
+4. Revise [ROADMAP.md](ROADMAP.md) e [aprovações](docs/APROVACAO.md).
 
-## Proposta central
+Outros documentos: [arquitetura](docs/ARQUITETURA.md), [referências](docs/REFERENCIAS.md) e [PR #1](https://github.com/danilostorm/storos/pull/1).
 
-| Área | O que queremos entregar |
+## Prioridades
+
+| Prioridade | Entrega pretendida |
 | --- | --- |
-| StorOS Storage | Compartilhamentos simples; armazenamento flexível para mídia e ZFS para cargas apropriadas |
-| StorOS Compute | VMs KVM, LXC e controle de GPU/USB pelo painel |
-| StorOS Guardian | CPU/RAM automáticas integradas à criação da VM, com mínimos, tetos e reserva do servidor |
-| StorOS Apps | Catálogo de aplicativos, Compose e plugins com permissões declaradas |
-| StorOS Backup | Backups, restauração testada e migração assistida |
-| StorOS Workspaces | Mais de um posto de trabalho no mesmo servidor, começando por VMs isoladas |
-| StorOS Cluster | Administração de vários servidores e, depois, alta disponibilidade |
+| P0 | Validar GPU simultânea entre VMs e escolher hardware/base compatíveis |
+| P0 | Distribuir CPU e RAM disponível por demanda, prioridade e reserva do host |
+| P0 | Criar e administrar VMs pelo painel, com estado aplicado verificável |
+| P0 | Isolamento, backup e recuperação |
+| P1 | Múltiplos usuários/postos simultâneos |
+| P2 | NAS, Docker, apps e, posteriormente, multisservidor/cluster |
 
-Os nomes dos módulos são propostas. A marca StorOS ainda precisa de verificação de disponibilidade antes de divulgação comercial.
+Passthrough exclusivo é uma opção auxiliar, não a entrega do requisito de GPU compartilhada. RTX 3080 Ti/RX 550 citadas por Danilo são candidatas a investigação, sem suporte comprovado.
 
-O objetivo é selecionar boas capacidades e construir uma experiência coerente. Não instalar os painéis de todos os produtos no mesmo host. Recursos descritos como futuros não estão implementados.
+Toda atualização publicada deve atualizar changelog e estado do projeto, com mudanças, verificações, pendências e próximos passos.

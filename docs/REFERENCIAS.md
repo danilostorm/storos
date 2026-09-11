@@ -1,18 +1,20 @@
 # Referências, reaproveitamento e limites
 
+**Revisão 2:** MOS é candidato, não base escolhida. Esta pesquisa de origem não homologa GPU; a viabilidade de uso simultâneo entre VMs orienta a escolha operacional.
+
 Pesquisa documental em fontes oficiais consultadas em **11/09/2026**. Não é benchmark executado nem ranking absoluto. A coluna StorOS descreve escolhas propostas, não funcionalidades existentes. A existência de uma capacidade em outro produto não demonstra que ela possa ser portada diretamente.
 
 ## Comparativo orientado ao produto
 
 | Referência | Capacidade observada | Proposta StorOS | Etapa |
 | --- | --- | --- | --- |
-| MOS | Base Devuan, Docker/LXC/QEMU, mergerfs/SnapRAID e módulos opcionais | Ponto de partida da distribuição e migração de conhecimento do Guardian | 0–4 |
-| Proxmox VE | Administração KVM/LXC, backups, rede, cluster e HA | Compute organizado, API, tarefas, backups; cluster depois da base de nó único | 3, 5, 8–9 |
-| OpenMediaVault | Administração de compartilhamentos, permissões, SMART e serviços NAS | NAS compreensível, diagnóstico e opções avançadas acessíveis | 2 |
-| Unraid | NAS flexível, expansão de discos, apps e VMs em experiência integrada | Facilidade para mídia e aplicações; implementar com componentes de origem/licença verificadas | 2–4 |
-| TrueNAS | Gestão de armazenamento baseada em OpenZFS | Datasets, integridade, snapshots e recuperação com interface nativa | 2, 5, 8 |
-| CasaOS | Experiência de nuvem pessoal, apps e widgets simples | Home orientada a tarefas e catálogo fácil de usar | 1, 4 |
-| IBIK ASTER | Múltiplos postos com periféricos independentes; site anuncia edições Windows e Linux | Workspaces: VMs por usuário primeiro, multiseat do host como pesquisa | 0, 6 |
+| MOS | Base Devuan, Docker/LXC/QEMU, mergerfs/SnapRAID e módulos opcionais | Candidato a base, sujeito à investigação GPU | 0 |
+| Proxmox VE | Administração KVM/LXC, backups, rede, cluster e HA | Referência de Compute e candidato à avaliação de base; cluster posterior | 0–5, 8 |
+| OpenMediaVault | Administração de compartilhamentos, permissões, SMART e serviços NAS | NAS complementar | 7 |
+| Unraid | NAS flexível, expansão de discos, apps e VMs em experiência integrada | Referência de interface e complementos, sem copiar componentes sem autorização | 4, 7 |
+| TrueNAS | Gestão de armazenamento baseada em OpenZFS | Referência de storage e recuperação | 5, 7 |
+| CasaOS | Experiência de nuvem pessoal, apps e widgets simples | Referência de simplicidade; apps complementares | 4, 7 |
+| IBIK ASTER | Múltiplos postos com periféricos independentes; site anuncia edições Windows e Linux | Experiência multiusuário; não comprova GPU compartilhada entre VMs | 0, 4 |
 
 Fontes do comparativo: [MOS](https://github.com/mos-nas/mos-releases#readme), [Proxmox](https://www.proxmox.com/en/products/proxmox-virtual-environment/features), [OMV](https://www.openmediavault.org/features.html), [Unraid](https://unraid.net/product), [TrueNAS](https://www.truenas.com/truenas-community-edition/), [CasaOS](https://github.com/IceWhaleTech/CasaOS#readme), [ASTER](https://ibiksoft.com/).
 
@@ -40,8 +42,8 @@ Unraid e ASTER são referências de funcionalidade/experiência. Não há propos
 - SnapRAID protege o estado sincronizado e é voltado a dados adequados a esse modelo; não equivale a paridade contínua. Por isso o perfil de mídia e o perfil de VMs ficam separados. [FAQ oficial](https://www.snapraid.it/faq).
 - libvirt distingue contagem de vCPUs, afinidade e parâmetros de recursos. O modo automático não deve confundir alterar quota com adicionar/remover vCPUs. A memória dinâmica depende do guest e de seus dispositivos. [Manual virsh](https://www.libvirt.org/manpages/virsh.html).
 - ASTER é referência de vários postos num PC; o caminho proposto com VMs tem arquitetura diferente. A página do fabricante não certifica StorOS/Devuan nem garante compartilhamento arbitrário de GPU. [Fabricante](https://ibiksoft.com/).
-- HA exige coordenação de cluster, não apenas gerenciamento remoto; a existência desse recurso no Proxmox orienta requisitos, mas não fornece compatibilidade automática para um fork MOS. [Recursos Proxmox](https://www.proxmox.com/en/products/proxmox-virtual-environment/features).
+- HA exige coordenação de cluster, não apenas gerenciamento remoto; a existência desse recurso no Proxmox orienta requisitos, mas não fornece compatibilidade automática para a base que for escolhida. [Recursos Proxmox](https://www.proxmox.com/en/products/proxmox-virtual-environment/features).
 
 ## O que falta pesquisar na Fase 0
 
-Versões/commits de todos os componentes; build completo e atualizações; contratos do Hub; matriz ZFS/kernel; suporte de sessão gráfica em Devuan; restrições por GPU/driver; termos de Windows, apps e drivers; verificação do nome StorOS; alternativas de backup e coordenação de cluster. Os resultados podem alterar escopo e estimativas.
+Primeiro: matriz GPU/driver/guest/hipervisor, uso simultâneo, licenciamento, equipamento disponível e comparação de bases. Depois: build e versões da base escolhida, CPU/RAM e recuperação. Hub/NAS/cluster não são o caminho crítico. Evidência de GPU exige documentação oficial específica e testes físicos; nenhuma placa foi homologada nesta pesquisa.

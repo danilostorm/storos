@@ -1,85 +1,56 @@
-# Arquitetura proposta
+# Arquitetura — revisão 2
 
-Estado: desenho para aprovação, sem implementação. As escolhas definitivas seguem a auditoria da Fase 0.
+**Base ainda não escolhida.** A proposta de adotar MOS/Devuan por padrão foi substituída pelo foco em virtualização e compartilhamento de hardware.
 
-## Base e estratégia de derivação
+## Escolha por capacidade
 
-Manter Devuan inicialmente, para limitar divergência do MOS. Não introduzir dependência obrigatória de systemd sem decisão explícita sobre a base. Aproveitar frontend Vue e API do MOS onde a revisão permitir; separar serviços privilegiados e criar contratos versionados. Não manter dois gerenciadores concorrentes escrevendo sobre libvirt ou os mesmos pools.
+Avaliar GPU simultânea comprovada, controle CPU/RAM, guests Linux/Windows, isolamento, manutenção, licenciamento, build e custo. Registrar decisão e evidências antes da implementação.
 
-O repositório StorOS será o ponto de entrada do produto, documentação, composição de releases e versões upstream fixadas. Forks/submódulos ou pacotes por componente serão escolhidos na Fase 0, com histórico e créditos preservados. Upstream será acompanhado com inventário de patches próprios, atualização de segurança e testes antes de integrar mudanças. Nada de renomear apenas uma ISO e perder a capacidade de reconstrução.
+MOS/Devuan, Linux/KVM, Proxmox e alternativa Windows/Hyper-V são candidatos de avaliação, não afirmações de suporte ao hardware do usuário. Se a escolha mudar a proposta de distribuição aberta, exigir decisão explícita.
 
-## Limites entre componentes
+## Componentes propostos
 
 ```mermaid
 flowchart TD
-    UI["Painel StorOS"] --> API["API: autenticação, permissões e validação"]
-    API --> DB["Configuração persistente e auditoria"]
-    API --> JOBS["Fila de tarefas e reconciliação"]
-    JOBS --> STORAGE["Adaptador de armazenamento"]
-    JOBS --> COMPUTE["Adaptador libvirt e LXC"]
-    JOBS --> APPS["Adaptador de aplicativos"]
-    GUARD["Guardian: políticas e métricas"] --> JOBS
-    STORAGE --> DISKS["ZFS, mergerfs, SnapRAID e compartilhamentos"]
-    COMPUTE --> GUESTS["VMs e containers"]
-    APPS --> OCI["Compose e runtime OCI"]
+    UI["Painel de VMs"] --> API["API: permissões e validação"]
+    API --> DB["Configuração e auditoria persistentes"]
+    API --> JOBS["Tarefas e reconciliação"]
+    POLICY["Guardian: políticas e métricas"] --> JOBS
+    JOBS --> COMPUTE["Adaptador do hipervisor escolhido"]
+    JOBS --> GPU["Adaptador GPU validado por hardware"]
+    JOBS --> BACKUP["Backup e recuperação"]
+    COMPUTE --> VMS["VMs isoladas"]
+    GPU --> VMS
 ```
 
-A API valida intenção; workers privilegiados executam operações tipadas com argumentos estruturados, sem montar comandos shell a partir da entrada do usuário. Guardian usa a mesma fila/coordenação, com bloqueio por recurso, para não competir com edição manual ou backup.
+Adaptadores usam contratos tipados. Uma autoridade coordena operações por VM/dispositivo; não colocar dois controladores disputando o mesmo recurso.
 
-Estado em três níveis: **desejado**, **gravado** e **observado no sistema**. Cada tarefa recebe ID, resultado e motivo. Uma gravação de formulário só é confirmada após persistir e reler; uma ação de infraestrutura só aparece como aplicada depois da verificação. Timeouts, repetição e reinício não podem duplicar formatação, criação de VM ou alteração de limite.
+Estado distingue intenção, gravação e aplicação observada. Gravação exige releitura; aplicação exige verificação no hipervisor. Tarefas têm ID, timeout e recuperação. Restauração verifica identidade da execução e alterações externas.
 
-Inicialmente um banco local transacional, com esquema versionado e cópias consistentes; não compartilhar um arquivo SQLite entre hosts. Métricas têm retenção e local persistente. Cluster exigirá desenho próprio de coordenação na Fase 9.
+## Contrato de recursos
 
-## Experiência de uso
+| Recurso | Configuração | Estado observado |
+| --- | --- | --- |
+| CPU | vCPUs, prioridade, capacidade máxima e afinidade opcional | Uso, quota efetiva e disponibilidade do host |
+| RAM | Mínimo/inicial/máximo, reserva e margem do guest | Atribuição, disponibilidade e suporte das métricas |
+| GPU | Placa/unidade virtual, perfil suportado e prioridade quando disponível | VMs usuárias, driver, VRAM e métricas realmente expostas |
 
-Navegação proposta: **Visão geral, Arquivos e discos, Máquinas virtuais, Aplicativos, Postos de trabalho, Backups, Rede, Sistema**. Painéis avançados ficam dentro da área correspondente. Os módulos não precisam virar marcas ou telas adicionais para o usuário.
+Não inventar percentuais GPU/VRAM configuráveis se o mecanismo não permitir. Compartilhamento simultâneo pode depender de perfis fixos e não implica redistribuição dinâmica de todos os recursos da placa.
 
-### Instalar e começar
+## Fluxo central
 
-Escolher disco do sistema com modelo/serial/capacidade → criar administrador → configurar rede → revisar o resumo → instalar → escolher uso principal. Discos de dados existentes não são formatados por sugestão automática. O painel explica que pools diferentes têm regras diferentes de expansão e proteção.
+Criar VM → quantidade de CPU → faixa de RAM → GPU compartilhada compatível → acesso local/remoto → revisar reserva → salvar/criar.
 
-### Criar VM com recursos automáticos
+Exemplo ilustrativo: duas VMs com 8 vCPUs e RAM 4/8/16 GiB cada. A capacidade CPU é distribuída por prioridade. A memória inicial precisa caber no orçamento do host; crescimento depende de capacidade confirmada. GPU só oferece combinações verificadas. Não é recomendação para qualquer máquina.
 
-Escolher sistema/imagem → armazenamento → quantidade de vCPUs → RAM mínima/inicial/máxima → perfil automático ou manual → revisar reserva do servidor → criar.
+Mostrar limite configurado/aplicado, uso e motivo da última ação. Pausar mantém ajustes; restaurar verifica conflitos e capacidade. Editor não apaga configurações avançadas silenciosamente.
 
-Exemplo ilustrativo, não configuração recomendada para todo guest: 16 vCPUs, RAM 4/8/16 GiB. Em automático, o sistema agenda essas vCPUs sem exigir pinning. O teto de quota é equivalente à capacidade escolhida; a contagem visível permanece 16. Balloon pode ajustar RAM na faixa quando houver suporte e métricas confiáveis. O orçamento do host precisa admitir o início; se não houver capacidade, oferecer aguardar ou revisar recursos.
+## Segurança e laboratório
 
-Depois da criação, mostrar no mesmo cartão: máximo configurado, uso atual, limite aplicado, suporte de memória dinâmica, prioridade, última decisão e motivo. Exemplo: “RAM mantida: guest sem estatísticas recentes”. O modo manual continua disponível para jogos, baixa latência e aplicações sensíveis a NUMA.
+Autenticação, papéis, tokens com escopo, logs sem segredos e API sem shell arbitrário. Atualizações com origem/assinatura e recuperação de configuração. Backups informam consistência. Falha GPU mantém um caminho administrativo independente daquela placa.
 
-### Desativar automação
+Usar guests/discos descartáveis. Virtualização aninhada ajuda no contrato/API, mas não certifica GPU. Testes físicos por modelo, firmware, driver, guest e hipervisor. RTX 3080 Ti/RX 550 não estão homologadas. Não alterar produção ou firmware sem autorização específica.
 
-Oferecer ações distintas: **Pausar ajustes**, que mantém o estado atual; **Restaurar configuração anterior**, que verifica identidade e alterações externas; **Alterar limites**, com revisão da capacidade antes de aplicar. Não desfazer uma alteração externa silenciosamente. Se o guest não puder receber RAM de volta naquele momento, mostrar restauração pendente e a razão.
+Duas pessoas usam VMs separadas e entrada/áudio independentes; streaming não comprova GPU compartilhada. NAS/apps/cluster ficam fora do caminho crítico.
 
-### Escolher um posto de trabalho
-
-Associar usuário → VM → GPU ou cliente remoto → teclado/mouse/áudio → testar. Mostrar dispositivos ocupados e dependências IOMMU. Não permitir atribuir a mesma GPU física exclusiva a dois guests. Um erro de GPU não pode bloquear o acesso administrativo remoto ao servidor.
-
-## Segurança, atualização e recuperação
-
-- Administração local com TLS; autenticação forte e MFA; sessões revogáveis, RBAC e tokens com escopo. Acesso externo é opção explícita.
-- Plugins declaram acesso a rede, disco e host. Instalação confiável exige origem/assinatura e compatibilidade; não executar scripts arbitrários de URLs no painel.
-- Segredos separados da configuração exportável; diagnóstico remove tokens, senhas e chaves. Backups cifrados têm procedimento de recuperação de chaves.
-- Alterações destrutivas exibem disco/pool afetado e exigem confirmação específica; alterações de rede têm mecanismo de retorno se o acesso não for confirmado.
-- Atualização registra versão anterior e backup do esquema. Não prometer rollback de pool ZFS após habilitar novos recursos nem rollback dos arquivos do usuário.
-- Usar pacotes/motores estabelecidos para storage e virtualização; o StorOS orquestra e verifica, não implementa um filesystem novo.
-
-## Laboratório proposto
-
-Primeiro testar nested virtualization com discos descartáveis. Depois usar pelo menos duas máquinas físicas x86-64, uma com IOMMU/passthrough e, se disponível, uma dual-socket NUMA. A plataforma Xeon do Danilo é candidata a homologação, não hardware já validado. Para NAS, discos descartáveis de tamanhos diferentes e SSD/NVMe separado para VMs; UPS para ensaios controlados.
-
-Não usar os dados de produção do MOS como primeira migração. A migração inicial é instalação separada + importação/cópia verificada + teste de restauração. Publicar resultados por versão do kernel, placa-mãe, NIC, controlador, GPU e driver, sem generalizar uma aprovação a todos os modelos.
-
-## Organização futura sugerida
-
-| Caminho ou componente | Responsabilidade |
-| --- | --- |
-| docs/ | Roadmap, decisões, arquitetura e guias |
-| build/ | Composição de imagem, versões e fontes |
-| frontend/ | Interface e fluxos guiados |
-| api/ | Contratos, autenticação e estado |
-| services/ | Tarefas e adaptadores de storage/compute/backup |
-| guardian/ | Políticas de recursos e diagnóstico |
-| plugins/ | SDK, manifesto e exemplos |
-| tests/ | Contratos, E2E, recuperação e hardware |
-
-Esses diretórios são apenas proposta. Este PR cria exclusivamente documentação.
+A organização do código será definida após a base. Hoje há documentação e verificação de continuidade documental, sem sistema implementado.
