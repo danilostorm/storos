@@ -11,6 +11,14 @@ on:
       - scripts/**
       - src/**
       - .github/workflows/boot-media.yml
+  pull_request:
+    paths:
+      - Containerfile
+      - bin/**
+      - image/**
+      - scripts/**
+      - src/**
+      - .github/workflows/boot-media.yml
 
 permissions:
   contents: read
