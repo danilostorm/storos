@@ -1,0 +1,147 @@
+name: Bootable media
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase0/gpu-feasibility]
+    paths:
+      - Containerfile
+      - bin/**
+      - image/**
+      - scripts/**
+      - src/**
+      - .github/workflows/boot-media.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: boot-media-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qcow2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install image and VM tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman qemu-system-x86 qemu-utils ovmf
+
+      - name: Start ephemeral local registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/storos-registry"
+          docker run --detach --rm \
+            --name storos-registry \
+            --publish 5000:5000 \
+            --volume "$RUNNER_TEMP/storos-registry:/var/lib/registry" \
+            registry:2
+
+      - name: Prepare build variables
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "STOROS_IMAGE=localhost:5000/storos-ci:boot-${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "BIB_CHOWN=$(id -u):$(id -g)" >> "$GITHUB_ENV"
+
+      - name: Build and stage bootc image
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_ref=$(sed -n 's/^ARG BASE_IMAGE=//p' Containerfile)
+          test -n "$base_ref"
+          docker pull "$base_ref"
+          docker build \
+            --file Containerfile \
+            --build-arg "BASE_IMAGE=$base_ref" \
+            --build-arg "STOROS_REVISION=$GITHUB_SHA" \
+            --tag "$STOROS_IMAGE" \
+            .
+
+          docker run --rm --network none "$STOROS_IMAGE" bootc container lint
+          docker run --rm --network none --entrypoint bash "$STOROS_IMAGE" /usr/libexec/storos/check-image.sh
+          docker push "$STOROS_IMAGE"
+
+      - name: Build StorOS QCOW2
+        id: media
+        uses: osbuild/bootc-image-builder-action@019bb59c5100ecec4e78c9e94e18a840110f7a0b
+        with:
+          config-file: image/bootc-image-builder.toml
+          image: ${{ env.STOROS_IMAGE }}
+          types: |
+            qcow2
+          rootfs: xfs
+          tls-verify: false
+          chown: ${{ env.BIB_CHOWN }}
+
+      - name: Inspect QCOW2
+        shell: bash
+        env:
+          QCOW2: ${{ steps.media.outputs.qcow2-output-path }}
+        run: |
+          set -euo pipefail
+          test -s "$QCOW2"
+          qemu-img info "$QCOW2"
+          sha256sum "$QCOW2" | tee storos-qcow2.sha256
+
+      - name: Boot QCOW2 and wait for StorOS agent
+        shell: bash
+        env:
+          QCOW2: ${{ steps.media.outputs.qcow2-output-path }}
+        run: |
+          set -euo pipefail
+
+          firmware=""
+          for candidate in \
+            /usr/share/OVMF/OVMF_CODE.fd \
+            /usr/share/OVMF/OVMF_CODE_4M.fd; do
+            if [[ -f "$candidate" ]]; then
+              firmware="$candidate"
+              break
+            fi
+          done
+
+          qemu_args=(
+            -machine q35,accel=tcg
+            -cpu max
+            -smp 2
+            -m 2048
+            -drive "file=$QCOW2,format=qcow2,if=virtio"
+            -display none
+            -monitor none
+            -serial stdio
+            -no-reboot
+          )
+          if [[ -n "$firmware" ]]; then
+            qemu_args+=(-bios "$firmware")
+          fi
+
+          set +e
+          timeout 300s qemu-system-x86_64 "${qemu_args[@]}" > boot-console.log 2>&1
+          qemu_rc=$?
+          set -e
+
+          cat boot-console.log
+          grep -q 'StorOS read-only host and VM observer' boot-console.log
+          printf '%s\n' 'STOROS_BOOT_OK: systemd reached storos-agent.service' | tee boot-proof.txt
+          if [[ "$qemu_rc" -ne 0 && "$qemu_rc" -ne 124 ]]; then
+            exit "$qemu_rc"
+          fi
+
+      - name: Upload boot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storos-boot-evidence
+          path: |
+            ${{ steps.media.outputs.output-directory }}
+            storos-qcow2.sha256
+            boot-console.log
+            boot-proof.txt
+          if-no-files-found: warn
+          retention-days: 14
