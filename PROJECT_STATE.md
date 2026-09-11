@@ -8,7 +8,7 @@ Atualizado em **11/09/2026**, atualização **BOOT-001**. Responsável pelas dec
 - Roadmap revisão 2 aprovado; [PR #1](https://github.com/danilostorm/storos/pull/1) mesclado.
 - Branch: `phase0/gpu-feasibility`, [PR #2](https://github.com/danilostorm/storos/pull/2).
 - Base desta atualização: `83feeec44cbf55a878b503bc03e4a7ceceb8c548`; conferir o head atual antes de editar.
-- Fase 0 continua aberta para hardware/GPU. A Fase 1 já tem agente de descoberta; BOOT-001 adiciona a pipeline para transformar a imagem bootc em QCOW2 e provar boot via console. O resultado remoto deste novo workflow deve ser consultado antes de marcar o boot como validado.
+- Fase 0 continua aberta para hardware/GPU. A Fase 1 já tem agente de descoberta; BOOT-001 adiciona a pipeline para transformar a imagem bootc em QCOW2 e provar boot via console. O workflow roda em push e pull request para que a prova fique visível no PR. O resultado remoto deve ser consultado antes de marcar o boot como validado.
 
 ## Decisões confirmadas
 
@@ -25,6 +25,7 @@ A correção posterior de Danilo confirmou que **ISO instalável não é requisi
 - Nenhuma credencial padrão ou serviço adicional foi criado apenas para o teste.
 - O workflow executa `bootc container lint` antes do empacotamento e mantém o `check-image.sh` existente com o driver `test:///default`.
 - Configuração do Image Builder adiciona console serial e `systemd.show_status=yes` ao kernel para tornar o boot de CI observável.
+- O workflow foi ligado também ao evento de pull request para facilitar inspeção pelo PR #2.
 - Sintaxe dos novos trechos Bash e TOML foi revisada antes da publicação. O resultado do GitHub Actions do incremento BOOT-001 ainda precisa ser consultado; não registrar boot bem-sucedido apenas porque o workflow foi criado.
 
 ### Trabalho funcional anterior preservado
