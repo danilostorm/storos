@@ -15,6 +15,8 @@ from collect_host import inventory
 
 URIS = ('qemu:///system', 'test:///default')
 SNAPSHOT = '/run/storos/status.json'
+BOOT_STATE = '/var/lib/storos/boot-state.json'
+BOOT_ID = '/proc/sys/kernel/random/boot_id'
 
 
 class ProbeError(Exception):
@@ -37,7 +39,6 @@ def run_virsh(uri, args, timeout):
     except (OSError, UnicodeError) as exc:
         raise ProbeError('command_failed', 'Não foi possível consultar o libvirt.') from exc
     if result.returncode:
-        # Do not publish stderr: it may contain host paths or other private data.
         raise ProbeError('libvirt_error', 'Consulta recusada ou libvirt indisponível; verifique serviço e permissões.')
     return result.stdout
 
@@ -136,6 +137,63 @@ def read_snapshot(path, max_age=30):
     return data
 
 
+def read_boot_state(path=BOOT_STATE):
+    state = json.loads(Path(path).read_text())
+    count = state.get('boot_count')
+    last = state.get('last_boot_id')
+    if state.get('schema_version') != 1 or not isinstance(count, int) or isinstance(count, bool) or count < 1:
+        raise ValueError('Boot state incompatible')
+    if not isinstance(last, str):
+        raise ValueError('Boot id missing')
+    UUID(last)
+    return state
+
+
+def write_boot_state(path, data):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix='.boot-state-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w') as stream:
+            os.fchmod(stream.fileno(), 0o640)
+            json.dump(data, stream, ensure_ascii=True, allow_nan=False, sort_keys=True)
+            stream.write('\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def record_boot(state_path=BOOT_STATE, boot_id_path=BOOT_ID):
+    boot_id = Path(boot_id_path).read_text().strip()
+    UUID(boot_id)
+    try:
+        state = read_boot_state(state_path)
+    except FileNotFoundError:
+        state = dict(schema_version=1, boot_count=0, last_boot_id=None)
+    if state.get('last_boot_id') != boot_id:
+        state = dict(schema_version=1, boot_count=int(state.get('boot_count', 0)) + 1, last_boot_id=boot_id)
+        write_boot_state(state_path, state)
+    return state
+
+
+def wait_for_snapshot(path=SNAPSHOT, timeout=45):
+    deadline = time.monotonic() + timeout
+    path = Path(path)
+    while time.monotonic() < deadline:
+        if path.is_file() and path.stat().st_size > 0:
+            return True
+        time.sleep(1)
+    return False
+
+
 def safe_text(value):
     return ''.join(c if c.isprintable() else '?' for c in str(value))
 
@@ -162,16 +220,31 @@ def render(data):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description='Inventário StorOS e descoberta de VMs; não altera recursos.')
-    parser.add_argument('command', choices=('status', 'discover', 'daemon'), nargs='?', default='status')
+    parser.add_argument('command', choices=('status', 'discover', 'daemon', 'boot-record', 'boot-marker'), nargs='?', default='status')
     parser.add_argument('--uri', choices=URIS, default=URIS[0])
     parser.add_argument('--snapshot', default=SNAPSHOT)
+    parser.add_argument('--boot-state', default=BOOT_STATE)
+    parser.add_argument('--boot-id', default=BOOT_ID)
+    parser.add_argument('--wait', type=int, default=45)
     parser.add_argument('--json', action='store_true')
     parser.add_argument('--interval', type=float, default=10)
     parser.add_argument('--once', action='store_true')
     args = parser.parse_args(argv)
     if not 1 <= args.interval <= 3600:
         parser.error('O intervalo deve ser de 1 a 3600 segundos.')
+    if not 1 <= args.wait <= 300:
+        parser.error('A espera deve ser de 1 a 300 segundos.')
     try:
+        if args.command == 'boot-record':
+            state = record_boot(args.boot_state, args.boot_id)
+            print(f"STOROS_BOOT_STATE boot_count={state['boot_count']} last_boot_id={state['last_boot_id']}", flush=True)
+            return 0
+        if args.command == 'boot-marker':
+            if not wait_for_snapshot(args.snapshot, args.wait):
+                return 2
+            state = read_boot_state(args.boot_state)
+            print(f"STOROS_AGENT_READY snapshot=written boot_count={state['boot_count']}", flush=True)
+            return 0
         if args.command == 'daemon':
             stop = threading.Event()
             for signum in (signal.SIGTERM, signal.SIGINT):
@@ -186,7 +259,7 @@ def main(argv=None):
         data = collect(args.uri) if args.command == 'discover' else read_snapshot(args.snapshot)
         print(json.dumps(data, ensure_ascii=True, indent=2) if args.json else render(data))
         return 0 if data['libvirt']['status'] == 'ok' and not data.get('stale') else 2
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError):
         print(json.dumps(dict(error='snapshot_or_host_unavailable',
                               message='Inventário indisponível. Verifique storos-agent e permissões; use discover para consulta direta.')))
         return 2
