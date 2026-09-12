@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import xml.etree.ElementTree as ET
 from uuid import UUID
 
 from collect_host import inventory
@@ -17,6 +18,7 @@ URIS = ('qemu:///system', 'test:///default')
 SNAPSHOT = '/run/storos/status.json'
 BOOT_STATE = '/var/lib/storos/boot-state.json'
 BOOT_ID = '/proc/sys/kernel/random/boot_id'
+MAX_DOMAIN_XML_BYTES = 1024 * 1024
 
 
 class ProbeError(Exception):
@@ -70,6 +72,141 @@ def parse_info(text, expected_uuid):
         raise ProbeError('invalid_response', 'Resposta de VM incompleta ou inconsistente.') from exc
 
 
+def _explicit_bool(value):
+    if value is None:
+        return None
+    lowered = value.strip().lower()
+    if lowered in ('yes', 'on', 'true', '1'):
+        return True
+    if lowered in ('no', 'off', 'false', '0'):
+        return False
+    return None
+
+
+def _source_descriptor(source, domain_type):
+    if source is None:
+        return None
+    candidates = (
+        ('file', 'file'),
+        ('dev', 'block'),
+        ('volume', 'volume'),
+        ('name', 'network'),
+        ('path', 'path'),
+    )
+    for attribute, kind in candidates:
+        value = source.get(attribute)
+        if value:
+            descriptor = {'kind': kind, 'value': value[:4096]}
+            if attribute == 'volume' and source.get('pool'):
+                descriptor['pool'] = source.get('pool')[:1024]
+            if kind == 'network' and source.get('protocol'):
+                descriptor['protocol'] = source.get('protocol')[:128]
+            return descriptor
+    if domain_type:
+        return {'kind': domain_type[:128], 'value': None}
+    return {'kind': 'unknown', 'value': None}
+
+
+def parse_domain_xml(text, expected_uuid):
+    if not isinstance(text, str):
+        raise ProbeError('invalid_response', 'XML de domínio inválido.')
+    if len(text.encode('utf-8')) > MAX_DOMAIN_XML_BYTES:
+        raise ProbeError('response_too_large', 'XML de domínio excede o limite de segurança.')
+    lowered = text.lower()
+    if '<!doctype' in lowered or '<!entity' in lowered:
+        raise ProbeError('unsafe_xml', 'XML de domínio contém declaração não permitida.')
+    try:
+        root = ET.fromstring(text)
+        if root.tag != 'domain':
+            raise ValueError('Unexpected root')
+        xml_uuid = root.findtext('./uuid')
+        if str(UUID(xml_uuid or '')) != expected_uuid:
+            raise ValueError('UUID mismatch')
+
+        os_node = root.find('./os')
+        firmware_mode = 'unknown'
+        secure_boot = None
+        nvram_present = False
+        if os_node is not None:
+            declared = os_node.get('firmware')
+            if declared in ('bios', 'efi'):
+                firmware_mode = declared
+            loader = os_node.find('./loader')
+            if firmware_mode == 'unknown' and loader is not None and loader.get('type') == 'pflash':
+                firmware_mode = 'efi'
+            if loader is not None:
+                loader_secure = _explicit_bool(loader.get('secure'))
+                if loader_secure is not None:
+                    secure_boot = loader_secure
+            firmware = os_node.find('./firmware')
+            if firmware is not None:
+                for feature in firmware.findall('./feature'):
+                    if feature.get('name') == 'secure-boot':
+                        explicit = _explicit_bool(feature.get('enabled'))
+                        if explicit is not None:
+                            secure_boot = explicit
+            nvram_present = os_node.find('./nvram') is not None
+
+        disks = []
+        for disk in root.findall('./devices/disk'):
+            target = disk.find('./target')
+            driver = disk.find('./driver')
+            boot = disk.find('./boot')
+            disks.append({
+                'device': (disk.get('device') or 'unknown')[:64],
+                'type': (disk.get('type') or 'unknown')[:64],
+                'target': None if target is None else {
+                    'dev': (target.get('dev') or '')[:128] or None,
+                    'bus': (target.get('bus') or '')[:128] or None,
+                },
+                'source': _source_descriptor(disk.find('./source'), disk.get('type')),
+                'format': None if driver is None else ((driver.get('type') or '')[:128] or None),
+                'readonly': disk.find('./readonly') is not None,
+                'boot_order': None if boot is None else (
+                    int(boot.get('order')) if (boot.get('order') or '').isdigit() else None
+                ),
+            })
+
+        interfaces = []
+        for interface in root.findall('./devices/interface'):
+            mac = interface.find('./mac')
+            source = interface.find('./source')
+            model = interface.find('./model')
+            target = interface.find('./target')
+            link = interface.find('./link')
+            source_data = {}
+            if source is not None:
+                for key in ('network', 'bridge', 'dev', 'path', 'name'):
+                    value = source.get(key)
+                    if value:
+                        source_data[key] = value[:4096]
+            interfaces.append({
+                'type': (interface.get('type') or 'unknown')[:64],
+                'mac': None if mac is None else ((mac.get('address') or '')[:64].lower() or None),
+                'source': source_data or None,
+                'model': None if model is None else ((model.get('type') or '')[:128] or None),
+                'target_dev': None if target is None else ((target.get('dev') or '')[:128] or None),
+                'link_state': None if link is None else ((link.get('state') or '')[:64] or None),
+            })
+
+        return {
+            'status': 'ok',
+            'firmware': {
+                'mode': firmware_mode,
+                'secure_boot': secure_boot,
+                'nvram_present': nvram_present,
+            },
+            'disks': disks,
+            'interfaces': interfaces,
+        }
+    except (ET.ParseError, ValueError, TypeError) as exc:
+        raise ProbeError('invalid_response', 'XML de domínio incompleto ou inconsistente.') from exc
+
+
+def unavailable_hardware():
+    return {'status': 'unavailable', 'firmware': None, 'disks': None, 'interfaces': None}
+
+
 def discover(uri='qemu:///system', runner=run_virsh, budget=20):
     if uri not in URIS:
         raise ValueError('Somente libvirt local ou o driver de teste são permitidos.')
@@ -89,11 +226,20 @@ def discover(uri='qemu:///system', runner=run_virsh, budget=20):
     result.update(status='ok', discovered_count=len(ids), vms=[])
     for uid in ids[:1024]:
         try:
-            result['vms'].append(parse_info(query(['dominfo', uid]), uid))
+            vm = parse_info(query(['dominfo', uid]), uid)
         except ProbeError as exc:
-            result['errors'].append(dict(uuid=uid, code=exc.code, message=str(exc)))
+            result['errors'].append(dict(uuid=uid, scope='identity', code=exc.code, message=str(exc)))
             if time.monotonic() >= deadline:
                 break
+            continue
+        try:
+            vm['hardware'] = parse_domain_xml(query(['dumpxml', '--inactive', uid]), uid)
+        except ProbeError as exc:
+            vm['hardware'] = unavailable_hardware()
+            result['errors'].append(dict(uuid=uid, scope='hardware', code=exc.code, message=str(exc)))
+        result['vms'].append(vm)
+        if time.monotonic() >= deadline:
+            break
     if len(ids) > 1024:
         result['errors'].append(dict(code='limit', message='Inventário limitado a 1024 VMs.'))
     if result['errors']:
@@ -211,7 +357,12 @@ def render(data):
     for vm in guests['vms'] or []:
         memory = vm['memory_reported_kib']
         ram = 'indisponível' if memory is None else f'{memory / 1048576:.2f} GiB'
-        lines.append(f"{safe_text(vm['name'])} | {vm['uuid']} | {safe_text(vm['state'])} | {vm['vcpus_reported']} vCPU | RAM informada: {ram}")
+        hardware = vm.get('hardware') or unavailable_hardware()
+        if hardware.get('status') == 'ok':
+            hw = f" | firmware: {hardware['firmware']['mode']} | discos: {len(hardware['disks'])} | interfaces: {len(hardware['interfaces'])}"
+        else:
+            hw = ' | hardware virtual: indisponível'
+        lines.append(f"{safe_text(vm['name'])} | {vm['uuid']} | {safe_text(vm['state'])} | {vm['vcpus_reported']} vCPU | RAM informada: {ram}{hw}")
     for error in guests['errors']:
         lines.append('Diagnóstico: ' + error['message'])
     lines.append('Observação somente; RAM informada pelo libvirt não é consumo medido dos aplicativos.')
