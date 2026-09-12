@@ -4,6 +4,7 @@ There is deliberately no task executor in this module.
 """
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 TASK_ROOT = Path('/var/lib/storos/tasks')
-TASK_SCHEMA_VERSION = 1
+TASK_SCHEMA_VERSION = 2
 
 
 class TaskError(ValueError):
@@ -56,6 +57,23 @@ def _validate_task_id(task_id):
         raise TaskError('task_id inválido') from exc
 
 
+def _validate_vm_uuid(vm_uuid):
+    try:
+        return str(UUID(str(vm_uuid)))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise TaskError('vm_uuid inválido') from exc
+
+
+def _validate_sha256(value, field):
+    if not isinstance(value, str) or len(value) != 64:
+        raise TaskError(f'{field} inválido')
+    try:
+        int(value, 16)
+    except ValueError as exc:
+        raise TaskError(f'{field} inválido') from exc
+    return value.lower()
+
+
 def validate_dry_run_plan(plan):
     if not isinstance(plan, dict):
         raise TaskError('Plano inválido')
@@ -63,6 +81,9 @@ def validate_dry_run_plan(plan):
         raise TaskError('Plano incompatível')
     if plan.get('can_apply') is not False:
         raise TaskError('Plano dry-run não pode ser aplicável')
+    _validate_vm_uuid(plan.get('vm_uuid'))
+    _validate_sha256(plan.get('intent_sha256'), 'intent_sha256 do plano')
+    _validate_sha256(plan.get('snapshot_sha256'), 'snapshot_sha256 do plano')
     actions = plan.get('actions')
     if not isinstance(actions, list):
         raise TaskError('Ações do plano inválidas')
@@ -72,25 +93,58 @@ def validate_dry_run_plan(plan):
     return plan
 
 
-def create_dry_run_task(plan, root=TASK_ROOT):
+def validate_preconditions(preconditions, plan):
+    if not isinstance(preconditions, dict):
+        raise TaskError('Precondições da tarefa são obrigatórias')
+    if set(preconditions) != {'intent_generation', 'intent_sha256', 'snapshot_sha256'}:
+        raise TaskError('Precondições da tarefa incompatíveis')
+    generation = preconditions.get('intent_generation')
+    if not isinstance(generation, int) or isinstance(generation, bool) or generation < 1:
+        raise TaskError('intent_generation inválida')
+    intent_sha256 = _validate_sha256(preconditions.get('intent_sha256'), 'intent_sha256')
+    snapshot_sha256 = _validate_sha256(preconditions.get('snapshot_sha256'), 'snapshot_sha256')
+    if intent_sha256 != plan.get('intent_sha256'):
+        raise TaskError('Precondição de intenção diverge do plano')
+    if snapshot_sha256 != plan.get('snapshot_sha256'):
+        raise TaskError('Precondição de snapshot diverge do plano')
+    return {'intent_generation': generation, 'intent_sha256': intent_sha256, 'snapshot_sha256': snapshot_sha256}
+
+
+def _task_lock(root, vm_uuid):
+    root = Path(root)
+    lock_dir = root / '.locks'
+    lock_dir.mkdir(parents=True, exist_ok=True)
+    os.chmod(lock_dir, 0o750)
+    lock_path = lock_dir / f'{_validate_vm_uuid(vm_uuid)}.lock'
+    handle = open(lock_path, 'a+')
+    os.chmod(lock_path, 0o600)
+    fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+    return handle
+
+
+def create_dry_run_task(plan, preconditions, root=TASK_ROOT):
     plan = validate_dry_run_plan(plan)
+    preconditions = validate_preconditions(preconditions, plan)
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     os.chmod(root, 0o750)
-    task_id = str(uuid4())
-    task = {
-        'schema_version': TASK_SCHEMA_VERSION,
-        'task_id': task_id,
-        'created_at': _utc_now(),
-        'kind': 'vm_reconcile',
-        'mode': 'dry_run',
-        'status': ('blocked' if plan.get('status') == 'blocked' else
-                   'converged' if plan.get('status') == 'converged' else 'planned'),
-        'executable': False,
-        'plan': plan,
-    }
-    _atomic_write_json(root / f'{task_id}.json', task)
-    return task
+    vm_uuid = _validate_vm_uuid(plan['vm_uuid'])
+    with _task_lock(root, vm_uuid):
+        task_id = str(uuid4())
+        task = {
+            'schema_version': TASK_SCHEMA_VERSION,
+            'task_id': task_id,
+            'created_at': _utc_now(),
+            'kind': 'vm_reconcile',
+            'mode': 'dry_run',
+            'status': ('blocked' if plan.get('status') == 'blocked' else 'converged' if plan.get('status') == 'converged' else 'planned'),
+            'vm_uuid': vm_uuid,
+            'executable': False,
+            'preconditions': preconditions,
+            'plan': plan,
+        }
+        _atomic_write_json(root / f'{task_id}.json', task)
+        return task
 
 
 def read_task(task_id, root=TASK_ROOT):
@@ -101,7 +155,11 @@ def read_task(task_id, root=TASK_ROOT):
         raise TaskError('Registro de tarefa incompatível')
     if task.get('mode') != 'dry_run' or task.get('executable') is not False:
         raise TaskError('Registro de tarefa não é dry-run')
-    validate_dry_run_plan(task.get('plan'))
+    plan = validate_dry_run_plan(task.get('plan'))
+    vm_uuid = _validate_vm_uuid(task.get('vm_uuid'))
+    if vm_uuid != plan.get('vm_uuid'):
+        raise TaskError('UUID da tarefa diverge do plano')
+    validate_preconditions(task.get('preconditions'), plan)
     return task
 
 
