@@ -2,6 +2,16 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — CI-BOOT-002 — Probe usa o QEMU da própria imagem StorOS
+
+- **Motivo:** o ajuste CI-BOOT-001 com 1 vCPU não foi suficiente. No mesmo head `6b54ac40aef0e73b87286dc04163849a9fcbd61e`, o Bootable media de PR #53 (`34706993875`) avançou muito além das tentativas anteriores, mas não alcançou agente+painel dentro de 420 s; já o push #52 (`34706993402`) reproduziu a mesma falha fatal do `systemd` antes dos serviços StorOS mesmo com `-smp 1`.
+- **Diagnóstico revisto:** reduzir SMP não elimina a causa. O runner Ubuntu fornece QEMU 8.2.2, enquanto a imagem StorOS construída contém QEMU 10.2.2. A diferença de comportamento entre execuções do mesmo commit confirma flutuação do probe TCG/runner e não autoriza classificar o problema como regressão do agente/painel.
+- **Mudou:** o boot de validação passa a executar `/usr/sbin/qemu-system-x86_64` da própria imagem StorOS em Docker `--network none`, montando somente QCOW2 e OVMF. O pacote host `qemu-system-x86` deixa de ser necessário; `qemu-utils` continua para inspeção do disco. O probe volta a 2 vCPUs para evitar a penalidade de tempo observada em 1 vCPU, continua em TCG e não presume nested KVM.
+- **Critério preservado:** a detecção `guest_fatal=1` permanece; limites continuam 420 s/300 s; sucesso ainda exige `STOROS_BOOT_STATE`, `STOROS_AGENT_READY` e `STOROS_WEB_READY` em dois boots do mesmo QCOW2, `boot_count=1 → 2`, `config_generation=1` e fingerprints persistentes de configuração/token. Nenhuma falha pré-StorOS é aceita como sucesso.
+- **Verificação local:** o novo bloco Bash passou em `bash -n`. Nenhuma opção de segurança do guest foi desabilitada. Resultado remoto ainda é obrigatório antes da publicação do VM-002.
+- **VM-002:** staging reconstruído sobre o head atual passou **39/39 testes**, `py_compile` e `bash -n`; continua não publicado enquanto o gate de boot estiver vermelho, mantendo `features.vm_write_enabled=false` e sem executor.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base anterior `6b54ac40aef0e73b87286dc04163849a9fcbd61e`.
+
 ## 2026-09-12 — CI-BOOT-001 — Gate TCG isolado de instabilidade SMP pré-StorOS
 
 - **Motivo:** o Bootable media #51 (`34700188781`) falhou em duas tentativas consecutivas no primeiro boot, embora build bootc, smoke da imagem, geração e inspeção do QCOW2 tenham passado. Em ambas, `web=0`, `agent=0`, nenhum `STOROS_BOOT_STATE` foi emitido e o segundo boot nem começou.

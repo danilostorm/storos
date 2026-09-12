@@ -39,7 +39,7 @@ jobs:
       - name: Install image and VM tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y podman qemu-system-x86 qemu-utils ovmf
+          sudo apt-get install -y podman qemu-utils ovmf
 
       - name: Start ephemeral local registry
         shell: bash
@@ -66,6 +66,7 @@ jobs:
           docker build --file Containerfile --build-arg "BASE_IMAGE=$base_ref" --build-arg "STOROS_REVISION=$GITHUB_SHA" --tag "$STOROS_IMAGE" .
           docker run --rm --network none "$STOROS_IMAGE" bootc container lint
           docker run --rm --network none --entrypoint bash "$STOROS_IMAGE" /usr/libexec/storos/check-image.sh
+          docker run --rm --network none --entrypoint /usr/sbin/qemu-system-x86_64 "$STOROS_IMAGE" --version
           docker push "$STOROS_IMAGE"
 
       - name: Prepare rootful Podman storage
@@ -136,24 +137,36 @@ jobs:
             local max_wait=$2
             local log="boot-${boot}.log"
             local vars_copy="$RUNNER_TEMP/storos-OVMF_VARS-${boot}.fd"
+            local container_name="storos-qemu-${GITHUB_RUN_ID}-${boot}"
             cp --dereference "$firmware_vars" "$vars_copy"
             chmod u+w "$vars_copy"
 
-            # This TCG guest is a correctness probe, not a CPU/performance benchmark.
-            # A single vCPU avoids the SMP clock/watchdog instability reproduced on
-            # ubuntu-24.04 runners before StorOS services start.
-            qemu-system-x86_64 \
-              -machine q35,accel=tcg -cpu max -smp 1 -m 2048 \
-              -drive "if=pflash,format=raw,unit=0,readonly=on,file=$firmware_code" \
-              -drive "if=pflash,format=raw,unit=1,file=$vars_copy" \
-              -drive "file=$QCOW2,format=qcow2,if=virtio" \
-              -display none -monitor none -serial stdio -no-reboot > "$log" 2>&1 &
+            # The Ubuntu runner QEMU 8.2.2 reproduced a pre-StorOS systemd
+            # generator failure under TCG. Run the QEMU shipped in the built
+            # StorOS image instead so the boot probe uses the hypervisor binary
+            # we actually package. This remains a correctness probe, not a
+            # performance benchmark, and does not assume nested KVM.
+            docker run --rm --name "$container_name" --network none \
+              --volume "$QCOW2:/vm/disk.qcow2" \
+              --volume "$firmware_code:/vm/OVMF_CODE.fd:ro" \
+              --volume "$vars_copy:/vm/OVMF_VARS.fd" \
+              --entrypoint /usr/sbin/qemu-system-x86_64 "$STOROS_IMAGE" \
+                -machine q35,accel=tcg -cpu max -smp 2 -m 2048 \
+                -drive 'if=pflash,format=raw,unit=0,readonly=on,file=/vm/OVMF_CODE.fd' \
+                -drive 'if=pflash,format=raw,unit=1,file=/vm/OVMF_VARS.fd' \
+                -drive 'file=/vm/disk.qcow2,format=qcow2,if=virtio' \
+                -display none -monitor none -serial stdio -no-reboot > "$log" 2>&1 &
             local qemu_pid=$!
             local deadline=$((SECONDS + max_wait))
             local ready=0
             local web_ready=0
             local agent_ready=0
             local guest_fatal=0
+
+            stop_guest() {
+              docker stop --time 2 "$container_name" >/dev/null 2>&1 || true
+              wait "$qemu_pid" 2>/dev/null || true
+            }
 
             while kill -0 "$qemu_pid" 2>/dev/null; do
               if grep -q 'STOROS_WEB_READY auth=ok ' "$log"; then
@@ -182,15 +195,13 @@ jobs:
               if [[ "$guest_fatal" -eq 1 ]]; then
                 echo 'Guest systemd failed before StorOS services; CI will not classify this as an agent/web timeout.' >&2
               fi
-              kill -TERM "$qemu_pid" 2>/dev/null || true
-              wait "$qemu_pid" 2>/dev/null || true
+              stop_guest
               tail -n 250 "$log" || true
               return 1
             fi
 
             sleep 2
-            kill -TERM "$qemu_pid" 2>/dev/null || true
-            wait "$qemu_pid" 2>/dev/null || true
+            stop_guest
           }
 
           # TCG first boot applies more one-time system work than subsequent boots.
