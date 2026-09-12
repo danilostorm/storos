@@ -172,8 +172,8 @@ jobs:
             exit "$qemu_rc"
           fi
 
-          grep -q 'StorOS read-only host and VM observer' boot-console.log
-          printf '%s\n' 'STOROS_BOOT_OK: systemd reached storos-agent.service' | tee boot-proof.txt
+          grep -q 'STOROS_AGENT_READY snapshot=written' boot-console.log
+          printf '%s\n' 'STOROS_BOOT_OK: StorOS agent started and wrote its first snapshot' | tee boot-proof.txt
 
       - name: Upload boot evidence
         if: always()

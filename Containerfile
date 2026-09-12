@@ -8,7 +8,8 @@ COPY scripts/collect_host.py /usr/libexec/storos/collect_host.py
 COPY src/storos_agent.py /usr/libexec/storos/storos_agent.py
 COPY bin/storosctl /usr/bin/storosctl
 COPY image/storos-agent.service /usr/lib/systemd/system/storos-agent.service
+COPY image/10-storos.preset /usr/lib/systemd/system-preset/10-storos.preset
 COPY image/check-image.sh /usr/libexec/storos/check-image.sh
 COPY image/storos-release /usr/share/storos/release
 COPY image/storos-disk.yaml /usr/lib/image-builder/bootc/disk.yaml
-RUN chmod 0755 /usr/bin/storosctl && systemctl enable storos-agent.service && bash /usr/libexec/storos/check-image.sh
+RUN chmod 0755 /usr/bin/storosctl && systemctl preset storos-agent.service && bash /usr/libexec/storos/check-image.sh

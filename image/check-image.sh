@@ -3,6 +3,8 @@
 set -euo pipefail
 test -s /usr/share/storos/release
 test -s /usr/libexec/storos/collect_host.py
+test -s /usr/lib/systemd/system-preset/10-storos.preset
+grep -Fxq 'enable storos-agent.service' /usr/lib/systemd/system-preset/10-storos.preset
 for executable in virsh virt-install qemu-system-x86_64 python3; do
     command -v "$executable"
 done
