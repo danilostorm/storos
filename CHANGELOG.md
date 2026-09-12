@@ -2,6 +2,16 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-003A1 — Smoke da imagem exige hardware observado
+
+- **Motivo:** o smoke anterior aceitava `test:///default` quando a descoberta geral estava saudável, mas não exigia explicitamente que o novo campo `hardware` tivesse sido produzido e validado dentro da imagem final.
+- **Mudou:** `image/check-image.sh` agora exige ao menos uma VM simulada, `hardware.status=ok` em todas elas, estrutura tipada de firmware e listas válidas de discos/interfaces.
+- **Critério:** o Development image só pode ficar verde se a observação de hardware funcionar com o libvirt realmente empacotado na imagem; importar o módulo Python isoladamente não basta.
+- **Segurança:** a mudança é somente de validação. Não adiciona executor, escrita libvirt ou autoridade ao painel; intenção e reconciliação continuam `dry_run`.
+- **Verificação anterior preservada:** no head documental `4e96badc0a055c6ec2ca3720b7fa120105f2bce9`, Project continuity `34713608860` ficou verde e Host agent `34713608846` repetiu **50/50 testes verdes**. A mudança do smoke cria novo head e exige nova rodada dos gates pesados.
+- **Limites:** ainda não é fechamento VM-003A; Development image e Bootable media do head final precisam ficar verdes.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), smoke endurecido em `02b4f085c0cbdf47fefd4e7796398ce58210adb9`.
+
 ## 2026-09-12 — VM-003A — Observação tipada de firmware, discos e rede
 
 - **Motivo:** antes de ampliar a intenção/planner para firmware, discos ou rede, tornar o estado observado desses recursos explícito e testável, sem conceder autoridade de escrita ao hipervisor.
@@ -78,7 +88,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 
 - **Resultado:** VM-001 está concluído no head funcional `45bd655269d8ef45f1c6f5ace9ff82ce3f8454fc`. Host agent `34699051160` (#69), Project continuity `34699051144` (#81), Development image `34699051205` (#75) e Bootable media `34699051187` (#49) terminaram verdes.
 - **Imagem/planner:** o Development image e o estágio `Build and stage bootc image` do Bootable executaram o smoke do planner/ledger dentro da imagem final, confirmando `vm-plan`, criação de tarefa dry-run e a invariável `can_apply=false`/`executable=false`.
-- **Prova de boot:** o job Bootable `103567451447` inicializou o mesmo QCOW2 duas vezes. O primeiro boot registrou `boot_count=1`, `STOROS_WEB_READY auth=ok config_generation=1` e `STOROS_AGENT_READY snapshot=written boot_count=1`; o segundo registrou `boot_count=2` com novo `boot_id`, agente pronto e painel autenticado novamente. Os fingerprints de configuração e token permaneceram idênticos entre os boots.
+- **Prova de boot:** o job Bootable `103567451447` inicializou o mesmo QCOW2 duas vezes. O primeiro boot registrou `boot_count=1`, `STOROS_WEB_READY auth=ok config_generation=1` e `STOROS_AGENT_READY snapshot=written boot_count=1`; o segundo registrou `boot_count=2` com novo `boot_id`, agente pronto e painel autenticado novamente. Os fingerprints SHA-256 de configuração e token permaneceram idênticos.
 - **Prova explícita:** o artefato emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`. `storos-boot-evidence`: ID `10299687818`, digest `sha256:63780ac5e92c2450ad4159adaf6484515cf2ab1521bb42dc19534898ec0f62c5`. O QCOW2 validado teve SHA-256 `ba9d51ebb91bc91e08d9e84d41be1f13a07c0efcf89a94527543027e6778538b`; artefato `storos-qcow2` ID `10300291526`.
 - **Segurança preservada:** não existe worker/executor mutável; `features.vm_write_enabled=false` continua obrigatório; planner e ledger não executam alterações no hipervisor. Snapshot stale, inventário parcial e recurso observado ausente continuam bloqueando o plano em vez de presumir alterações.
 - **Limites:** VM-001 comprova intenção/plano/tarefa dry-run e ausência de regressão no boot virtual. Ainda sem persistência de intenção desejada, locks/precondições de aplicação, discos/rede/firmware no contrato, política dinâmica CPU/RAM, boot físico USB ou GPU compartilhada comprovada.
@@ -96,7 +106,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 - **Arquitetura/documentação:** [docs/VM_PLANNER.md](docs/VM_PLANNER.md) registra contrato/comandos/limites e [docs/ARQUITETURA.md](docs/ARQUITETURA.md) explicita que a passagem de tarefas para um adaptador mutável será uma camada futura separada com locks, precondições e auditoria.
 - **Limites:** resultado remoto deste lote ainda precisa ficar verde antes de VM-001 ser concluído. `features.vm_write_enabled=false` permanece obrigatório; painel continua somente leitura; sem mutação libvirt, discos/rede/firmware, política dinâmica CPU/RAM, boot físico USB ou GPU compartilhada comprovada.
 - **Próximo passo:** obter todos os checks verdes; depois registrar a evidência remota e avançar para persistência de intenção/precondições em dry-run antes de discutir qualquer executor real.
-- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base anterior `4742ee4b9e3da2420c93f6fcd26424a331b16016`.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base anterior `4742ee4b9e3da2420c93f6f5ace9ff82ce3f8454fc`.
 
 ## 2026-09-12 — CFG-001D — Fechamento: configuração e painel persistentes comprovados
 
