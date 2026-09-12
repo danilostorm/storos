@@ -2,6 +2,19 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-003B — Intenção hardware v2 backward-compatible em dry-run
+
+- **Motivo:** com VM-003A fechado, permitir que firmware/discos/rede observados entrem no contrato de intenção/planner sem quebrar gerações schema 1 e sem antecipar executor real.
+- **Compatibilidade:** `storos_vm.py` passa a aceitar schema 1 e schema 2. Um documento v1 continua normalizado na forma histórica, sem `hardware` adicionado implicitamente; isso preserva hashes, revisões, rollbacks e precondições antigas. O store pode conter gerações v1 e v2 na mesma linha do tempo.
+- **Schema 2:** acrescenta `hardware` com firmware opcional `bios|efi`; discos gerenciados por target com bus `virtio|sata|scsi`, source local `file|block`, formato `raw|qcow2`, readonly e boot order; interfaces gerenciadas por MAC com `network|bridge` e modelo explícito. Targets/MACs duplicados são rejeitados e listas são ordenadas deterministicamente.
+- **Sem detach implícito:** as listas v2 são subconjuntos gerenciados. Hardware observado extra não é considerado lixo e não gera ação de remoção.
+- **Planner:** hardware de VM existente só é comparado quando `hardware.status=ok`. Foram adicionadas descrições não executáveis `set_firmware_mode`, `attach_disk`, `reconfigure_disk`, `attach_interface`, `reconfigure_interface` e bloqueios `inspect_hardware`, `inspect_firmware`, `inspect_disk`, `inspect_interface`. Toda ação permanece `executable=false`, o plano continua `mode=dry_run` e `can_apply=false`.
+- **Testes:** `802399c3eb7a1925ceb9ed6acc3b1257316be2d2` amplia a cobertura do planner/validador; `43daed4f5dd0ad60d0dbc30b9846d44e3f439154` cobre round-trip v2 e v1→v2→rollback-v1 preservando o hash v1. `780173c0817b6e26cd0ab4279ae51d387e16cc09` faz o smoke da imagem provar schema 1 e schema 2 contra `test:///default`.
+- **Arquitetura/documentação:** `docs/VM_PLANNER.md` foi atualizado em `79f5bb09d20fcad94ae497cf3b49b9722c30688a`; `docs/ARQUITETURA.md` registra as fronteiras VM-003A/VM-003B em `4febbc02b9439b0054bc670e1a32c0b81444bdf5`.
+- **Segurança/limites:** nenhum executor, endpoint mutável ou chamada libvirt de escrita foi adicionado; `features.vm_write_enabled=false` permanece obrigatório. Secure Boot/enrolled keys/NVRAM, hotplug, detach automático, pinning/NUMA, passthrough, SR-IOV, mediated devices e GPU continuam fora do VM-003B.
+- **Validação:** publicação funcional/documental concluída; os workflows remotos do head final ainda precisam ficar verdes antes de VM-003B ser considerado fechado.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2).
+
 ## 2026-09-12 — VM-003A2 — Fechamento remoto do observador de hardware virtual
 
 - **Resultado:** VM-003A está concluído no head `6108e0ec45f79e7a399f7f96733076effe3a2f47`. Project continuity `34713932768`, Host agent `34713932769`, Development image `34713932991` e Bootable media `34713932817` ficaram verdes; a suíte remota executou **50/50 testes**.
