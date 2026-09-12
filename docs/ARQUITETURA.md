@@ -93,6 +93,32 @@ O ledger dry-run também pode ser inspecionado por `GET /api/tasks` e `GET /api/
 
 A projeção de plano falha fechada: se o snapshot em `/run/storos/status.json` estiver ausente, ilegível ou incompatível com o planner, o endpoint retorna indisponibilidade em vez de produzir uma ação a partir de estado presumido. O HTML inicial mostra somente resumo de intenções/tarefas e mantém “Escrita em VMs: bloqueada”. Nenhum endpoint desta etapa chama `apply_vm_intent`, `rollback_vm_intent`, `create_dry_run_task` ou qualquer mutação libvirt.
 
+## VM-003A — observação tipada de hardware virtual
+
+A fronteira de observação foi ampliada antes da intenção. Depois de obter identidade/estado/vCPU/RAM, o agente lê a definição persistente do domínio via conexão libvirt somente leitura e converte um subconjunto para `hardware` no snapshot schema 1. A decisão detalhada está em [VM_HARDWARE_OBSERVER.md](VM_HARDWARE_OBSERVER.md).
+
+A observação diferencia firmware, discos e interfaces. Falha apenas nessa etapa não apaga a VM: mantém o registro básico, define `hardware.status=unavailable`, marca o inventário `partial` e registra erro com `scope=hardware`. Assim, “não observado” não vira “ausente”.
+
+Essa camada não certifica hotplug, passthrough, mediated devices, SR-IOV, vGPU ou compartilhamento simultâneo de GPU. Ela também não concede autoridade de escrita ao agente.
+
+## VM-003B — intenção hardware v2 sem executor
+
+O contrato de intenção evolui de forma **backward-compatible**. Schema 1 continua válido e é normalizado no formato original, preservando hashes e revisões históricas. Schema 2 acrescenta um bloco `hardware` estreito, descrito em [VM_PLANNER.md](VM_PLANNER.md).
+
+O v2 gerencia apenas:
+
+- modo abstrato de firmware `bios|efi`, sem caminho de loader/NVRAM do host;
+- discos identificados por `target`, limitados a bus `virtio|sata|scsi`, fonte local `file|block`, formato `raw|qcow2`, readonly e ordem de boot;
+- interfaces identificadas por MAC, limitadas a `network` ou `bridge`, source correspondente e modelo explícito.
+
+As listas de discos/interfaces são **subconjuntos gerenciados**, não inventários exclusivos. Hardware observado extra não produz remoção automática. Targets/MACs duplicados são rejeitados, e listas são normalizadas deterministicamente para estabilizar hashes.
+
+Para uma VM existente, qualquer intenção hardware v2 depende de `hardware.status=ok`. Se o agente não conseguiu observar hardware, o planner gera `inspect_hardware` bloqueante e não infere mudança. Firmware desconhecido ou dispositivo observado insuficiente/ambíguo também gera inspeção bloqueante.
+
+Diferenças válidas podem ser descritas como `set_firmware_mode`, `attach_disk`, `reconfigure_disk`, `attach_interface` e `reconfigure_interface`; todas continuam com `executable=false`. O plano continua `mode=dry_run` e `can_apply=false`. Para uma VM ausente em inventário saudável, `create_vm.after` pode carregar o hardware v2 apenas como descrição do estado desejado.
+
+Secure Boot, enrolled keys, regeneração de NVRAM, detach automático, pinning/NUMA, hotplug, passthrough e GPU permanecem fora do contrato VM-003B. Em especial, o atributo `loader secure` do libvirt não deve ser usado como autorização para inferir que Secure Boot está efetivamente habilitado; essa política será modelada apenas quando existir contrato e verificação próprios.
+
 ## Fronteira para escrita futura
 
-A futura passagem de `JOBS` para `COMPUTE` será uma camada separada. Antes de existir escrita real, ela deverá validar, no mínimo: autenticação/autorização, feature gate explícito, lock por VM e recurso, geração/hash esperado, capacidade do host, snapshot fresco, releitura imediatamente anterior à mutação, timeout, resultado observado e auditoria persistente. Nenhum desses requisitos deve ser inferido como concluído apenas porque VM-002 persiste intenção e precondições.
+A futura passagem de `JOBS` para `COMPUTE` será uma camada separada. Antes de existir escrita real, ela deverá validar, no mínimo: autenticação/autorização, feature gate explícito, lock por VM e recurso, geração/hash esperado, capacidade do host, snapshot fresco, releitura imediatamente anterior à mutação, timeout, resultado observado e auditoria persistente. Nenhum desses requisitos deve ser inferido como concluído apenas porque VM-002 persiste intenção e precondições ou porque VM-003B descreve hardware em dry-run.
