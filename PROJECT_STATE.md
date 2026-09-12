@@ -26,7 +26,9 @@ Atualizado em **12/09/2026**, atualização **CFG-001**. Responsável pelas deci
 - Autenticação administrativa usa token aleatório local em `/var/lib/storos/auth/admin.token`, modo `0600`; métodos mutáveis são recusados.
 - Exposição fora do loopback exige opt-in explícito `allow_insecure_lan=true`, porque TLS integrado ainda não existe.
 - `storosctl` ganha `config-init`, `config-show`, `config-history`, `config-apply`, `config-rollback`, `web-token-init` e `web-token-show` sem retirar os comandos do agente.
-- Testes locais do novo store/painel passaram antes da publicação. A validação remota deste incremento ainda precisa ficar verde antes de marcar CFG-001 como concluído.
+- Testes locais do novo store/painel passaram antes da publicação.
+- A primeira execução remota Host agent `34670864403`, head `49c563e225c4dcbd72ae5413f1c80789b3c5b10a`, executou 21 testes: 20 passaram e um falhou por typo no próprio teste (`settings['wec']` no lugar de `settings['web']`). A lógica do store correspondente já havia passado até essa linha; o lote corretivo altera somente o teste e os registros de continuidade.
+- CFG-001 ainda precisa de novo CI verde antes de ser marcado como concluído.
 
 ## Limitações
 
@@ -40,7 +42,7 @@ Atualizado em **12/09/2026**, atualização **CFG-001**. Responsável pelas deci
 
 ## Próxima tarefa concreta
 
-1. Obter Host agent, Development image, Project continuity e Bootable media verdes no commit CFG-001, incluindo `storos-web.service` habilitado na imagem.
+1. Obter Host agent, Development image, Project continuity e Bootable media verdes no commit corretivo CFG-001, incluindo `storos-web.service` habilitado na imagem.
 2. Confirmar em boot QCOW2 que o painel inicia sem impedir o marcador do agente e que a configuração/token sobrevivem ao segundo boot.
 3. Fazer o primeiro teste funcional do painel no sistema iniciado e registrar evidência sem expor token no log.
 4. Depois criar a camada de tarefas/reconciliação e modelos de configuração de VM, mantendo escrita no libvirt desativada até validação separada.

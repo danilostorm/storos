@@ -38,7 +38,7 @@ class ConfigStoreTests(unittest.TestCase):
             settings['web']['listen_host'] = '0.0.0.0'
             with self.assertRaises(ConfigError):
                 apply_settings(settings, directory)
-            settings['wec']['allow_insecure_lan'] = True
+            settings['web']['allow_insecure_lan'] = True
             applied = apply_settings(settings, directory)
             self.assertEqual(applied['settings']['web']['listen_host'], '0.0.0.0')
 
