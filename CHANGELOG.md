@@ -2,6 +2,16 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — CFG-001C — Gate exige painel e agente no mesmo boot
+
+- **Motivo:** após CFG-001B permitir que painel e agente iniciem em paralelo, a revisão do workflow mostrou que `boot_guest` ainda encerrava o QEMU no primeiro `STOROS_WEB_READY`, embora as asserções posteriores também exigissem `STOROS_AGENT_READY`. Se o painel ficasse pronto primeiro, o próprio gate poderia matar um boot saudável antes do snapshot do agente.
+- **Mudou:** o loop acompanha `web_ready` e `agent_ready` separadamente e só define o boot como pronto quando os dois marcadores já apareceram no mesmo console. O erro de timeout passa a informar `(web=0/1, agent=0/1)` para distinguir qual componente faltou. Os tetos permanecem 420 s no primeiro boot e 300 s no segundo.
+- **Verificação local:** a sintaxe Bash do novo gate conjunto passou em `bash -n`. O head anterior `1a7e372bc022f15978f5d43bce9fb4da689a4be5` já deixou Host agent `34693093926`, Development image `34693093931` e Project continuity `34693093913` verdes; o Bootable media em execução foi supersedido antes de ser usado como evidência final porque o problema lógico do gate foi identificado antecipadamente.
+- **Critério final:** cada boot precisa conter `STOROS_BOOT_STATE`, `STOROS_AGENT_READY` e `STOROS_WEB_READY`; o mesmo QCOW2 deve avançar `boot_count=1 → 2`, manter `config_generation=1` e preservar os fingerprints SHA-256 de configuração e token.
+- **Limites:** CFG-001 continua aberto até o novo Bootable media produzir `STOROS_WEB_PERSISTENCE_OK`. Sem boot físico USB, TLS/RBAC, escrita no libvirt, política automática de CPU/RAM ou GPU compartilhada.
+- **Próximo passo:** obter os quatro checks verdes; somente então fechar CFG-001 e iniciar modelos de VM + fila/reconciliação em dry-run.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base `1a7e372bc022f15978f5d43bce9fb4da689a4be5`.
+
 ## 2026-09-12 — CFG-001B — Painel independente do aquecimento do agente
 
 - **Motivo:** o Bootable media `34672437568`, head `d368fba2c0b7fb3bba0994ed4d926bf988dcce4e`, passou imagem e QCOW2, mas o primeiro boot TCG consumiu quase toda a janela de 420 s porque `storos-web.service` estava ordenado depois de `storos-agent.service`, embora `/api/config` e autenticação não dependam do inventário libvirt.

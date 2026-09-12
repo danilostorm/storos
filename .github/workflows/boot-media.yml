@@ -148,9 +148,17 @@ jobs:
             local qemu_pid=$!
             local deadline=$((SECONDS + max_wait))
             local ready=0
+            local web_ready=0
+            local agent_ready=0
 
             while kill -0 "$qemu_pid" 2>/dev/null; do
               if grep -q 'STOROS_WEB_READY auth=ok ' "$log"; then
+                web_ready=1
+              fi
+              if grep -q 'STOROS_AGENT_READY snapshot=written ' "$log"; then
+                agent_ready=1
+              fi
+              if [[ "$web_ready" -eq 1 && "$agent_ready" -eq 1 ]]; then
                 ready=1
                 break
               fi
@@ -161,7 +169,7 @@ jobs:
             done
 
             if [[ "$ready" -ne 1 ]]; then
-              echo "StorOS web readiness marker not reached during ${boot} boot within ${max_wait}s" >&2
+              echo "StorOS web+agent readiness markers not both reached during ${boot} boot within ${max_wait}s (web=${web_ready}, agent=${agent_ready})" >&2
               kill -TERM "$qemu_pid" 2>/dev/null || true
               wait "$qemu_pid" 2>/dev/null || true
               tail -n 250 "$log" || true
