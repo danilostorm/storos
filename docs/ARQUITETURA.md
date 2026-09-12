@@ -61,6 +61,18 @@ O [agente local](AGENT.md), em Python, consulta `virsh --readonly` com timeout e
 
 A fundação da configuração persistente é descrita em [CONFIGURATION.md](CONFIGURATION.md). Ela separa **estado observado** do agente de **intenção/configuração** persistente. `current.json` é o ponteiro ativo; revisões são gravadas por geração antes da troca atômica do estado atual. Atualizações podem exigir `expected_generation` para rejeitar concorrência obsoleta, e rollback cria uma nova geração em vez de reescrever histórico.
 
-O primeiro `storos-web.service` é deliberadamente somente leitura: entrega o snapshot e a configuração ativa, exige autenticação para dados administrativos e bloqueia métodos mutáveis. Por padrão escuta apenas no loopback. A flag `features.vm_write_enabled` é validada como `false`; portanto a existência do painel não concede autoridade para modificar VMs. A futura API de tarefas/reconciliação só poderá habilitar escrita após contratos, auditoria e validação separados.
+O primeiro `storos-web.service` é deliberadamente somente leitura: entrega o snapshot e a configuração ativa, exige autenticação para dados administrativos e bloqueia métodos mutáveis. Por padrão escuta apenas no loopback. A flag `features.vm_write_enabled` é validada como `false`; portanto a existência do painel não concede autoridade para modificar VMs.
 
 Painel e agente têm ciclos de prontidão independentes. O painel **solicita** `storos-agent.service`, mas não serializa seu próprio start atrás dele; após `network.target`, pode inicializar configuração/token e responder `/api/config` enquanto o agente ainda coleta o primeiro snapshot. `/api/status` representa estado observado e pode retornar `503` nesse intervalo. Essa separação impede que aquecimento lento do libvirt bloqueie o caminho administrativo autenticado sem mascarar a indisponibilidade temporária do inventário.
+
+## VM-001 — planner e ledger sem executor
+
+O primeiro estágio de `JOBS` agora é concretizado pelo contrato descrito em [VM_PLANNER.md](VM_PLANNER.md). `storos_vm.py` recebe uma intenção versionada e um snapshot observado já validado pelo agente e produz um plano determinístico de diferenças. O plano sempre declara `mode=dry_run` e `can_apply=false`; cada item de ação possui `executable=false`.
+
+A identidade da VM é o UUID. Nome, vCPU, memória fixa desejada e estado `running/stopped` formam o contrato mínimo atual. O planner descreve ações como `create_vm`, `set_vcpus`, `set_memory`, `start_vm` e `shutdown_vm`, mas não contém adaptador mutável e não chama `virsh` para executá-las.
+
+A fronteira entre **observação** e **intenção** permanece explícita. A CLI usa o mesmo `read_snapshot` do agente com janela de frescor de 30 segundos. Snapshot `stale` bloqueia reconciliação. Inventário `partial` sem a VM desejada não prova ausência e, por isso, não pode gerar `create_vm`. Ausência de vCPU ou memória configurável observada também gera ação de inspeção bloqueante em vez de suposição.
+
+`storos_tasks.py` cria um ledger local em `/var/lib/storos/tasks`. Cada tarefa possui UUID, timestamp, plano completo e `executable=false`; a gravação é atômica com `fsync` do arquivo e do diretório. Não há worker/executor nesta etapa. O ledger rejeita qualquer plano marcado como aplicável ou com ação executável.
+
+A futura passagem de `JOBS` para `COMPUTE` será uma camada separada. Antes de existir escrita real, ela deverá validar feature gate, autorização, lock por VM, geração/estado esperado, capacidade do host, releitura imediatamente anterior à mutação, timeout, resultado observado e auditoria. `features.vm_write_enabled=false` continua obrigatório no VM-001.

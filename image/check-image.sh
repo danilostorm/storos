@@ -6,6 +6,8 @@ test -s /usr/share/storos/release
 test -s /usr/libexec/storos/collect_host.py
 test -s /usr/libexec/storos/storos_agent.py
 test -s /usr/libexec/storos/storos_config.py
+test -s /usr/libexec/storos/storos_vm.py
+test -s /usr/libexec/storos/storos_tasks.py
 test -s /usr/libexec/storos/storos_cli.py
 test -s /usr/libexec/storos/storos_web.py
 test -s /usr/lib/systemd/system/storos-agent.service
@@ -31,6 +33,8 @@ for path in (
     '/usr/libexec/storos/collect_host.py',
     '/usr/libexec/storos/storos_agent.py',
     '/usr/libexec/storos/storos_config.py',
+    '/usr/libexec/storos/storos_vm.py',
+    '/usr/libexec/storos/storos_tasks.py',
     '/usr/libexec/storos/storos_cli.py',
     '/usr/libexec/storos/storos_web.py',
 ):
@@ -50,4 +54,27 @@ test "$(stat -c '%a' "$scratch/admin.token")" = 600
 snapshot="$scratch/status.json"
 storosctl discover --uri test:///default --json > "$snapshot"
 python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["source"] == "simulation"; assert d["libvirt"]["status"] == "ok"; assert d["libvirt"]["vms"]; print("StorOS discovery passed against libvirt test driver (no real VM).")' "$snapshot"
-printf '%s\n' 'StorOS image content check passed; this smoke check does not prove boot, physical media, or GPU sharing.'
+
+cat > "$scratch/intent.json" <<'JSON'
+{
+  "schema_version": 1,
+  "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "name": "image-smoke-dry-run",
+  "desired_state": "running",
+  "resources": {
+    "vcpus": 2,
+    "memory_mib": 1024
+  }
+}
+JSON
+
+storosctl vm-plan --intent-file "$scratch/intent.json" --snapshot "$snapshot" > "$scratch/plan.json"
+python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["mode"] == "dry_run"; assert p["can_apply"] is False; assert p["status"] == "changes_planned"; assert p["actions"]; assert all(a["executable"] is False for a in p["actions"])' "$scratch/plan.json"
+
+storosctl vm-reconcile-dry-run --intent-file "$scratch/intent.json" --snapshot "$snapshot" --task-root "$scratch/tasks" > "$scratch/task.json"
+python3 -c 'import json,sys; t=json.load(open(sys.argv[1])); assert t["mode"] == "dry_run"; assert t["executable"] is False; assert t["status"] == "planned"; assert t["plan"]["can_apply"] is False' "$scratch/task.json"
+
+storosctl task-list --task-root "$scratch/tasks" > "$scratch/tasks.json"
+python3 -c 'import json,sys; t=json.load(open(sys.argv[1])); assert len(t) == 1; assert t[0]["executable"] is False; assert all(a["executable"] is False for a in t[0]["plan"]["actions"])' "$scratch/tasks.json"
+
+printf '%s\n' 'StorOS image content check passed; VM reconciliation is dry-run only and this smoke check does not prove boot, physical media, hypervisor mutation, or GPU sharing.'

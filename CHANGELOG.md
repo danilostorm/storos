@@ -2,6 +2,19 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-001 — Planner de VM e ledger dry-run
+
+- **Motivo:** após o fechamento do CFG-001, iniciar a camada de tarefas/reconciliação da Fase 1 sem conceder autoridade de escrita ao hipervisor.
+- **Mudou:** novo `storos_vm.py` com intenção de VM schema v1 (UUID, nome, estado desejado, vCPU e RAM fixa) e planner determinístico que compara intenção com o snapshot observado. O plano descreve `create_vm`, `rename_vm`, `set_vcpus`, `set_memory`, `start_vm` e `shutdown_vm`, mas sempre usa `mode=dry_run`, `can_apply=false` e `executable=false` em todas as ações.
+- **Segurança de observação:** a CLI usa `read_snapshot(..., max_age=30)`. Snapshot stale bloqueia com `refresh_snapshot`; inventário `partial` sem a VM não pode gerar `create_vm`; recurso observado ausente bloqueia CPU/RAM em vez de presumir valor. RAM é comparada com `max_memory_reported_kib`, não com memória usada.
+- **Tarefas:** novo `storos_tasks.py` grava `/var/lib/storos/tasks/<task_id>.json` com UUID, timestamp, plano completo, escrita atômica/fsync e modos `0750/0640`. O ledger rejeita plano aplicável ou ação executável. Não existe worker/executor neste incremento.
+- **CLI/imagem:** `storosctl` ganha `vm-plan`, `vm-reconcile-dry-run`, `task-list` e `task-show`. Containerfile inclui os módulos e `check-image.sh` executa planner + ledger contra `test:///default`, exigindo que nada seja aplicável/executável.
+- **Verificação local:** 15 testes focados passaram para planner, ledger e CLI, incluindo schema estrito, convergência, diferenças CPU/RAM/estado, snapshot stale, inventário parcial, dados observados ausentes, UUID duplicado, persistência/permissões e rejeição de ação executável. O novo `check-image.sh` passou em `bash -n`.
+- **Arquitetura/documentação:** [docs/VM_PLANNER.md](docs/VM_PLANNER.md) registra contrato/comandos/limites e [docs/ARQUITETURA.md](docs/ARQUITETURA.md) explicita que a passagem de tarefas para um adaptador mutável será uma camada futura separada com locks, precondições e auditoria.
+- **Limites:** resultado remoto deste lote ainda precisa ficar verde antes de VM-001 ser concluído. `features.vm_write_enabled=false` permanece obrigatório; painel continua somente leitura; sem mutação libvirt, discos/rede/firmware, política dinâmica CPU/RAM, boot físico USB ou GPU compartilhada comprovada.
+- **Próximo passo:** obter todos os checks verdes; depois registrar a evidência remota e avançar para persistência de intenção/precondições em dry-run antes de discutir qualquer executor real.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base anterior `4742ee4b9e3da2420c93f6fcd26424a331b16016`.
+
 ## 2026-09-12 — CFG-001D — Fechamento: configuração e painel persistentes comprovados
 
 - **Resultado:** CFG-001 está concluído como fundação da Fase 1. No head `496e3bfbba637519c1fabe32414ea0a64ac018da`, Host agent `34693451988`, Development image `34693452020`, Project continuity `34693451976` e Bootable media `34693452040` ficaram verdes.

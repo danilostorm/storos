@@ -1,4 +1,4 @@
-"""StorOS command router: observer commands plus persistent configuration commands."""
+"""StorOS command router: observer, configuration and dry-run VM planning commands."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ import time
 from urllib.error import HTTPError, URLError
 from urllib.request import ProxyHandler, Request, build_opener
 
-from storos_agent import main as agent_main
+from storos_agent import SNAPSHOT, main as agent_main, read_snapshot
 from storos_config import (
     CONFIG_ROOT,
     TOKEN_FILE,
@@ -23,10 +23,13 @@ from storos_config import (
     read_config,
     rollback_config,
 )
+from storos_tasks import TASK_ROOT, TaskError, create_dry_run_task, list_tasks, read_task
+from storos_vm import VMError, plan_vm
 
-CONFIG_COMMANDS = {
+LOCAL_COMMANDS = {
     'config-init', 'config-show', 'config-history', 'config-apply', 'config-rollback',
     'web-token-init', 'web-token-show', 'web-marker',
+    'vm-plan', 'vm-reconcile-dry-run', 'task-list', 'task-show',
 }
 
 
@@ -87,19 +90,29 @@ def web_marker(config_root=CONFIG_ROOT, token_file=TOKEN_FILE, wait=60):
     raise ConfigError(f'Painel local não ficou pronto no prazo: {last_error}')
 
 
+def _read_json_file(path, label):
+    if not path:
+        raise ValueError(f'{label} não informado')
+    return json.loads(Path(path).read_text())
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    if not argv or argv[0] not in CONFIG_COMMANDS:
+    if not argv or argv[0] not in LOCAL_COMMANDS:
         return agent_main(argv)
 
-    parser = argparse.ArgumentParser(description='Configuração persistente StorOS.')
-    parser.add_argument('command', choices=sorted(CONFIG_COMMANDS))
+    parser = argparse.ArgumentParser(description='Configuração e planejamento local StorOS.')
+    parser.add_argument('command', choices=sorted(LOCAL_COMMANDS))
     parser.add_argument('--config-root', default=str(CONFIG_ROOT))
     parser.add_argument('--config-file')
     parser.add_argument('--expected-generation', type=int)
     parser.add_argument('--target-generation', type=int)
     parser.add_argument('--token-file', default=str(TOKEN_FILE))
     parser.add_argument('--wait', type=int, default=60)
+    parser.add_argument('--intent-file')
+    parser.add_argument('--snapshot', default=SNAPSHOT)
+    parser.add_argument('--task-root', default=str(TASK_ROOT))
+    parser.add_argument('--task-id')
     args = parser.parse_args(argv)
 
     try:
@@ -115,7 +128,7 @@ def main(argv=None):
         if args.command == 'config-apply':
             if not args.config_file:
                 parser.error('config-apply exige --config-file')
-            payload = json.loads(Path(args.config_file).read_text())
+            payload = _read_json_file(args.config_file, '--config-file')
             settings = payload.get('settings', payload) if isinstance(payload, dict) else payload
             _json(apply_settings(settings, args.config_root, args.expected_generation, reason='cli-apply'))
             return 0
@@ -133,8 +146,27 @@ def main(argv=None):
             return 0
         if args.command == 'web-marker':
             return web_marker(args.config_root, args.token_file, args.wait)
-    except (ConfigError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-        print(json.dumps({'error': 'configuration_error', 'message': str(exc)}, ensure_ascii=True))
+        if args.command in ('vm-plan', 'vm-reconcile-dry-run'):
+            if not args.intent_file:
+                parser.error(f'{args.command} exige --intent-file')
+            intent = _read_json_file(args.intent_file, '--intent-file')
+            snapshot = read_snapshot(args.snapshot, max_age=30)
+            plan = plan_vm(intent, snapshot)
+            if args.command == 'vm-plan':
+                _json(plan)
+            else:
+                _json(create_dry_run_task(plan, args.task_root))
+            return 0
+        if args.command == 'task-list':
+            _json(list_tasks(args.task_root))
+            return 0
+        if args.command == 'task-show':
+            if not args.task_id:
+                parser.error('task-show exige --task-id')
+            _json(read_task(args.task_id, args.task_root))
+            return 0
+    except (ConfigError, VMError, TaskError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        print(json.dumps({'error': 'storos_command_error', 'message': str(exc)}, ensure_ascii=True))
         return 2
     return 2
 
