@@ -2,6 +2,16 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-002 — Intenção persistente e precondições dry-run
+
+- **Motivo:** após o head `ba15347d0dd699bb0154edd47cb49d44e72e71af` recuperar o gate completo de QCOW2 com Host agent, Project continuity, Development image e Bootable media verdes, avançar a reconciliação de VMs sem pular a etapa de consistência e sem conceder escrita prematura ao hipervisor.
+- **Mudou:** novo `storos_vm_store.py` persiste intenção por UUID em `/var/lib/storos/vm-intents`, com `current.json`, revisões monotônicas, `expected_generation`, rollback por nova geração, SHA-256 da intenção, lock por VM, escrita atômica e `fsync`. `storosctl` ganha `vm-intent-apply/show/history/list/rollback`; `vm-plan` pode usar intenção persistida.
+- **Tarefas/precondições:** `storos_tasks.py` passa ao schema 2 e vincula cada reconciliação dry-run a `intent_generation`, `intent_sha256` e `snapshot_sha256`, com lock por VM no ledger. Divergência de hash/precondição é rejeitada. `vm-reconcile-dry-run` agora exige intenção persistida, mas continua produzindo somente `can_apply=false` e `executable=false`.
+- **Imagem/testes:** Containerfile inclui o store; `check-image.sh` persiste uma intenção, planeja a partir dela e grava uma tarefa dry-run com precondições. Foram adicionados testes de geração/update/rollback, detecção de adulteração, permissões, locks, precondições e fluxo CLI. Na preparação, 8 testes focados passaram, os módulos foram compilados sintaticamente e `bash -n image/check-image.sh` passou.
+- **Segurança:** `features.vm_write_enabled=false` permanece obrigatório; nenhum worker/executor ou chamada libvirt mutável foi introduzido; painel continua somente leitura. Locks e hashes são fundamentos de consistência, não autorização para aplicação.
+- **Limites:** o lote publicado ainda depende dos workflows remotos do head final para ser considerado fechado. Não há criação/start/stop real de VM, boot físico USB, política dinâmica de CPU/RAM, discos/rede/firmware/passthrough nem GPU compartilhada homologada.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base funcional anterior `ba15347d0dd699bb0154edd47cb49d44e72e71af`.
+
 ## 2026-09-12 — CI-BOOT-002 — Probe usa o QEMU da própria imagem StorOS
 
 - **Motivo:** o ajuste CI-BOOT-001 com 1 vCPU não foi suficiente. No mesmo head `6b54ac40aef0e73b87286dc04163849a9fcbd61e`, o Bootable media de PR #53 (`34706993875`) avançou muito além das tentativas anteriores, mas não alcançou agente+painel dentro de 420 s; já o push #52 (`34706993402`) reproduziu a mesma falha fatal do `systemd` antes dos serviços StorOS mesmo com `-smp 1`.
