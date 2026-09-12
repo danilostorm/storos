@@ -8,6 +8,7 @@ COPY scripts/collect_host.py /usr/libexec/storos/collect_host.py
 COPY src/storos_agent.py /usr/libexec/storos/storos_agent.py
 COPY src/storos_config.py /usr/libexec/storos/storos_config.py
 COPY src/storos_vm.py /usr/libexec/storos/storos_vm.py
+COPY src/storos_vm_store.py /usr/libexec/storos/storos_vm_store.py
 COPY src/storos_tasks.py /usr/libexec/storos/storos_tasks.py
 COPY src/storos_cli.py /usr/libexec/storos/storos_cli.py
 COPY src/storos_web.py /usr/libexec/storos/storos_web.py
