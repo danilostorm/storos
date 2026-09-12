@@ -2,6 +2,17 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-003A2 — Fechamento remoto do observador de hardware virtual
+
+- **Resultado:** VM-003A está concluído no head `6108e0ec45f79e7a399f7f96733076effe3a2f47`. Project continuity `34713932768`, Host agent `34713932769`, Development image `34713932991` e Bootable media `34713932817` ficaram verdes; a suíte remota executou **50/50 testes**.
+- **Imagem:** o smoke endurecido passou dentro da imagem final com libvirt 12.0.0 e QEMU 10.2.2 e confirmou explicitamente `StorOS discovery and virtual hardware observation passed against libvirt test driver (no real VM).` O gate exige `hardware.status=ok`, firmware tipado e listas válidas de discos/interfaces em todas as VMs simuladas.
+- **Prova de boot:** o job Bootable `103607586216` gerou/inspecionou o QCOW2 e inicializou o mesmo disco duas vezes com o QEMU 10.2.2 da imagem StorOS. Foram emitidos `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`, com `boot_count=1 → 2`, agente + painel autenticado nos dois boots, `config_generation=1` e fingerprints persistentes de configuração/token.
+- **Artefatos:** QCOW2 SHA-256 `d8075fbaa6693d7087db689922741a171b3e752cb1242072ec9f3b5b5ce1b091`; `storos-boot-evidence` ID `10304262931`, digest `sha256:5fc0a60aaff96e107512cbf1596d7589e085e5caf5801e8f539b81dc369e3100`; `storos-qcow2` ID `10304721991`, digest do artefato `sha256:a191ed814adc020ae79f097231df9c95cf25a7f9de28842d513aaf0343c0c4e4`.
+- **Segurança preservada:** observação de firmware/discos/rede continua somente leitura; `features.vm_write_enabled=false` permanece obrigatório; planner/tarefas continuam `dry_run`, `can_apply=false` e `executable=false`; nenhum executor ou chamada mutável ao libvirt foi introduzido.
+- **Limites:** o fechamento comprova observação tipada e persistência virtual em CI, não criação/start/stop real de VM, passthrough, SR-IOV, mediated devices, vGPU, GPU compartilhada ou boot físico USB. O QCOW2 continua artefato de laboratório.
+- **Próximo passo:** iniciar VM-003B com evolução backward-compatible da intenção/planner para um subconjunto estreito de firmware/discos/rede, ainda exclusivamente `dry_run`.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), head validado `6108e0ec45f79e7a399f7f96733076effe3a2f47`.
+
 ## 2026-09-12 — VM-003A1 — Smoke da imagem exige hardware observado
 
 - **Motivo:** o smoke anterior aceitava `test:///default` quando a descoberta geral estava saudável, mas não exigia explicitamente que o novo campo `hardware` tivesse sido produzido e validado dentro da imagem final.
