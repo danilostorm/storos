@@ -10,13 +10,13 @@ Ele não cria, inicia, para, redefine ou altera recursos de VMs. Todas as consul
 - Descoberta de VMs ligadas e desligadas em `qemu:///system`, sem precisar ativar políticas ou cadastrá-las novamente.
 - Identificação por UUID; renomear a VM não troca sua identidade.
 - Estado, vCPUs e valores de memória informados pelo libvirt. Esses valores de RAM não medem consumo de aplicativos nem comprovam balloon funcionando.
-- Observação tipada do hardware virtual persistente por `virsh dumpxml --inactive`: firmware, Secure Boot quando declarado, presença de NVRAM, discos e interfaces de rede.
+- Observação tipada do hardware virtual persistente por `virsh dumpxml --inactive`: firmware, Secure Boot quando explicitamente declarada a feature, presença de NVRAM, discos e interfaces de rede.
 - Diagnósticos distintos para conexão indisponível, inventário vazio, identidade parcial, hardware virtual indisponível e coleta antiga.
 - Atualização periódica e escrita atômica do snapshot local em `/run/storos/status.json`.
 
 ### Hardware virtual observado
 
-O incremento VM-003A adiciona, por VM, um objeto `hardware` sem mudar o `schema_version: 1` do snapshot. A extensão é aditiva para preservar consumidores existentes.
+O VM-003A adicionou, por VM, um objeto `hardware` sem mudar o `schema_version: 1` do snapshot. A extensão é aditiva para preservar consumidores existentes.
 
 Quando disponível, `hardware.status=ok` contém:
 
@@ -25,6 +25,8 @@ Quando disponível, `hardware.status=ok` contém:
 - `firmware.nvram_present`;
 - `disks[]`: tipo/dispositivo, target e bus, origem, formato, somente leitura e ordem de boot quando declarada;
 - `interfaces[]`: tipo, MAC, origem, modelo, target e estado do link quando declarados.
+
+`loader secure='yes'` **não é tratado como Secure Boot habilitado**. No contrato do libvirt, esse atributo informa que o firmware é capaz de Secure Boot; ele não liga/desliga a feature. O agente só preenche `firmware.secure_boot` quando encontra a feature explícita `firmware/feature name='secure-boot'` com `enabled=yes|no`. Sem essa declaração, o valor fica `null`.
 
 A identidade básica vem de `dominfo`; o hardware vem de `dumpxml --inactive`. Se a identidade puder ser lida mas o XML de hardware falhar, a VM **continua presente** no snapshot, `hardware.status` passa a `unavailable` e o inventário geral vira `partial`. O agente não inventa hardware ausente nem transforma falha de leitura em estado vazio.
 
@@ -57,19 +59,25 @@ PYTHONPATH=src:scripts python3 -m unittest discover -s tests -v
 
 O primeiro comando informa libvirt indisponível se a ferramenta, socket ou permissão não existir; não substitui isso por uma lista vazia de sucesso.
 
-O check da imagem executa descoberta contra `test:///default`, usando o driver de teste do libvirt. Esse resultado tem `source: simulation`: testa a integração e o parsing com as ferramentas realmente instaladas na imagem, sem certificar uma VM física ou o hardware do Danilo.
+O check da imagem executa descoberta contra `test:///default`, usando o driver de teste do libvirt. Esse resultado tem `source: simulation`: testa a integração e o parsing com as ferramentas realmente instaladas na imagem, sem certificar uma VM física ou hardware do usuário.
 
-No incremento VM-003A, a suíte remota passou **50/50 testes** no run Host agent `34713412563`. A cobertura inclui identidade/renomeação, VM desligada, ausência de conexão, lista vazia, VM desaparecendo, resposta inválida, timeout, comandos somente leitura, snapshot antigo, escrita atômica, parsing de firmware/discos/interfaces, rejeição de UUID divergente/declaração XML e preservação da VM como `partial` quando apenas a leitura de hardware falha.
+VM-003A foi fechado no head `6108e0ec45f79e7a399f7f96733076effe3a2f47`: Host agent passou **50/50 testes**, Development image ficou verde e o Bootable media validou o mesmo QCOW2 em dois boots. VM-003B adiciona testes de compatibilidade v1/v2 e um caso específico garantindo que `loader secure` não seja confundido com Secure Boot efetivamente declarado.
 
-O agente e o painel já foram comprovados em boots virtuais anteriores do mesmo QCOW2. Isso valida integração funcional em laboratório QEMU/TCG, não instalação física por USB nem compatibilidade de GPU.
+## Consumidores do snapshot
+
+- O painel continua somente leitura.
+- Intenções schema 1 continuam ignorando `hardware` para preservar comportamento/hashes históricos.
+- Intenções schema 2 podem comparar um subconjunto gerenciado de firmware/discos/interfaces **somente quando `hardware.status=ok`**.
+- Hardware indisponível ou inconclusivo deve bloquear a parte correspondente do plano, nunca virar ausência presumida.
+
+O contrato de intenção/planner está em [VM_PLANNER.md](VM_PLANNER.md), e os limites do observador estão em [VM_HARDWARE_OBSERVER.md](VM_HARDWARE_OBSERVER.md).
 
 ## Limites atuais
 
 - Nenhuma consulta do agente concede autoridade de escrita ao libvirt.
 - `features.vm_write_enabled=false` continua obrigatório no control plane.
-- O contrato de intenção/planner ainda não usa firmware, discos ou rede; VM-003A apenas observa esses campos.
+- Secure Boot, enrolled keys e regeneração de NVRAM não são gerenciados pelo planner VM-003B.
 - O agente não mede ainda capacidade dinâmica de CPU/RAM nem suporte real a balloon/hotplug.
 - Passthrough, mediated devices, SR-IOV/vGPU e compartilhamento simultâneo de GPU não são inferidos a partir do XML básico.
 - RTX 3080 Ti/RX 550 continuam sem homologação física.
-
-O próximo passo é fechar os gates de imagem/boot do VM-003A. Só depois o VM-003B pode ampliar o contrato de intenção e o planner **ainda dry-run** para um subconjunto de firmware/discos/rede, mantendo qualquer executor real separado e bloqueado.
+- Boot físico USB continua pendente; QCOW2 é laboratório interno.
