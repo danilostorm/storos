@@ -121,6 +121,16 @@ class DiscoveryTests(unittest.TestCase):
             'link_state': 'up',
         }])
 
+    def test_loader_secure_is_capability_not_secure_boot_state(self):
+        xml = domain_xml().replace(
+            '    <firmware><feature enabled="yes" name="secure-boot"/></firmware>\n',
+            '',
+        )
+        hardware = parse_domain_xml(xml, VM1)
+        self.assertEqual(hardware['firmware']['mode'], 'efi')
+        self.assertIsNone(hardware['firmware']['secure_boot'])
+        self.assertTrue(hardware['firmware']['nvram_present'])
+
     def test_domain_xml_rejects_mismatch_and_declarations(self):
         with self.assertRaises(ProbeError) as mismatch:
             parse_domain_xml(domain_xml(VM2), VM1)
