@@ -8,7 +8,16 @@ import time
 import unittest
 from unittest.mock import patch
 
-from storos_agent import ProbeError, discover, main, parse_info, read_snapshot, run_virsh, write_snapshot
+from storos_agent import (
+    ProbeError,
+    discover,
+    main,
+    parse_domain_xml,
+    parse_info,
+    read_snapshot,
+    run_virsh,
+    write_snapshot,
+)
 
 VM1 = '11111111-1111-4111-8111-111111111111'
 VM2 = '22222222-2222-4222-8222-222222222222'
@@ -25,6 +34,40 @@ Used memory: 8388608 KiB
 '''
 
 
+def domain_xml(uid=VM1):
+    return f'''<domain type="kvm">
+  <name>Zorin OS</name>
+  <uuid>{uid}</uuid>
+  <os firmware="efi">
+    <type arch="x86_64" machine="q35">hvm</type>
+    <loader readonly="yes" secure="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.secboot.fd</loader>
+    <nvram>/var/lib/libvirt/qemu/nvram/{uid}_VARS.fd</nvram>
+    <firmware><feature enabled="yes" name="secure-boot"/></firmware>
+  </os>
+  <devices>
+    <disk type="file" device="disk">
+      <driver name="qemu" type="qcow2"/>
+      <source file="/var/lib/libvirt/images/zorin.qcow2"/>
+      <target dev="vda" bus="virtio"/>
+      <boot order="1"/>
+    </disk>
+    <disk type="file" device="cdrom">
+      <driver name="qemu" type="raw"/>
+      <source file="/var/lib/libvirt/images/install.iso"/>
+      <target dev="sda" bus="sata"/>
+      <readonly/>
+    </disk>
+    <interface type="network">
+      <mac address="52:54:00:12:34:56"/>
+      <source network="default"/>
+      <target dev="vnet0"/>
+      <model type="virtio"/>
+      <link state="up"/>
+    </interface>
+  </devices>
+</domain>'''
+
+
 class DiscoveryTests(unittest.TestCase):
     def test_stopped_vm_and_rename_preserve_uuid(self):
         a = parse_info(info(), VM1)
@@ -33,13 +76,83 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(a['uuid'], b['uuid'])
         self.assertEqual(a['memory_reported_kib'], 8388608)
         calls = []
+
         def runner(uri, args, timeout):
             calls.append(args)
-            return VM1 if args[0] == 'list' else info()
+            if args[0] == 'list':
+                return VM1
+            if args[0] == 'dominfo':
+                return info()
+            if args[0] == 'dumpxml':
+                return domain_xml()
+            raise AssertionError(f'consulta inesperada: {args}')
+
         result = discover(runner=runner)
         self.assertEqual(result['status'], 'ok')
         self.assertEqual(len(result['vms']), 1)
+        self.assertEqual(result['vms'][0]['hardware']['status'], 'ok')
         self.assertEqual(calls[0], ['list', '--all', '--uuid'])
+        self.assertEqual(calls[1], ['dominfo', VM1])
+        self.assertEqual(calls[2], ['dumpxml', '--inactive', VM1])
+
+    def test_domain_xml_observes_firmware_disks_and_interfaces(self):
+        hardware = parse_domain_xml(domain_xml(), VM1)
+        self.assertEqual(hardware['status'], 'ok')
+        self.assertEqual(hardware['firmware'], {
+            'mode': 'efi',
+            'secure_boot': True,
+            'nvram_present': True,
+        })
+        self.assertEqual(len(hardware['disks']), 2)
+        self.assertEqual(hardware['disks'][0]['device'], 'disk')
+        self.assertEqual(hardware['disks'][0]['target'], {'dev': 'vda', 'bus': 'virtio'})
+        self.assertEqual(hardware['disks'][0]['source']['kind'], 'file')
+        self.assertEqual(hardware['disks'][0]['source']['value'], '/var/lib/libvirt/images/zorin.qcow2')
+        self.assertEqual(hardware['disks'][0]['format'], 'qcow2')
+        self.assertEqual(hardware['disks'][0]['boot_order'], 1)
+        self.assertFalse(hardware['disks'][0]['readonly'])
+        self.assertTrue(hardware['disks'][1]['readonly'])
+        self.assertEqual(hardware['interfaces'], [{
+            'type': 'network',
+            'mac': '52:54:00:12:34:56',
+            'source': {'network': 'default'},
+            'model': 'virtio',
+            'target_dev': 'vnet0',
+            'link_state': 'up',
+        }])
+
+    def test_domain_xml_rejects_mismatch_and_declarations(self):
+        with self.assertRaises(ProbeError) as mismatch:
+            parse_domain_xml(domain_xml(VM2), VM1)
+        self.assertEqual(mismatch.exception.code, 'invalid_response')
+
+        unsafe = '<!DOCTYPE domain [<!ENTITY demo "value">]>' + domain_xml()
+        with self.assertRaises(ProbeError) as declaration:
+            parse_domain_xml(unsafe, VM1)
+        self.assertEqual(declaration.exception.code, 'unsafe_xml')
+
+    def test_hardware_probe_failure_preserves_vm_and_marks_partial(self):
+        def runner(uri, args, timeout):
+            if args[0] == 'list':
+                return VM1
+            if args[0] == 'dominfo':
+                return info()
+            if args[0] == 'dumpxml':
+                raise ProbeError('libvirt_error', 'XML unavailable')
+            raise AssertionError(f'consulta inesperada: {args}')
+
+        result = discover(runner=runner)
+        self.assertEqual(result['status'], 'partial')
+        self.assertEqual(len(result['vms']), 1)
+        self.assertEqual(result['vms'][0]['uuid'], VM1)
+        self.assertEqual(result['vms'][0]['hardware'], {
+            'status': 'unavailable',
+            'firmware': None,
+            'disks': None,
+            'interfaces': None,
+        })
+        self.assertEqual(result['errors'][0]['scope'], 'hardware')
+        self.assertEqual(result['errors'][0]['uuid'], VM1)
 
     def test_unavailable_is_not_empty_success(self):
         def broken(*args):
@@ -55,20 +168,27 @@ class DiscoveryTests(unittest.TestCase):
         def runner(uri, args, timeout):
             if args[0] == 'list':
                 return VM1 + '\n' + VM2
-            if args[1] == VM2:
+            if args[0] == 'dominfo' and args[1] == VM2:
                 raise ProbeError('libvirt_error', 'Gone')
-            return info()
+            if args[0] == 'dominfo':
+                return info()
+            if args[0] == 'dumpxml':
+                return domain_xml()
+            raise AssertionError(f'consulta inesperada: {args}')
+
         result = discover(runner=runner)
         self.assertEqual(result['status'], 'partial')
         self.assertEqual(result['discovered_count'], 2)
         self.assertEqual(len(result['vms']), 1)
+        self.assertEqual(result['vms'][0]['hardware']['status'], 'ok')
         self.assertEqual(result['errors'][0]['uuid'], VM2)
+        self.assertEqual(result['errors'][0]['scope'], 'identity')
 
     def test_malformed_identity_never_reaches_dominfo(self):
         calls = []
         def runner(uri, args, timeout):
             calls.append(args)
-            return 'name; touch /tmp/unsafe'
+            return 'not-a-valid-uuid'
         result = discover(runner=runner)
         self.assertEqual(result['status'], 'unavailable')
         self.assertEqual(len(calls), 1)
