@@ -1,10 +1,10 @@
-# VM-001 — intenção, planejamento e tarefas dry-run
+# VM-001/VM-002 — intenção persistente, planejamento e tarefas dry-run
 
-Este incremento cria a primeira camada de reconciliação de VMs do StorOS, **sem autoridade para alterar o hipervisor**. O agente continua sendo a fonte de estado observado em modo somente leitura; o planner compara esse estado com um documento de intenção e produz somente um plano auditável.
+Esta camada do StorOS modela o estado desejado de VMs e produz planos auditáveis **sem autoridade para alterar o hipervisor**. O agente continua sendo a fonte do estado observado em modo somente leitura. `features.vm_write_enabled=false` permanece obrigatório e não existe executor libvirt mutável.
 
 ## Intenção de VM v1
 
-O arquivo de intenção é JSON e aceita exatamente estes campos:
+O contrato aceita exatamente:
 
 ```json
 {
@@ -20,87 +20,148 @@ O arquivo de intenção é JSON e aceita exatamente estes campos:
 ```
 
 - `uuid` é a identidade estável da VM.
-- `name` é validado, mas não substitui o UUID como identidade.
+- `name` não substitui o UUID.
 - `desired_state` aceita `running` ou `stopped`.
-- `resources.vcpus` é uma quantidade de vCPUs; ainda não define pinning/NUMA.
-- `resources.memory_mib` é memória fixa desejada neste contrato inicial; mínimos/máximos dinâmicos pertencem à Fase 2.
-- Campos desconhecidos são rejeitados para impedir que parâmetros arbitrários virem comandos implícitos.
+- `resources.vcpus` ainda não define pinning/NUMA.
+- `resources.memory_mib` é memória fixa desejada neste contrato inicial; política dinâmica pertence a uma etapa futura.
+- Campos desconhecidos são rejeitados.
+
+## VM-002 — store persistente por UUID
+
+`storos_vm_store.py` persiste a intenção em `/var/lib/storos/vm-intents/<uuid>/`:
+
+- `current.json`: geração ativa;
+- `revisions/000001.json`, `000002.json`, ...: histórico imutável por geração;
+- `.lock`: lock exclusivo da VM durante alteração do store.
+
+Cada registro contém `generation`, `updated_at`, `intent_sha256`, `intent` e `reason`. O SHA-256 é recalculado ao ler o registro; adulteração do conteúdo/hash faz a leitura falhar.
+
+### Concorrência otimista
+
+`expected_generation` evita que um cliente sobrescreva silenciosamente uma versão que mudou desde sua leitura.
+
+- criação pode usar `expected_generation=0` para exigir que a VM ainda não possua intenção persistida;
+- atualização pode informar a geração corrente;
+- divergência gera conflito e nenhuma nova revisão é publicada.
+
+Rollback não reescreve o histórico. A revisão escolhida vira o conteúdo de uma **nova geração**, preservando a linha do tempo.
 
 ## Planner
 
-`storos_vm.py` compara a intenção com o snapshot do [agente](AGENT.md). A saída tem `mode=dry_run`, `can_apply=false`, hash SHA-256 da intenção e do snapshot e uma lista ordenada de ações propostas. Toda ação contém `executable=false`.
+`storos_vm.py` compara a intenção com o snapshot do agente. A saída sempre contém:
 
-Tipos atualmente descritos pelo planner:
+- `mode=dry_run`;
+- `can_apply=false`;
+- `intent_sha256`;
+- `snapshot_sha256`;
+- lista ordenada de ações em que cada item contém `executable=false`.
 
-- `create_vm`
-- `rename_vm`
-- `set_vcpus`
-- `set_memory`
-- `start_vm`
-- `shutdown_vm`
-- ações de diagnóstico bloqueantes: `refresh_snapshot`, `inspect_inventory`, `inspect_vcpus` e `inspect_memory`
+Tipos atualmente descritos:
 
-Esses nomes são **descrições de intenção**, não chamadas libvirt. Não existe executor no VM-001.
+- `create_vm`;
+- `rename_vm`;
+- `set_vcpus`;
+- `set_memory`;
+- `start_vm`;
+- `shutdown_vm`;
+- diagnósticos bloqueantes `refresh_snapshot`, `inspect_inventory`, `inspect_vcpus` e `inspect_memory`.
 
-### Regras de segurança
+Esses nomes são descrições de intenção, não chamadas libvirt.
 
-- A CLI lê o snapshot por `storos_agent.read_snapshot(..., max_age=30)`. Coleta antiga é marcada como `stale` e o planner responde `blocked`/`refresh_snapshot`.
-- Se o inventário libvirt estiver `partial` e a VM desejada não aparecer, o planner **não** propõe `create_vm`; a ausência não é considerada comprovada.
-- Se vCPU ou memória configurável observada estiverem indisponíveis, o plano fica `blocked` e pede inspeção em vez de supor valores.
-- RAM é comparada com `max_memory_reported_kib`, não com `memory_reported_kib`, porque o segundo não representa consumo dos aplicativos e não deve ser usado como configuração desejada.
-- Inventário `unavailable`, UUID duplicado ou documento incompatível falham sem gerar plano aplicável.
+### Regras de segurança do planner
 
-## Tarefas persistentes
+- A CLI lê o snapshot com `read_snapshot(..., max_age=30)`.
+- Snapshot stale bloqueia a reconciliação.
+- Inventário `partial` sem a VM não prova ausência e não permite propor `create_vm`.
+- vCPU ou memória configurável ausentes geram inspeção bloqueante em vez de suposição.
+- RAM é comparada com `max_memory_reported_kib`, não com memória usada pelo guest.
+- Inventário indisponível, UUID duplicado ou schema incompatível falham fechados.
 
-`storos_tasks.py` grava registros em `/var/lib/storos/tasks/<task_id>.json` com escrita temporária, `fsync`, `os.replace` e `fsync` do diretório. O diretório usa modo `0750` e os registros `0640`.
+## Tarefas dry-run v2
+
+`storos_tasks.py` grava `/var/lib/storos/tasks/<task_id>.json` com escrita temporária, `fsync`, `os.replace` e `fsync` do diretório. O diretório usa `0750`, arquivos `0640` e locks por VM ficam em `/var/lib/storos/tasks/.locks/<vm_uuid>.lock` com `0600`.
 
 Cada tarefa contém:
 
-- UUID próprio da tarefa;
+- UUID da tarefa;
+- UUID da VM;
 - horário de criação;
 - `kind=vm_reconcile`;
 - `mode=dry_run`;
 - `executable=false`;
 - status `planned`, `blocked` ou `converged`;
-- plano completo que originou o registro.
+- plano completo;
+- precondições que vinculam a tarefa à geração/hash da intenção e ao hash do snapshot observado.
 
-O ledger rejeita qualquer plano que declare `can_apply=true` ou qualquer ação com `executable` diferente de `false`.
+Exemplo de precondições:
+
+```json
+{
+  "intent_generation": 3,
+  "intent_sha256": "...",
+  "snapshot_sha256": "..."
+}
+```
+
+O ledger rejeita plano aplicável, ação executável ou divergência entre os hashes do plano e as precondições. Isso ainda **não autoriza aplicação futura**: um executor real deverá reler e revalidar todas as precondições imediatamente antes de qualquer mutação.
 
 ## CLI
 
-Gerar plano sem gravar tarefa:
+Persistir uma intenção nova exigindo ausência anterior:
+
+```bash
+storosctl vm-intent-apply --intent-file vm.json --expected-generation 0
+```
+
+Consultar estado e histórico:
+
+```bash
+storosctl vm-intent-show --vm-uuid <uuid>
+storosctl vm-intent-history --vm-uuid <uuid>
+storosctl vm-intent-list
+```
+
+Atualizar com concorrência otimista:
+
+```bash
+storosctl vm-intent-apply --intent-file vm.json --expected-generation 3
+```
+
+Rollback por nova geração:
+
+```bash
+storosctl vm-intent-rollback --vm-uuid <uuid> --target-generation 1 --expected-generation 3
+```
+
+`vm-plan` pode usar um arquivo ad hoc para inspeção ou uma intenção persistida:
 
 ```bash
 storosctl vm-plan --intent-file vm.json
+storosctl vm-plan --vm-uuid <uuid>
 ```
 
-Por padrão o snapshot é `/run/storos/status.json`. Para um arquivo específico:
+Registrar reconciliação exige uma intenção persistida, para que a tarefa carregue geração/hash verificáveis:
 
 ```bash
-storosctl vm-plan --intent-file vm.json --snapshot /caminho/status.json
+storosctl vm-reconcile-dry-run --vm-uuid <uuid>
 ```
 
-Registrar a reconciliação dry-run:
-
-```bash
-storosctl vm-reconcile-dry-run --intent-file vm.json
-```
-
-Consultar o ledger:
+Consultar tarefas:
 
 ```bash
 storosctl task-list
 storosctl task-show --task-id <uuid>
 ```
 
-Os testes podem redirecionar o ledger com `--task-root`.
+Testes podem redirecionar os stores com `--intent-root`, `--task-root` e o snapshot com `--snapshot`.
 
-## O que o VM-001 não faz
+## O que VM-002 não faz
 
-- Não executa `virsh define`, `start`, `shutdown`, `setvcpus`, `setmem` ou qualquer mutação equivalente.
-- Não habilita `features.vm_write_enabled`; a [configuração](CONFIGURATION.md) continua exigindo `false`.
-- Não adiciona endpoint web mutável; o painel permanece somente leitura.
+- Não executa `virsh define`, `start`, `shutdown`, `setvcpus`, `setmem` ou mutação equivalente.
+- Não habilita `features.vm_write_enabled`.
+- Não adiciona worker/executor.
+- Não torna o painel web mutável.
 - Não implementa discos, rede, firmware, passthrough ou GPU compartilhada.
-- Não transforma a lista de ações em autorização. Uma futura camada de aplicação deverá ter locks, precondições, releitura do estado, auditoria, falha verificável e feature gate separado antes de tocar o hipervisor.
+- Não transforma lock/precondição em autorização; eles são fundação para uma futura camada de execução, que continuará exigindo autenticação, feature gate, capacidade, releitura do estado, timeout, verificação posterior e auditoria.
 
 A posição dessa camada na arquitetura está registrada em [ARQUITETURA.md](ARQUITETURA.md).
