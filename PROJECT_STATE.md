@@ -27,8 +27,9 @@ Atualizado em **12/09/2026**, atualização **CFG-001**. Responsável pelas deci
 - Exposição fora do loopback exige opt-in explícito `allow_insecure_lan=true`, porque TLS integrado ainda não existe.
 - `storosctl` ganha `config-init`, `config-show`, `config-history`, `config-apply`, `config-rollback`, `web-token-init` e `web-token-show` sem retirar os comandos do agente.
 - Testes locais do novo store/painel passaram antes da publicação.
-- A primeira execução remota Host agent `34670864403`, head `49c563e225c4dcbd72ae5413f1c80789b3c5b10a`, executou 21 testes: 20 passaram e um falhou por typo no próprio teste (`settings['wec']` no lugar de `settings['web']`). A lógica do store correspondente já havia passado até essa linha; o lote corretivo altera somente o teste e os registros de continuidade.
-- CFG-001 ainda precisa de novo CI verde antes de ser marcado como concluído.
+- A primeira execução remota Host agent `34670864403`, head `49c563e225c4dcbd72ae5413f1c80789b3c5b10a`, executou 21 testes: 20 passaram e um falhou por typo no próprio teste (`settings['wec']` no lugar de `settings['web']`).
+- O corretivo `c77c676774fe39c7d3fbfa70caabbfe363f747a5` deixou Host agent `34671066203` e Project continuity `34671066176` verdes. Development image `34671066182` também confirmou os dois symlinks de preset, mas falhou no smoke check porque `check-image.sh` apontava para `/usr/lib/system/storos-web.service` em vez de `/usr/lib/systemd/system/storos-web.service`; a implementação do service não foi a causa.
+- O próximo lote corrige apenas esse caminho no smoke check e os registros de continuidade. CFG-001 ainda precisa de novo CI verde antes de ser marcado como concluído.
 
 ## Limitações
 

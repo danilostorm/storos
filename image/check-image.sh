@@ -9,7 +9,7 @@ test -s /usr/libexec/storos/storos_config.py
 test -s /usr/libexec/storos/storos_cli.py
 test -s /usr/libexec/storos/storos_web.py
 test -s /usr/lib/systemd/system/storos-agent.service
-test -s /usr/lib/system/storos-web.service
+test -s /usr/lib/systemd/system/storos-web.service
 test -s /usr/lib/systemd/system-preset/10-storos.preset
 grep -Fxq 'enable storos-agent.service' /usr/lib/systemd/system-preset/10-storos.preset
 grep -Fxq 'enable storos-web.service' /usr/lib/systemd/system-preset/10-storos.preset
