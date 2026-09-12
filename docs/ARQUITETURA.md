@@ -85,6 +85,14 @@ A CLI separa inspeção ad hoc (`vm-plan --intent-file`) da reconciliação audi
 
 `storos_tasks.py` continua sem worker/executor. Todas as tarefas têm `mode=dry_run`, `executable=false` e o plano mantém `can_apply=false`. `features.vm_write_enabled=false` continua obrigatório.
 
+## WEB-VM-001 — projeção somente leitura do control plane
+
+O painel autenticado passa a projetar os dados já existentes do VM-002 sem ganhar uma camada de comando. `GET /api/vms/intents` lista as intenções persistidas, `GET /api/vms/intents/<uuid>` retorna uma intenção validada e `GET /api/vms/intents/<uuid>/plan` calcula o plano determinístico **em memória** a partir da intenção atual e do snapshot observado; o cálculo não cria tarefa e não grava estado.
+
+O ledger dry-run também pode ser inspecionado por `GET /api/tasks` e `GET /api/tasks/<task_id>`. Os registros expostos continuam carregando `mode=dry_run`, `executable=false` e plano com `can_apply=false`. Métodos `POST`, `PUT`, `PATCH` e `DELETE` continuam respondendo `405` em todo o painel autenticado.
+
+A projeção de plano falha fechada: se o snapshot em `/run/storos/status.json` estiver ausente, ilegível ou incompatível com o planner, o endpoint retorna indisponibilidade em vez de produzir uma ação a partir de estado presumido. O HTML inicial mostra somente resumo de intenções/tarefas e mantém “Escrita em VMs: bloqueada”. Nenhum endpoint desta etapa chama `apply_vm_intent`, `rollback_vm_intent`, `create_dry_run_task` ou qualquer mutação libvirt.
+
 ## Fronteira para escrita futura
 
 A futura passagem de `JOBS` para `COMPUTE` será uma camada separada. Antes de existir escrita real, ela deverá validar, no mínimo: autenticação/autorização, feature gate explícito, lock por VM e recurso, geração/hash esperado, capacidade do host, snapshot fresco, releitura imediatamente anterior à mutação, timeout, resultado observado e auditoria persistente. Nenhum desses requisitos deve ser inferido como concluído apenas porque VM-002 persiste intenção e precondições.
