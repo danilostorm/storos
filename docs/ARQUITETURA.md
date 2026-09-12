@@ -53,6 +53,12 @@ Usar guests/discos descartáveis. Virtualização aninhada ajuda no contrato/API
 
 Duas pessoas usam VMs separadas e entrada/áudio independentes; streaming não comprova GPU compartilhada. NAS/apps/cluster ficam fora do caminho crítico.
 
-O protótipo começa pelo Containerfile e verificação de imagem. Painel, gerenciamento automático e preparação de mídia de boot ainda não implementados. O fluxo pretendido é boot direto pela mídia preparada e configuração web, conforme [BOOT_MEDIA.md](BOOT_MEDIA.md). ISO é opcional; a base imutável não comprova execução integral em RAM nem persistência adequada a pendrive comum.
+## Implementação atual
 
-Primeiro componente implementado: [agente local](AGENT.md), em Python, consulta `virsh --readonly` com timeout e UUID. A CLI e o serviço compartilham o mesmo código. O serviço grava snapshot atômico em `/run/storos`, com permissões administrativas; não abre endpoint de rede. O futuro backend autenticado consumirá esse contrato e terá persistência própria para políticas, separada da descoberta.
+O protótipo começa pelo Containerfile e mídia bootc/QCOW2. O fluxo pretendido é boot direto pela mídia preparada e configuração web, conforme [BOOT_MEDIA.md](BOOT_MEDIA.md). ISO é opcional; a base imutável não comprova execução integral em RAM nem persistência adequada a pendrive comum.
+
+O [agente local](AGENT.md), em Python, consulta `virsh --readonly` com timeout e UUID. O serviço grava snapshot atômico em `/run/storos`, e o estado básico de boot persiste em `/var/lib/storos`.
+
+A fundação da configuração persistente é descrita em [CONFIGURATION.md](CONFIGURATION.md). Ela separa **estado observado** do agente de **intenção/configuração** persistente. `current.json` é o ponteiro ativo; revisões são gravadas por geração antes da troca atômica do estado atual. Atualizações podem exigir `expected_generation` para rejeitar concorrência obsoleta, e rollback cria uma nova geração em vez de reescrever histórico.
+
+O primeiro `storos-web.service` é deliberadamente somente leitura: entrega o snapshot e a configuração ativa, exige autenticação para dados administrativos e bloqueia métodos mutáveis. Por padrão escuta apenas no loopback. A flag `features.vm_write_enabled` é validada como `false`; portanto a existência do painel não concede autoridade para modificar VMs. A futura API de tarefas/reconciliação só poderá habilitar escrita após contratos, auditoria e validação separados.

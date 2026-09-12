@@ -1,0 +1,37 @@
+[Unit]
+Description=StorOS authenticated read-only web panel
+Wants=storos-agent.service
+After=storos-agent.service
+
+[Service]
+Type=simple
+StateDirectory=storos
+StateDirectoryMode=0750
+ExecStartPre=/usr/bin/storosctl config-init
+ExecStartPre=/usr/bin/storosctl web-token-init
+ExecStart=/usr/bin/python3 /usr/libexec/storos/storos_web.py
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+UMask=0077
+User=root
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+PrivateDevices=yes
+PrivateTmp=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadOnlyPaths=/run/storos
+ReadWritePaths=/var/lib/storos
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -2,6 +2,17 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — CFG-001 — Configuração transacional e painel autenticado
+
+- **Motivo:** após BOOT-002A comprovar dois boots no mesmo QCOW2 com persistência `boot_count=1 → 2`, iniciar a Fase 1 de configuração persistente e a fundação do painel web sem conceder escrita prematura ao libvirt.
+- **Mudou:** novo store em `/var/lib/storos/config` com geração monotônica, histórico por revisão, lock local, validação completa, `expected_generation` para concorrência otimista e rollback que cria nova geração. `storosctl` passa a rotear comandos de configuração/token sem retirar os comandos do agente. Novo `storos-web.service` entrega `/healthz`, painel HTML, `/api/status` e `/api/config`, exige autenticação para dados administrativos e recusa métodos mutáveis. O listener padrão é `127.0.0.1:8080`; exposição sem TLS fora do loopback exige opt-in explícito. `features.vm_write_enabled=true` é rejeitado nesta fase.
+- **Segurança:** token administrativo aleatório persiste em `/var/lib/storos/auth/admin.token` com modo `0600`; o service roda sem capabilities, com filesystem protegido e somente `/var/lib/storos` gravável. Nenhum token é embutido na imagem ou documentação.
+- **Verificação local:** testes do store e painel passaram, incluindo apply/rollback 1→2→3, conflito de geração, bloqueio de escrita em VM, requisito explícito para LAN sem TLS, persistência/permissão do token, autenticação das APIs e rejeição HTTP 405 para mutações. `check-image.sh` também passa a verificar os módulos, preset, dois services, configuração inicial e modo do token.
+- **Verificação remota:** ainda deve ficar verde no commit deste incremento antes de declarar CFG-001 concluído. O boot/persistência anterior permanece comprovado pelo run `34668185335` no commit `250fb9e972ff472376658dbc3ac17a7dd2617ecd`.
+- **Limites:** painel ainda somente leitura, sem TLS integrado, RBAC, criação/start/stop de VM, política automática de CPU/RAM ou GPU compartilhada. Nenhum boot físico por USB foi executado.
+- **Próximo passo:** validar imagem/boot com `storos-web.service` habilitado, confirmar que config/token sobrevivem ao segundo boot sem expor segredo e então iniciar modelos de configuração de VM + fila/reconciliação ainda com escrita no libvirt bloqueada.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base anterior `250fb9e972ff472376658dbc3ac17a7dd2617ecd`; arquitetura em [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e contrato em [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
 ## 2026-09-11 — BOOT-002A — Evidência 1 → 2 e correção do gate
 
 - **Motivo:** o run BOOT-002 provou a persistência básica no mesmo QCOW2, mas o job ficou vermelho por exigir um marcador de prontidão do agente no primeiro boot antes de o timeout TCG terminar.
@@ -44,7 +55,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 
 - **Motivo:** iniciar a parte funcional autorizada por Danilo; evitar a falha de descoberta silenciosa observada no protótipo Guardian.
 - **Mudou:** agente Python, CLI storosctl, unidade systemd, snapshot atômico e descoberta de VMs por UUID usando libvirt somente leitura. Integração na imagem e workflow de testes adicionados.
-- **Verificação:** 10 testes locais passaram. Ciclo real daemon/CLI neste ambiente gravou e releu `missing_virsh` corretamente, com código 2. CI executa integração com o driver simulado do libvirt; consultar checks do commit para resultado remoto.
+- **Verificação:** 10 testes locais passaram. Ciclo real daemon/CLI local reportou virsh ausente com diagnóstico explícito e código 2. CI executa integração com o driver simulado do libvirt; consultar checks do commit para resultado remoto.
 - **Limites:** não houve boot StorOS ou consulta ao host de Danilo; nenhum ajuste de recursos, VM criada ou painel web. Snapshot é temporário, não histórico. Fase 0 permanece aberta.
 - **Próximo passo:** confirmar check da imagem, validar boot/serviço e avançar para configuração persistente e painel autenticado.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base ee334162f9aedc8c837b7fb43a2e12ef4bf90eb0; contrato e comandos em docs/AGENT.md.
