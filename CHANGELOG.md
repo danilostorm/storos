@@ -2,6 +2,26 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — WEB-VM-001 — Intenção, plano e tarefas no painel somente leitura
+
+- **Motivo:** com VM-002 fechado remotamente, tornar a intenção persistida, o plano dry-run e o ledger auditável visíveis no painel sem antecipar qualquer executor ou endpoint de comando.
+- **Mudou:** `storos_web.py` passa a expor, mediante autenticação, `GET /api/vms/intents`, `GET /api/vms/intents/<uuid>`, `GET /api/vms/intents/<uuid>/plan`, `GET /api/tasks` e `GET /api/tasks/<task_id>`. O HTML inicial mostra contagem de intenções/tarefas e uma tabela simples de intenções persistidas.
+- **Fail-closed:** o endpoint de plano apenas chama o planner determinístico em memória; não cria tarefa e não grava estado. Snapshot observado ausente, ilegível ou incompatível retorna `503` em vez de produzir plano por suposição.
+- **Segurança:** `POST`, `PUT`, `PATCH` e `DELETE` continuam retornando `405`; nenhum caminho web chama `apply_vm_intent`, `rollback_vm_intent`, `create_dry_run_task` ou mutação libvirt. Planos continuam `mode=dry_run`/`can_apply=false` e tarefas/ações continuam `executable=false`.
+- **Testes:** a suíte web ganhou cobertura de autenticação das novas APIs, leitura de intenção, cálculo de plano, leitura do ledger, ausência de efeitos colaterais após POST rejeitado, `503` sem snapshot e resumo HTML. Host agent do head arquitetural `59aa924aefa8d1960ecc5703e2f363339743e9c0`, run `34712075217`, ficou verde. Development image e continuidade do lote final ainda precisam ser confirmados antes de fechar WEB-VM-001.
+- **Arquitetura:** [docs/ARQUITETURA.md](docs/ARQUITETURA.md) registra que esta é apenas uma projeção de leitura do control plane, sem autoridade `UI/API → JOBS → COMPUTE` mutável.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), implementação `f9d12acc7e451600ee9a533f6b3d97d7e9a651f1` / testes `2018e205dea05e0dd36066371b36de80ecfc1b9e`.
+
+## 2026-09-12 — VM-002A — Fechamento remoto da intenção persistente
+
+- **Resultado:** VM-002 está concluído no head `9f7366e84819f5053efc44c129a7a8f8c0d68286`. Host agent `34710051568`, Project continuity `34710051542`, Development image `34710051546` e Bootable media `34710051552` ficaram verdes; a suíte remota executou **42/42 testes**.
+- **Imagem:** o smoke dentro da imagem final confirmou que intenção persistida e reconciliação permanecem exclusivamente dry-run, sem worker/executor e sem escrita libvirt.
+- **Prova de boot:** o job Bootable `103597090745` construiu/inspecionou o QCOW2 e inicializou o mesmo disco duas vezes com QEMU 10.2.2 da própria imagem StorOS. O gate comprovou `boot_count=1 → 2`, agente + painel autenticado nos dois boots, `config_generation=1` e fingerprints persistentes de configuração/token.
+- **Provas explícitas:** `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`. QCOW2 SHA-256 `cde00c270df09e3f28cc0b4341a55dfa88ed8d50d1bfcd59678e4bc4329211b6`; `storos-boot-evidence` ID `10303516398`, digest `sha256:780236c38216fe6df3464d650c418c2c24894dd32af9ec830204720467092730`; `storos-qcow2` ID `10303451532`, digest do ZIP `sha256:536591efcc59a5872e41bfef1fcdcbd1cbb20ffbda1319726d7c284860b57cee`.
+- **Limites preservados:** o fechamento comprova consistência/persistência virtual; não habilita criação/start/stop real de VM, não homologa GPU, não substitui boot físico USB e não transforma o QCOW2 em release para o usuário.
+- **Próximo passo:** projetar intenção/plano/tarefas no painel somente leitura antes de desenhar qualquer executor.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), run Bootable media `34710051552`.
+
 ## 2026-09-12 — VM-002 — Intenção persistente e precondições dry-run
 
 - **Motivo:** após o head `ba15347d0dd699bb0154edd47cb49d44e72e71af` recuperar o gate completo de QCOW2 com Host agent, Project continuity, Development image e Bootable media verdes, avançar a reconciliação de VMs sem pular a etapa de consistência e sem conceder escrita prematura ao hipervisor.
