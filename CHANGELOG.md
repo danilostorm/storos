@@ -2,13 +2,23 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-11 — BOOT-002 — Persistência entre dois boots no mesmo QCOW2
+
+- **Motivo:** após o primeiro boot completo validado, provar que estado StorOS em `/var/lib/storos` sobrevive a reinicialização real da mesma imagem de disco.
+- **Mudou:** `storosctl` ganhou registro persistente do `boot_id` do kernel com escrita atômica/fsync e contador de boots distintos. `storos-agent.service` usa `StateDirectory=storos`, registra o boot antes do daemon e emite `STOROS_AGENT_READY ... boot_count=N` após o primeiro snapshot. O workflow passa a bootar o mesmo QCOW2 duas vezes e exige `boot_count=1` e depois `boot_count=2`.
+- **Verificação anterior:** o run `34665004511` no commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce` passou integralmente: build, QCOW2, OVMF/QEMU, agente e upload do disco ficaram verdes. Isso fecha a primeira prova de boot + agente do StorOS em VM descartável.
+- **Verificação deste incremento:** testes unitários cobrem incremento único por `boot_id`, permissões do estado e rejeição de ID inválido. A prova de dois boots depende do novo workflow remoto e não deve ser marcada como concluída antes do check verde.
+- **Limites:** ainda sem boot físico por USB, painel web ou GPU compartilhada. O contador comprova persistência básica do estado, não ainda a configuração transacional completa da Fase 1.
+- **Próximo passo:** obter o workflow de dois boots verde; depois iniciar configuração persistente transacional e painel web autenticado.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`.
+
 ## 2026-09-11 — BOOT-001B — Preset de primeiro boot e prova do agente
 
 - **Motivo:** o run `34651227029` gerou e validou o QCOW2, iniciou o StorOS via OVMF e chegou ao login serial, mas o primeiro boot executou `systemd preset-all` e removeu `/etc/systemd/system/multi-user.target.wants/storos-agent.service` porque a imagem ainda não tinha política de preset própria.
 - **Mudou:** adicionada a política vendor `10-storos.preset` para habilitar `storos-agent.service` no primeiro boot; o Containerfile passa a usar `systemctl preset`; a unidade passa a puxar `virtqemud.socket` e só emite `STOROS_AGENT_READY snapshot=written` no console depois de o primeiro snapshot existir. O CI agora usa esse marcador como prova de boot + agente funcional.
-- **Verificação:** o console do run `34651227029` mostrou aplicação de preset, remoção explícita do link do agente e, depois, boot completo até `localhost login:` com `virtqemud`, `sshd` e targets do sistema ativos. A correção deste incremento ainda depende do novo workflow remoto antes de ser marcada como verde.
+- **Verificação:** o console do run `34651227029` mostrou aplicação de preset, remoção explícita do link do agente e, depois, boot completo até `localhost login:` com `virtqemud`, `sshd` e targets do sistema ativos. A correção foi validada pelo run `34665004511` no commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`, que passou inclusive o gate `STOROS_AGENT_READY snapshot=written`.
 - **Limites:** ainda não houve boot físico por USB, persistência após reinício, painel web ou teste de GPU. O QCOW2 continua sendo artefato de laboratório.
-- **Próximo passo:** obter o primeiro `Bootable media` verde com `STOROS_AGENT_READY`; em seguida validar dois boots no mesmo QCOW2 e persistência em `/var/lib/storos`.
+- **Próximo passo:** validar dois boots no mesmo QCOW2 e persistência em `/var/lib/storos`.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base `5b1aff0ce80a9f3b9eadf7017678bdce08d890ef`.
 
 ## 2026-09-11 — BOOT-001 — Pipeline QCOW2 e prova automatizada de boot
