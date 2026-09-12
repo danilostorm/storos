@@ -10,6 +10,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 - **Prova de boot:** o job `103612991227` gerou e inspecionou o QCOW2 e inicializou o mesmo disco duas vezes com o QEMU 10.2.2 da imagem StorOS. Foram emitidos `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`, com `boot_count=1 → 2`, `config_generation=1` e fingerprints persistentes de configuração/token.
 - **Artefatos:** QCOW2 SHA-256 `7e1466e575254dfd8c40c7eff3dec5f683e24a43385fd36709f15a68922ff44c`; `storos-boot-evidence` ID `10304634825`, digest `sha256:d4bb72db8d61c5e100c13b697e697db39263fd078f5c963b14591f610ed8bbd8`; `storos-qcow2` ID `10304931834`, digest `sha256:20d06f112745fd9982c6382501eb5751691f77d3859e930bfe6e7afe9c410184`.
 - **Segurança preservada:** `features.vm_write_enabled=false`, planos `dry_run`/`can_apply=false`, ações/tarefas `executable=false`; nenhum executor, endpoint web mutável ou chamada libvirt de escrita foi introduzido. QCOW2 continua artefato de laboratório.
+- **Fechamento documental:** `PROJECT_STATE.md` e `CHANGELOG.md` são consolidados no mesmo commit atômico antes do início do VM-004A, conforme a política de continuidade do projeto.
 - **Próximo passo:** VM-004A deve criar apenas a fronteira de preflight de execução — releitura de tarefa/intenção/snapshot, precondições e locks — mantendo o feature gate de escrita desligado e sem executar mutações.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), head funcional validado `a8e0e9895efd24e4814c87297feefb34e5d123bb`.
 

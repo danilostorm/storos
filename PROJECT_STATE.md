@@ -9,7 +9,7 @@ Atualizado em **12/09/2026**, fechamento funcional **VM-003B**. Responsável pel
 - VM-002 está fechado remotamente.
 - WEB-VM-001 está fechado remotamente no head `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef`.
 - VM-003A está fechado remotamente no head `6108e0ec45f79e7a399f7f96733076effe3a2f47`.
-- **VM-003B está fechado funcionalmente** no head `a8e0e9895efd24e4814c87297feefb34e5d123bb`; o novo head documental deste fechamento ainda deve passar os gates antes de iniciar a etapa seguinte.
+- **VM-003B está fechado funcionalmente** no head `a8e0e9895efd24e4814c87297feefb34e5d123bb`; o fechamento documental é mantido como um lote atômico de `PROJECT_STATE.md` + `CHANGELOG.md` antes da próxima etapa.
 - Fedora/uCore HCI continua como base autorizada do protótipo; ISO instalável não é requisito.
 - `features.vm_write_enabled=false` permanece obrigatório; não existe worker/executor de mutação libvirt.
 - Fase 0 continua aberta para hardware/GPU; RTX 3080 Ti/RX 550 seguem não homologadas para compartilhamento simultâneo.
@@ -126,7 +126,7 @@ VM-004A é fundação de segurança para a futura passagem `JOBS → COMPUTE`; *
 ## Continuidade
 
 - O head funcional fechado do VM-003B é `a8e0e9895efd24e4814c87297feefb34e5d123bb`.
-- O novo head documental criado por este fechamento deve passar continuidade/testes/imagem/boot antes de iniciar VM-004A.
+- O head documental de fechamento deve passar continuidade/testes/imagem/boot antes de iniciar VM-004A.
 - `CHANGELOG.md` deve permanecer somente aditivo; não reescrever entradas antigas.
 - A entrega final continua orientada a mídia física/pendrive em etapa posterior.
 - Danilo autorizou continuar sem pular etapas. Não pedir nova autorização para seguir o roadmap.
