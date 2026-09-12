@@ -25,11 +25,22 @@ from storos_config import (
 )
 from storos_tasks import TASK_ROOT, TaskError, create_dry_run_task, list_tasks, read_task
 from storos_vm import VMError, plan_vm
+from storos_vm_store import (
+    VM_INTENT_ROOT,
+    VMIntentStoreError,
+    apply_vm_intent,
+    intent_preconditions,
+    list_vm_intent_revisions,
+    list_vm_intents,
+    read_vm_intent,
+    rollback_vm_intent,
+)
 
 LOCAL_COMMANDS = {
     'config-init', 'config-show', 'config-history', 'config-apply', 'config-rollback',
     'web-token-init', 'web-token-show', 'web-marker',
-    'vm-plan', 'vm-reconcile-dry-run', 'task-list', 'task-show',
+    'vm-intent-apply', 'vm-intent-show', 'vm-intent-history', 'vm-intent-list',
+    'vm-intent-rollback', 'vm-plan', 'vm-reconcile-dry-run', 'task-list', 'task-show',
 }
 
 
@@ -96,6 +107,14 @@ def _read_json_file(path, label):
     return json.loads(Path(path).read_text())
 
 
+def _intent_for_plan(args, parser):
+    if bool(args.intent_file) == bool(args.vm_uuid):
+        parser.error('vm-plan exige exatamente um de --intent-file ou --vm-uuid')
+    if args.intent_file:
+        return _read_json_file(args.intent_file, '--intent-file')
+    return read_vm_intent(args.vm_uuid, args.intent_root)['intent']
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv or argv[0] not in LOCAL_COMMANDS:
@@ -110,6 +129,8 @@ def main(argv=None):
     parser.add_argument('--token-file', default=str(TOKEN_FILE))
     parser.add_argument('--wait', type=int, default=60)
     parser.add_argument('--intent-file')
+    parser.add_argument('--intent-root', default=str(VM_INTENT_ROOT))
+    parser.add_argument('--vm-uuid')
     parser.add_argument('--snapshot', default=SNAPSHOT)
     parser.add_argument('--task-root', default=str(TASK_ROOT))
     parser.add_argument('--task-id')
@@ -146,16 +167,48 @@ def main(argv=None):
             return 0
         if args.command == 'web-marker':
             return web_marker(args.config_root, args.token_file, args.wait)
-        if args.command in ('vm-plan', 'vm-reconcile-dry-run'):
+        if args.command == 'vm-intent-apply':
             if not args.intent_file:
-                parser.error(f'{args.command} exige --intent-file')
+                parser.error('vm-intent-apply exige --intent-file')
             intent = _read_json_file(args.intent_file, '--intent-file')
+            _json(apply_vm_intent(intent, args.intent_root, args.expected_generation, reason='cli-apply'))
+            return 0
+        if args.command == 'vm-intent-show':
+            if not args.vm_uuid:
+                parser.error('vm-intent-show exige --vm-uuid')
+            _json(read_vm_intent(args.vm_uuid, args.intent_root))
+            return 0
+        if args.command == 'vm-intent-history':
+            if not args.vm_uuid:
+                parser.error('vm-intent-history exige --vm-uuid')
+            _json(list_vm_intent_revisions(args.vm_uuid, args.intent_root))
+            return 0
+        if args.command == 'vm-intent-list':
+            _json(list_vm_intents(args.intent_root))
+            return 0
+        if args.command == 'vm-intent-rollback':
+            if not args.vm_uuid or args.target_generation is None:
+                parser.error('vm-intent-rollback exige --vm-uuid e --target-generation')
+            _json(rollback_vm_intent(args.vm_uuid, args.target_generation, args.intent_root, args.expected_generation))
+            return 0
+        if args.command == 'vm-plan':
+            intent = _intent_for_plan(args, parser)
             snapshot = read_snapshot(args.snapshot, max_age=30)
-            plan = plan_vm(intent, snapshot)
-            if args.command == 'vm-plan':
-                _json(plan)
-            else:
-                _json(create_dry_run_task(plan, args.task_root))
+            _json(plan_vm(intent, snapshot))
+            return 0
+        if args.command == 'vm-reconcile-dry-run':
+            if not args.vm_uuid:
+                parser.error('vm-reconcile-dry-run exige --vm-uuid persistido')
+            if args.intent_file:
+                parser.error('vm-reconcile-dry-run usa intenção persistida; remova --intent-file')
+            record = read_vm_intent(args.vm_uuid, args.intent_root)
+            snapshot = read_snapshot(args.snapshot, max_age=30)
+            plan = plan_vm(record['intent'], snapshot)
+            if plan['intent_sha256'] != record['intent_sha256']:
+                raise VMIntentStoreError('Hash do plano diverge da intenção persistida')
+            preconditions = intent_preconditions(record)
+            preconditions['snapshot_sha256'] = plan['snapshot_sha256']
+            _json(create_dry_run_task(plan, preconditions, args.task_root))
             return 0
         if args.command == 'task-list':
             _json(list_tasks(args.task_root))
@@ -165,7 +218,7 @@ def main(argv=None):
                 parser.error('task-show exige --task-id')
             _json(read_task(args.task_id, args.task_root))
             return 0
-    except (ConfigError, VMError, TaskError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+    except (ConfigError, VMError, VMIntentStoreError, TaskError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         print(json.dumps({'error': 'storos_command_error', 'message': str(exc)}, ensure_ascii=True))
         return 2
     return 2
