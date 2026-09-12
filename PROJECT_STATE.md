@@ -8,7 +8,7 @@ Atualizado em **12/09/2026**, lote **VM-003A**. Responsável pelas decisões: Da
 - Branch: `phase0/gpu-feasibility`, [PR #2](https://github.com/danilostorm/storos/pull/2).
 - VM-002 está fechado remotamente.
 - WEB-VM-001 está **fechado remotamente** no head funcional/documental `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef`.
-- VM-003A está em validação: observação somente leitura de firmware, discos e interfaces já foi implementada e a suíte corrigida está verde; gates finais do lote documental ainda precisam fechar.
+- VM-003A está em validação: observação somente leitura de firmware, discos e interfaces foi implementada, a suíte está verde e o smoke da imagem foi endurecido para exigir o novo hardware observado; gates finais desse head ainda precisam fechar.
 - Fedora/uCore HCI continua como base autorizada do protótipo; ISO instalável não é requisito.
 - `features.vm_write_enabled=false` permanece obrigatório; não existe worker/executor de mutação libvirt.
 - Fase 0 continua aberta para hardware/GPU; RTX 3080 Ti/RX 550 seguem não homologadas para compartilhamento simultâneo.
@@ -69,7 +69,20 @@ A primeira publicação do agente foi o commit `4257da8a989e837bb72fd0d5571c5ea8
 
 Os mocks foram corrigidos e a cobertura ampliada no commit `847520c1cbac7d56d56f121dd81e6f46964f5516`. O Host agent `34713412563` ficou verde com **50/50 testes**. A cobertura nova inclui firmware, Secure Boot/NVRAM, discos, interfaces, UUID divergente, declaração XML recusada e preservação da VM em estado parcial quando apenas hardware não pode ser observado.
 
-No mesmo commit de testes, Project continuity `34713412537` ficou verde. Development image `34713412526` e Bootable media `34713412533` foram disparados, mas o lote documental subsequente altera o head e exige nova confirmação dos gates finais antes de VM-003A ser fechado.
+No head documental `4e96badc0a055c6ec2ca3720b7fa120105f2bce9`, Project continuity `34713608860` ficou verde e Host agent `34713608846` repetiu **50/50 testes verdes**.
+
+### Gate de imagem endurecido
+
+O commit `02b4f085c0cbdf47fefd4e7796398ce58210adb9` endurece `image/check-image.sh`. O smoke `test:///default` agora só passa se:
+
+- a descoberta simulada estiver `status=ok`;
+- existir ao menos uma VM;
+- cada VM possuir `hardware`;
+- cada `hardware.status` for `ok`;
+- `firmware` tiver a estrutura tipada esperada;
+- `disks` e `interfaces` forem listas válidas.
+
+Assim, o Development image passa a provar que o parser de hardware funciona com o libvirt instalado dentro da imagem, e não apenas que o módulo Python importa. Como essa mudança altera o head, Development image e Bootable media precisam ser confirmados novamente antes de fechar VM-003A.
 
 ## Segurança preservada
 
@@ -95,12 +108,13 @@ No mesmo commit de testes, Project continuity `34713412537` ficou verde. Develop
 
 ## Próxima tarefa concreta
 
-1. Fechar Project continuity, Host agent, Development image e Bootable media no head documental final do VM-003A sem relaxar critérios.
-2. Confirmar que o driver `test:///default` produz hardware observado válido dentro da imagem final e que dois boots do mesmo QCOW2 continuam verdes.
-3. Registrar o fechamento VM-003A com os IDs/digests finais.
-4. Iniciar VM-003B: ampliar o contrato de intenção e o planner para um subconjunto explicitamente validado de firmware/discos/rede, ainda apenas em `dry_run` e sem executor.
-5. Manter QCOW2 como laboratório interno e preparar mídia física USB apenas quando a base virtual continuar estável.
-6. STOR-009/010/011 e validação física de GPU permanecem pendentes.
+1. Fechar Project continuity, Host agent, Development image e Bootable media no head final que contém o smoke endurecido, sem relaxar critérios.
+2. Confirmar no log da imagem que `test:///default` emite a mensagem de observação de hardware virtual aprovada.
+3. Confirmar dois boots do mesmo QCOW2 e os marcadores de persistência já exigidos.
+4. Registrar o fechamento VM-003A com os IDs/digests finais.
+5. Iniciar VM-003B: ampliar o contrato de intenção e o planner para um subconjunto explicitamente validado de firmware/discos/rede, ainda apenas em `dry_run` e sem executor.
+6. Manter QCOW2 como laboratório interno e preparar mídia física USB apenas quando a base virtual continuar estável.
+7. STOR-009/010/011 e validação física de GPU permanecem pendentes.
 
 ## Continuidade
 
