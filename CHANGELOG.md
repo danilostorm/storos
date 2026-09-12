@@ -2,6 +2,27 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-003A — Observação tipada de firmware, discos e rede
+
+- **Motivo:** antes de ampliar a intenção/planner para firmware, discos ou rede, tornar o estado observado desses recursos explícito e testável, sem conceder autoridade de escrita ao hipervisor.
+- **Mudou:** `storos_agent.py` passa a ler a definição persistente da VM em modo somente leitura e adiciona o campo aditivo `hardware` ao snapshot schema 1. São observados firmware EFI/BIOS/desconhecido, Secure Boot quando determinável, presença de NVRAM, discos e interfaces de rede com atributos tipados relevantes.
+- **Fail-closed:** identidade e hardware têm falhas separadas. Falha de hardware preserva a VM com `hardware.status=unavailable`, registra erro `scope=hardware` e deixa o inventário `partial`; hardware não observado não vira hardware ausente. O parser limita o documento e valida o UUID antes de aceitar a observação.
+- **Testes:** a primeira publicação `4257da8a989e837bb72fd0d5571c5ea8098f1f7a` deixou Host agent `34713090955` com 45/47 testes: duas falhas eram mocks antigos que devolviam texto de `dominfo` para a nova consulta de XML. O corretivo `847520c1cbac7d56d56f121dd81e6f46964f5516` atualizou os mocks e ampliou a cobertura; Host agent `34713412563` passou **50/50 testes** e Project continuity `34713412537` ficou verde.
+- **Arquitetura:** [docs/VM_HARDWARE_OBSERVER.md](docs/VM_HARDWARE_OBSERVER.md) formaliza a fronteira somente leitura; [docs/AGENT.md](docs/AGENT.md) foi atualizado. VM-003A não altera o schema de intenção nem cria novas ações no planner.
+- **Segurança:** `features.vm_write_enabled=false` permanece obrigatório; nenhum executor, endpoint mutável ou chamada libvirt de escrita foi adicionado.
+- **Limites:** os gates de imagem/boot do head documental final ainda precisam fechar antes de VM-003A ser considerado concluído. A observação básica não comprova passthrough, SR-IOV, mediated devices, vGPU, GPU compartilhada ou boot físico USB.
+- **Próximo passo:** fechar todos os gates no head final e só então iniciar VM-003B, ainda em validação/planner `dry_run`.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2).
+
+## 2026-09-12 — WEB-VM-001A — Fechamento remoto do painel de VM somente leitura
+
+- **Resultado:** WEB-VM-001 está concluído no head `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef`. Project continuity `34712230631`, Host agent `34712230846`, Development image `34712230629` e Bootable media `34712230653` ficaram verdes; a suíte executou **47/47 testes**.
+- **Prova de boot:** job `103602983309` gerou e inspecionou o QCOW2 e inicializou o mesmo disco duas vezes com QEMU 10.2.2 da própria imagem StorOS. Foram emitidos `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`, com `boot_count=1 → 2`, painel autenticado/agente nos dois boots e fingerprints persistentes de configuração/token.
+- **Artefatos:** QCOW2 SHA-256 `a081b7480d19d85fd5a014e2ba8327d37c4fc8b11f2beac6cd8f6997aae333a8`; `storos-boot-evidence` ID `10303234826`, digest `sha256:2d84494a73c4f82a789b55410edf392cd8b0b1a48974953de7849eca194e2010`; `storos-qcow2` ID `10303549406`, digest `sha256:c8117f02ee200068e18bdd059ee3f8a61206e4d87f6a153d7b805258aa308198`.
+- **Limites preservados:** o fechamento comprova o painel/API read-only e persistência virtual; não habilita criação/start/stop real de VM, não homologa GPU, não substitui boot físico USB e não transforma o QCOW2 em release para o usuário.
+- **Próximo passo:** observar firmware/discos/rede de forma tipada antes de estender o contrato do planner.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), run Bootable media `34712230653`.
+
 ## 2026-09-12 — WEB-VM-001 — Intenção, plano e tarefas no painel somente leitura
 
 - **Motivo:** com VM-002 fechado remotamente, tornar a intenção persistida, o plano dry-run e o ledger auditável visíveis no painel sem antecipar qualquer executor ou endpoint de comando.
@@ -59,8 +80,8 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 - **Imagem/planner:** o Development image e o estágio `Build and stage bootc image` do Bootable executaram o smoke do planner/ledger dentro da imagem final, confirmando `vm-plan`, criação de tarefa dry-run e a invariável `can_apply=false`/`executable=false`.
 - **Prova de boot:** o job Bootable `103567451447` inicializou o mesmo QCOW2 duas vezes. O primeiro boot registrou `boot_count=1`, `STOROS_WEB_READY auth=ok config_generation=1` e `STOROS_AGENT_READY snapshot=written boot_count=1`; o segundo registrou `boot_count=2` com novo `boot_id`, agente pronto e painel autenticado novamente. Os fingerprints de configuração e token permaneceram idênticos entre os boots.
 - **Prova explícita:** o artefato emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`. `storos-boot-evidence`: ID `10299687818`, digest `sha256:63780ac5e92c2450ad4159adaf6484515cf2ab1521bb42dc19534898ec0f62c5`. O QCOW2 validado teve SHA-256 `ba9d51ebb91bc91e08d9e84d41be1f13a07c0efcf89a94527543027e6778538b`; artefato `storos-qcow2` ID `10300291526`.
-- **Segurança preservada:** não existe worker/executor mutável; `features.vm_write_enabled=false` continua obrigatório; planner e ledger não executam `virsh define/start/shutdown/setvcpus/setmem`. Snapshot stale, inventário parcial e recurso observado ausente continuam bloqueando o plano em vez de presumir alterações.
-- **Limites:** VM-001 comprova intenção/plano/tarefa dry-run e ausência de regressão no boot virtual. Ainda sem persistência de intenção desejada, locks/precondições de aplicação, discos/rede/firmware no contrato, política dinâmica CPU/RAM aplicada, boot físico USB ou GPU compartilhada comprovada.
+- **Segurança preservada:** não existe worker/executor mutável; `features.vm_write_enabled=false` continua obrigatório; planner e ledger não executam alterações no hipervisor. Snapshot stale, inventário parcial e recurso observado ausente continuam bloqueando o plano em vez de presumir alterações.
+- **Limites:** VM-001 comprova intenção/plano/tarefa dry-run e ausência de regressão no boot virtual. Ainda sem persistência de intenção desejada, locks/precondições de aplicação, discos/rede/firmware no contrato, política dinâmica CPU/RAM, boot físico USB ou GPU compartilhada comprovada.
 - **Próximo passo:** VM-002 deve persistir intenção de VM e formalizar precondições/locks/revisões para futura aplicação, ainda sem executor libvirt real.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), run Bootable media `34699051187`.
 
@@ -81,9 +102,9 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 
 - **Resultado:** CFG-001 está concluído como fundação da Fase 1. No head `496e3bfbba637519c1fabe32414ea0a64ac018da`, Host agent `34693451988`, Development image `34693452020`, Project continuity `34693451976` e Bootable media `34693452040` ficaram verdes.
 - **Prova de boot:** a tentativa 2 do Bootable media iniciou o mesmo QCOW2 duas vezes. O primeiro boot registrou `boot_count=1`, `STOROS_AGENT_READY` e `STOROS_WEB_READY auth=ok config_generation=1`; o segundo registrou `boot_count=2` com novo `boot_id` e repetiu agente/painel prontos. Os fingerprints de configuração e token administrativo foram idênticos entre os dois boots, sem publicar a credencial bruta.
-- **Prova explícita:** o workflow emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`. O artefato `storos-boot-evidence` da tentativa verde é o ID `10298937312`, digest `sha256:ac25baaf918e1217bda3ac5064c46370685a1d0c279f8fb232b355522153ed82`. O QCOW2 validado teve SHA-256 `72772b43e2f11eca2f935ad717c0bf36774308bf9f729a3fa217f1b22011ee84`.
+- **Prova explícita:** o artefato `storos-boot-evidence` da tentativa verde é o ID `10298937312`, digest `sha256:ac25baaf918e1217bda3ac5064c46370685a1d0c279f8fb232b355522153ed82`. O QCOW2 validado teve SHA-256 `72772b43e2f11eca2f935ad717c0bf36774308bf9f729a3fa217f1b22011ee84`.
 - **Tentativa anterior preservada:** a tentativa 1 do mesmo run falhou antes dos services StorOS, durante a subida do manager do systemd sob QEMU/TCG, com `web=0` e `agent=0`. O rerun limpo passou integralmente sem mudança de código; portanto essa ocorrência fica registrada como instabilidade do ambiente TCG/runner, não como prova de falha da configuração/painel.
-- **Limites:** este fechamento comprova a fundação virtual em CI, não boot físico por USB. O painel continua somente leitura; sem TLS integrado, RBAC/múltiplos usuários, criação/start/stop de VM, política automática de CPU/RAM ou GPU compartilhada. `features.vm_write_enabled` permanece `false` e nenhuma mutação libvirt foi habilitada.
+- **Limites:** este fechamento comprova a fundação virtual em CI, não boot físico por USB. O painel continua somente leitura; sem TLS integrado, RBAC, criação/start/stop de VM, política automática de CPU/RAM ou GPU compartilhada. `features.vm_write_enabled` permanece `false` e nenhuma mutação libvirt foi habilitada.
 - **Próximo passo:** iniciar modelo de intenção de VM + fila/reconciliação em dry-run, produzindo planos auditáveis sem executar alterações no hipervisor.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), run Bootable media `34693452040`.
 
@@ -102,7 +123,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 - **Motivo:** o Bootable media `34672437568`, head `d368fba2c0b7fb3bba0994ed4d926bf988dcce4e`, passou imagem e QCOW2, mas o primeiro boot TCG consumiu quase toda a janela de 420 s porque `storos-web.service` estava ordenado depois de `storos-agent.service`, embora `/api/config` e autenticação não dependam do inventário libvirt.
 - **Evidência:** no primeiro boot apareceram `STOROS_BOOT_STATE boot_count=1` por volta de 243 s, `STOROS_AGENT_READY` por volta de 322 s, configuração geração 1 por volta de 356 s e `STOROS_WEB_TOKEN_READY` por volta de 395 s. O QEMU foi encerrado antes de `STOROS_WEB_READY`; o segundo boot não foi iniciado. No mesmo head, Host agent `34672437628`, Development image `34672437583` e Project continuity `34672437600` ficaram verdes.
 - **Mudou:** `storos-web.service` mantém `Wants=storos-agent.service`, remove `After=storos-agent.service` e passa a usar `After=network.target`, permitindo que painel/config/token iniciem em paralelo ao primeiro snapshot. `/api/status` continua retornando `503` enquanto o snapshot não existe; `/api/config` permanece disponível de forma independente.
-- **Proteção contra regressão:** `check-image.sh` exige `Wants=storos-agent.service` e `After=network.target` e falha se `After=storos-agent.service` reaparecer. A separação de prontidão administrativa e estado observado foi registrada em `CONFIGURATION.md` e `ARQUITETURA.md`.
+- **Proteção contra regressão:** `check-image.sh` exige `Wants=storos-agent.service` e `After=network.target` e falha se a serialização reaparecer. A separação de prontidão administrativa e estado observado foi registrada em `CONFIGURATION.md` e `ARQUITETURA.md`.
 - **Verificação local:** a unidade corrigida e as três asserções de ordenação passaram em validação textual. Nenhum resultado remoto deste lote é tratado como sucesso antes do novo CI.
 - **Limites:** CFG-001 continua aberto até o workflow provar dois boots do mesmo QCOW2 com `STOROS_WEB_READY` autenticado e fingerprints idênticos de configuração/token. Sem boot físico USB, TLS/RBAC, escrita no libvirt, política automática de CPU/RAM ou GPU compartilhada.
 - **Próximo passo:** obter os quatro checks verdes e `STOROS_WEB_PERSISTENCE_OK`; somente então fechar CFG-001 e iniciar modelos de VM + fila/reconciliação em dry-run.
@@ -116,7 +137,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 - **CI:** o boot deixa de ser encerrado cegamente após 240 s. O primeiro boot pode aguardar até 420 s e o segundo até 300 s, mas ambos são encerrados assim que `STOROS_WEB_READY` aparece. O mesmo QCOW2 é reutilizado. O gate exige agente + painel prontos nos dois boots, `boot_count=1 → 2`, `config_generation=1` e fingerprints idênticos de configuração e token. A prova final esperada é `STOROS_WEB_PERSISTENCE_OK`.
 - **Verificação local:** 9 testes focados de configuração/painel passaram, incluindo autenticação real do marker e confirmação de que o token não aparece em sua saída. O workflow foi validado como YAML e o bloco Bash do gate passou em `bash -n`.
 - **Limites:** resultado remoto deste incremento ainda precisa ficar verde antes de declarar CFG-001 concluído. Sem boot físico USB, TLS/RBAC, escrita no libvirt, política automática de CPU/RAM ou GPU compartilhada.
-- **Próximo passo:** obter os quatro checks verdes; com `STOROS_WEB_PERSISTENCE_OK`, fechar CFG-001 e iniciar modelos de VM + fila/reconciliação em dry-run.
+- **Próximo passo:** obter os quatro checks verdes; com `STOROS_WEB_PERSISTENCE_OK`, fechar CFG-001 e iniciar modelos de configuração de VM + fila/reconciliação ainda com escrita no libvirt bloqueada.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base `ed1d5ff18e3c376cd0aafaf267f134f5c73919df`; contrato em [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## 2026-09-12 — CFG-001 — Configuração transacional e painel autenticado
@@ -125,7 +146,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 - **Mudou:** novo store em `/var/lib/storos/config` com geração monotônica, histórico por revisão, lock local, validação completa, `expected_generation` para concorrência otimista e rollback que cria nova geração. `storosctl` passa a rotear comandos de configuração/token sem retirar os comandos do agente. Novo `storos-web.service` entrega `/healthz`, painel HTML, `/api/status` e `/api/config`, exige autenticação para dados administrativos e recusa métodos mutáveis. O listener padrão é `127.0.0.1:8080`; exposição sem TLS fora do loopback exige opt-in explícito. `features.vm_write_enabled=true` é rejeitado nesta fase.
 - **Segurança:** token administrativo aleatório persiste em `/var/lib/storos/auth/admin.token` com modo `0600`; o service roda sem capabilities, com filesystem protegido e somente `/var/lib/storos` gravável. Nenhum token é embutido na imagem ou documentação.
 - **Verificação local:** testes do store e painel passaram, incluindo apply/rollback 1→2→3, conflito de geração, bloqueio de escrita em VM, requisito explícito para LAN sem TLS, persistência/permissão do token, autenticação das APIs e rejeição HTTP 405 para mutações. `check-image.sh` também passa a verificar os módulos, preset, dois services, configuração inicial e modo do token.
-- **Verificação remota:** a primeira execução Host agent `34670864403` no commit `49c563e225c4dcbd72ae5413f1c80789b3c5b10a` executou 21 testes; 20 passaram e 1 falhou por typo no próprio teste (`settings['wec']` em vez de `settings['web']`). O corretivo seguinte deixou Host agent `34671066203` e Project continuity `34671066176` verdes no head `c77c676774fe39c7d3fbfa70caabbfe363f747a5`. Nesse mesmo head, Development image `34671066182` confirmou que os dois services foram habilitados pelo preset, mas o smoke check falhou por um caminho digitado como `/usr/lib/system/storos-web.service` em vez de `/usr/lib/systemd/system/storos-web.service`. O corretivo `ed1d5ff18e3c376cd0aafaf267f134f5c73919df` deixou Host agent, Development image e Project continuity verdes; o Bootable media correspondente é analisado na entrada CFG-001A.
+- **Verificação remota:** a primeira execução Host agent `34670864403` no commit `49c563e225c4dcbd72ae5413f1c80789b3c5b10a` executou 21 testes; 20 passaram e 1 falhou por typo no próprio teste. O corretivo seguinte deixou Host agent `34671066203` e Project continuity `34671066176` verdes no head `c77c676774fe39c7d3fbfa70caabbfe363f747a5`. Nesse mesmo head, Development image `34671066182` confirmou que os dois services foram habilitados pelo preset, mas o smoke check falhou por caminho incorreto no teste. O corretivo `ed1d5ff18e3c376cd0aafaf267f134f5c73919df` deixou Host agent, Development image e Project continuity verdes; o Bootable media correspondente é analisado na entrada CFG-001A.
 - **Limites:** painel ainda somente leitura, sem TLS integrado, RBAC, criação/start/stop de VM, política automática de CPU/RAM ou GPU compartilhada. Nenhum boot físico por USB foi executado.
 - **Próximo passo:** validar imagem/boot com `storos-web.service` habilitado, confirmar que config/token sobrevivem ao segundo boot sem expor segredo e então iniciar modelos de configuração de VM + fila/reconciliação ainda com escrita no libvirt bloqueada.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base anterior `250fb9e972ff472376658dbc3ac17a7dd2617ecd`; arquitetura em [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e contrato em [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
@@ -152,9 +173,9 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 
 ## 2026-09-11 — BOOT-001B — Preset de primeiro boot e prova do agente
 
-- **Motivo:** o run `34651227029` gerou e validou o QCOW2, iniciou o StorOS via OVMF e chegou ao login serial, mas o primeiro boot executou `systemd preset-all` e removeu `/etc/systemd/system/multi-user.target.wants/storos-agent.service` porque a imagem ainda não tinha política de preset própria.
+- **Motivo:** o run `34651227029` gerou e validou o QCOW2, iniciou o StorOS via OVMF e chegou ao login serial, mas o primeiro boot executou `systemd preset-all` e removeu o link de habilitação do agente porque a imagem ainda não tinha política de preset própria.
 - **Mudou:** adicionada a política vendor `10-storos.preset` para habilitar `storos-agent.service` no primeiro boot; o Containerfile passa a usar `systemctl preset`; a unidade passa a puxar `virtqemud.socket` e só emite `STOROS_AGENT_READY snapshot=written` no console depois de o primeiro snapshot existir. O CI agora usa esse marcador como prova de boot + agente funcional.
-- **Verificação:** o console do run `34651227029` mostrou aplicação de preset, remoção explícita do link do agente e, depois, boot completo até `localhost login:` com `virtqemud`, `sshd` e targets do sistema ativos. A correção foi validada pelo run `34665004511` no commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`, que passou inclusive o gate `STOROS_AGENT_READY snapshot=written`.
+- **Verificação:** o console do run `34651227029` mostrou aplicação de preset e boot completo até login. A correção foi validada pelo run `34665004511` no commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`, que passou inclusive o gate `STOROS_AGENT_READY snapshot=written`.
 - **Limites:** ainda não houve boot físico por USB, persistência após reinício, painel web ou teste de GPU. O QCOW2 continua sendo artefato de laboratório.
 - **Próximo passo:** validar dois boots no mesmo QCOW2 e persistência em `/var/lib/storos`.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base `5b1aff0ce80a9f3b9eadf7017678bdce08d890ef`.
@@ -190,7 +211,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 
 - **Mudou:** fixado o digest uCore testado no Containerfile e no workflow; evidências essenciais preservadas em docs/BUILD_EVIDENCE.md.
 - **Motivo:** tornar a base de desenvolvimento reproduzível e registrar o primeiro resultado real, seguindo a autorização de continuidade.
-- **Verificação:** [build 34632041207](https://github.com/danilostorm/storos/actions/runs/34632041207) passou no commit 0258381f4d3d0982bd9113fdbb331db29fb290a9; QEMU 10.2.2 e libvirt 12.0.0 presentes. Continuidade passou. A fixação do mesmo digest é verificada pelo novo CI deste commit.
+- **Verificação:** build `34632041207` passou no commit `0258381f4d3d0982bd9113fdbb331db29fb290a9`; QEMU 10.2.2 e libvirt 12.0.0 presentes. Continuidade passou. A fixação do mesmo digest é verificada pelo novo CI deste commit.
 - **Limites:** nenhum boot, GPU compartilhada ou instalação; assinatura upstream ainda pendente. Artefato remoto contém evidências, não ISO.
 - **Próximo passo:** verificar assinatura da base e adaptar protocolo de boot descartável; não solicitar nova escolha de distribuição.
 - **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2); título e descrição do PR atualizados para incluir o protótipo Fedora/uCore.
@@ -201,8 +222,8 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 - **Mudou:** Containerfile derivado de ucore-hci, identificação, check de ferramentas e workflow de build com inventário e digest da base; decisão arquitetural registrada.
 - **Verificação:** sintaxe shell e continuidade locais; resultado do build remoto deve ser consultado no PR.
 - **Limites:** sem boot, instalador, assinatura própria, GPU testada ou mudanças no MOS; receita experimental.
-- **Próximo passo:** obter build verde, fixar/verificar base e preparar boot descartável.
-- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base 6fe21efeb5e9b9cc9ce37d50e262e363e252caec.
+- **Próximo passo:** obter build verde, fixar/verificar base e preparar boot descartável; não solicitar nova escolha de distribuição.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base `6fe21efeb5e9b9cc9ce37d50e262e363e252caec`.
 
 ## 2026-09-11 — PH0-001 — Aprovação e início da Fase 0
 
