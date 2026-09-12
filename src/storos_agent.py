@@ -134,10 +134,9 @@ def parse_domain_xml(text, expected_uuid):
             loader = os_node.find('./loader')
             if firmware_mode == 'unknown' and loader is not None and loader.get('type') == 'pflash':
                 firmware_mode = 'efi'
-            if loader is not None:
-                loader_secure = _explicit_bool(loader.get('secure'))
-                if loader_secure is not None:
-                    secure_boot = loader_secure
+            # libvirt loader@secure means the firmware is Secure Boot capable;
+            # it does not enable/disable Secure Boot. Only the explicit firmware
+            # feature is represented as secure_boot in this observer.
             firmware = os_node.find('./firmware')
             if firmware is not None:
                 for feature in firmware.findall('./feature'):
