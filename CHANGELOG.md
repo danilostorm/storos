@@ -2,6 +2,16 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-003B1 — Secure Boot: capacidade não é estado
+
+- **Motivo:** a revisão do contrato VM-003B confirmou na documentação oficial do libvirt que `loader secure='yes'` descreve capacidade do firmware para Secure Boot, não que a feature esteja efetivamente habilitada. O observador precisava eliminar essa ambiguidade antes de hardware observado sustentar decisões futuras.
+- **Mudou:** `409f77c5fdcf7a5d0e531c7586d25cf3554b68c5` remove a inferência de `firmware.secure_boot` a partir de `loader@secure`. O campo só recebe `true|false` quando existe `firmware/feature name='secure-boot' enabled='yes|no'`; sem declaração explícita permanece `null`.
+- **Teste:** `84927ecd77ba7d1fde98363381a009cacb253f1c` adiciona um caso dedicado com `loader secure=yes` sem a feature explícita e exige `secure_boot=None`, preservando EFI/NVRAM observados.
+- **Documentação:** `7ca50e9a7e3e3aadb15440c5e51160027b5f4f6a` alinha `docs/AGENT.md` à semântica corrigida. O VM-003B continua sem gerenciar Secure Boot, enrolled keys ou NVRAM.
+- **Segurança:** a correção é somente de observação e fail-closed; não adiciona executor, escrita libvirt ou endpoint mutável. `features.vm_write_enabled=false`, `mode=dry_run`, `can_apply=false` e `executable=false` permanecem invariáveis.
+- **Validação:** esta correção cria novo head; Host agent, Project continuity, Development image e Bootable media desse head precisam ficar verdes antes de VM-003B ser fechado.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2).
+
 ## 2026-09-12 — VM-003B — Intenção hardware v2 backward-compatible em dry-run
 
 - **Motivo:** com VM-003A fechado, permitir que firmware/discos/rede observados entrem no contrato de intenção/planner sem quebrar gerações schema 1 e sem antecipar executor real.
