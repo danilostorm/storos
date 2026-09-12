@@ -1,7 +1,7 @@
 [Unit]
 Description=StorOS authenticated read-only web panel
 Wants=storos-agent.service
-After=storos-agent.service
+After=network.target
 
 [Service]
 Type=simple

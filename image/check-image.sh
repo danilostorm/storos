@@ -13,6 +13,12 @@ test -s /usr/lib/systemd/system/storos-web.service
 test -s /usr/lib/systemd/system-preset/10-storos.preset
 grep -Fxq 'enable storos-agent.service' /usr/lib/systemd/system-preset/10-storos.preset
 grep -Fxq 'enable storos-web.service' /usr/lib/systemd/system-preset/10-storos.preset
+grep -Fxq 'Wants=storos-agent.service' /usr/lib/systemd/system/storos-web.service
+grep -Fxq 'After=network.target' /usr/lib/systemd/system/storos-web.service
+if grep -Fxq 'After=storos-agent.service' /usr/lib/systemd/system/storos-web.service; then
+    echo 'storos-web.service must not serialize panel startup behind storos-agent.service' >&2
+    exit 1
+fi
 
 for executable in virsh virt-install qemu-system-x86_64 python3; do
     command -v "$executable"

@@ -30,12 +30,14 @@ A configuração inicial mantém `features.vm_write_enabled=false`. Nesta fase o
 
 `storos-web.service` inicia um painel HTTP mínimo e somente leitura. Por padrão ele escuta apenas em `127.0.0.1:8080`.
 
+O painel e o agente são iniciados em paralelo. A unidade web mantém `Wants=storos-agent.service`, para que o agente também seja solicitado, mas não usa `After=storos-agent.service`: o painel depende apenas de `network.target` para iniciar. Isso evita bloquear autenticação/configuração enquanto o inventário libvirt ainda aquece em hardware ou emulação lentos.
+
 Rotas:
 
 - `/healthz`: health check sem autenticação.
 - `/`: resumo HTML autenticado.
-- `/api/status`: snapshot do agente autenticado.
-- `/api/config`: configuração ativa autenticada.
+- `/api/status`: snapshot do agente autenticado; pode responder `503` durante o aquecimento inicial do agente até `/run/storos/status.json` existir.
+- `/api/config`: configuração ativa autenticada e independente da disponibilidade do snapshot do agente.
 
 Métodos mutáveis (`POST`, `PUT`, `PATCH`, `DELETE`) são recusados. A autenticação usa HTTP Basic com usuário `admin` e um token aleatório persistido em `/var/lib/storos/auth/admin.token` com modo `0600`.
 
@@ -71,5 +73,6 @@ O CI espera prontidão real em vez de encerrar cada VM após um tempo fixo. O pr
 - Sem TLS integrado ainda.
 - Sem usuários múltiplos/RBAC.
 - Sem descoberta mDNS ou configuração automática de rede.
+- `/api/status` pode estar temporariamente indisponível enquanto o agente ainda produz o primeiro snapshot; isso não torna `/api/config` ou a autenticação dependentes do agente.
 - O fingerprint do token é evidência de persistência, não substitui política futura de rotação/credenciais.
 - GPU compartilhada continua fora deste marco e exige validação física separada.

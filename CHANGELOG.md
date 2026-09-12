@@ -2,6 +2,17 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — CFG-001B — Painel independente do aquecimento do agente
+
+- **Motivo:** o Bootable media `34672437568`, head `d368fba2c0b7fb3bba0994ed4d926bf988dcce4e`, passou imagem e QCOW2, mas o primeiro boot TCG consumiu quase toda a janela de 420 s porque `storos-web.service` estava ordenado depois de `storos-agent.service`, embora `/api/config` e autenticação não dependam do inventário libvirt.
+- **Evidência:** no primeiro boot apareceram `STOROS_BOOT_STATE boot_count=1` por volta de 243 s, `STOROS_AGENT_READY` por volta de 322 s, configuração geração 1 por volta de 356 s e `STOROS_WEB_TOKEN_READY` por volta de 395 s. O QEMU foi encerrado antes de `STOROS_WEB_READY`; o segundo boot não foi iniciado. No mesmo head, Host agent `34672437628`, Development image `34672437583` e Project continuity `34672437600` ficaram verdes.
+- **Mudou:** `storos-web.service` mantém `Wants=storos-agent.service`, remove `After=storos-agent.service` e passa a usar `After=network.target`, permitindo que painel/config/token iniciem em paralelo ao primeiro snapshot. `/api/status` continua retornando `503` enquanto o snapshot não existe; `/api/config` permanece disponível de forma independente.
+- **Proteção contra regressão:** `check-image.sh` exige `Wants=storos-agent.service` e `After=network.target` e falha se `After=storos-agent.service` reaparecer. A separação de prontidão administrativa e estado observado foi registrada em `CONFIGURATION.md` e `ARQUITETURA.md`.
+- **Verificação local:** a unidade corrigida e as três asserções de ordenação passaram em validação textual. Nenhum resultado remoto deste lote é tratado como sucesso antes do novo CI.
+- **Limites:** CFG-001 continua aberto até o workflow provar dois boots do mesmo QCOW2 com `STOROS_WEB_READY` autenticado e fingerprints idênticos de configuração/token. Sem boot físico USB, TLS/RBAC, escrita no libvirt, política automática de CPU/RAM ou GPU compartilhada.
+- **Próximo passo:** obter os quatro checks verdes e `STOROS_WEB_PERSISTENCE_OK`; somente então fechar CFG-001 e iniciar modelos de VM + fila/reconciliação em dry-run.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base `d368fba2c0b7fb3bba0994ed4d926bf988dcce4e`; contrato em [docs/CONFIGURATION.md](docs/CONFIGURATION.md) e arquitetura em [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
+
 ## 2026-09-12 — CFG-001A — Gate por prontidão e prova persistente do painel
 
 - **Motivo:** o run Bootable media `34671399200`, head `ed1d5ff18e3c376cd0aafaf267f134f5c73919df`, passou build da imagem, smoke check e QCOW2, mas o primeiro QEMU foi encerrado pelo limite fixo de 240 s antes de o primeiro boot terminar. A segunda execução chegou ao agente como `boot_count=1`, mostrando que o gate media tempo de TCG, não dois boots lógicos completos.
