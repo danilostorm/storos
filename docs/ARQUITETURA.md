@@ -67,12 +67,24 @@ Painel e agente têm ciclos de prontidão independentes. O painel **solicita** `
 
 ## VM-001 — planner e ledger sem executor
 
-O primeiro estágio de `JOBS` agora é concretizado pelo contrato descrito em [VM_PLANNER.md](VM_PLANNER.md). `storos_vm.py` recebe uma intenção versionada e um snapshot observado já validado pelo agente e produz um plano determinístico de diferenças. O plano sempre declara `mode=dry_run` e `can_apply=false`; cada item de ação possui `executable=false`.
+O primeiro estágio de `JOBS` é concretizado pelo contrato descrito em [VM_PLANNER.md](VM_PLANNER.md). `storos_vm.py` recebe uma intenção versionada e um snapshot observado já validado pelo agente e produz um plano determinístico de diferenças. O plano sempre declara `mode=dry_run` e `can_apply=false`; cada item de ação possui `executable=false`.
 
 A identidade da VM é o UUID. Nome, vCPU, memória fixa desejada e estado `running/stopped` formam o contrato mínimo atual. O planner descreve ações como `create_vm`, `set_vcpus`, `set_memory`, `start_vm` e `shutdown_vm`, mas não contém adaptador mutável e não chama `virsh` para executá-las.
 
 A fronteira entre **observação** e **intenção** permanece explícita. A CLI usa o mesmo `read_snapshot` do agente com janela de frescor de 30 segundos. Snapshot `stale` bloqueia reconciliação. Inventário `partial` sem a VM desejada não prova ausência e, por isso, não pode gerar `create_vm`. Ausência de vCPU ou memória configurável observada também gera ação de inspeção bloqueante em vez de suposição.
 
-`storos_tasks.py` cria um ledger local em `/var/lib/storos/tasks`. Cada tarefa possui UUID, timestamp, plano completo e `executable=false`; a gravação é atômica com `fsync` do arquivo e do diretório. Não há worker/executor nesta etapa. O ledger rejeita qualquer plano marcado como aplicável ou com ação executável.
+## VM-002 — intenção persistente e precondições
 
-A futura passagem de `JOBS` para `COMPUTE` será uma camada separada. Antes de existir escrita real, ela deverá validar feature gate, autorização, lock por VM, geração/estado esperado, capacidade do host, releitura imediatamente anterior à mutação, timeout, resultado observado e auditoria. `features.vm_write_enabled=false` continua obrigatório no VM-001.
+`storos_vm_store.py` materializa a camada `DB` de intenção por VM em `/var/lib/storos/vm-intents/<uuid>/`. Cada VM possui `current.json`, revisões monotônicas e lock exclusivo próprio. `expected_generation` implementa concorrência otimista; rollback cria nova geração. O conteúdo da intenção é ligado a `intent_sha256`, recalculado em toda leitura para detectar adulteração ou registro incompatível.
+
+O ledger de `JOBS` evolui para schema 2. Cada reconciliação dry-run exige uma intenção já persistida e grava precondições com `intent_generation`, `intent_sha256` e `snapshot_sha256`. A criação da tarefa usa lock por UUID em `/var/lib/storos/tasks/.locks/`, evitando criação concorrente descoordenada para a mesma VM no ledger local.
+
+Esses locks e hashes **não são um executor nem uma autorização**. Servem para tornar a futura fronteira `JOBS → COMPUTE` verificável: qualquer camada mutável futura deverá reler a geração atual, recomputar hashes, obter lock de execução, confirmar capacidade, reler o estado observado imediatamente antes da mutação e rejeitar drift. Se qualquer precondição divergir, a operação deve falhar fechada e gerar novo plano.
+
+A CLI separa inspeção ad hoc (`vm-plan --intent-file`) da reconciliação auditável (`vm-reconcile-dry-run --vm-uuid`), que só aceita intenção persistida. O painel continua somente leitura e não ganhou endpoints mutáveis.
+
+`storos_tasks.py` continua sem worker/executor. Todas as tarefas têm `mode=dry_run`, `executable=false` e o plano mantém `can_apply=false`. `features.vm_write_enabled=false` continua obrigatório.
+
+## Fronteira para escrita futura
+
+A futura passagem de `JOBS` para `COMPUTE` será uma camada separada. Antes de existir escrita real, ela deverá validar, no mínimo: autenticação/autorização, feature gate explícito, lock por VM e recurso, geração/hash esperado, capacidade do host, snapshot fresco, releitura imediatamente anterior à mutação, timeout, resultado observado e auditoria persistente. Nenhum desses requisitos deve ser inferido como concluído apenas porque VM-002 persiste intenção e precondições.
