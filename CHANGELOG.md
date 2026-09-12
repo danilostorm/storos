@@ -2,6 +2,17 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — CI-BOOT-001 — Gate TCG isolado de instabilidade SMP pré-StorOS
+
+- **Motivo:** o Bootable media #51 (`34700188781`) falhou em duas tentativas consecutivas no primeiro boot, embora build bootc, smoke da imagem, geração e inspeção do QCOW2 tenham passado. Em ambas, `web=0`, `agent=0`, nenhum `STOROS_BOOT_STATE` foi emitido e o segundo boot nem começou.
+- **Diagnóstico:** após switch-root, `systemd 259.8-1.fc44` falhou antes dos serviços StorOS com `Failed to fork off sandboxing environment for executing generators: Protocol error`, seguido de `Failed to start up manager.`. A tentativa 2 também registrou `clocksource: Watchdog remote CPU 1 read timed out`. Os dois jobs usavam `-smp 2`; QCOW2 distintos reproduziram a mesma assinatura. O merge ref do PR foi comparado ao head e não contém diferenças de arquivo, descartando alteração funcional trazida pela `main`.
+- **Mudou:** o guest QEMU/TCG do gate de boot passa de `-smp 2` para `-smp 1`. Esse guest é somente probe de correção de boot, não benchmark nem prova de compartilhamento de CPU. O loop também detecta a assinatura fatal do manager e encerra cedo com `guest_fatal=1`, em vez de consumir toda a janela e parecer um timeout de agente/painel.
+- **Critério preservado:** os limites permanecem 420 s/300 s e o sucesso continua exigindo agente + painel nos dois boots, `boot_count=1 → 2`, `config_generation=1` e fingerprints persistentes de configuração/token. Nenhuma falha pré-StorOS será aceita como sucesso.
+- **Verificação local:** o bloco Bash revisado passou em `bash -n`. O resultado remoto desta correção ainda precisa ficar verde antes de publicar VM-002.
+- **Evidência das falhas:** tentativa 1 job `103570462206`, artefato `10299648872`, digest `sha256:476a86fc34493001e8bb05eb60cf1bf07120acb6bcd736042f1cb51e47b38ca9`; tentativa 2 job `103585516180`, artefato `10300784701`, digest `sha256:7605de8c239c4f83a640b6da01ebcdb1307a1b4a6b8091cce57b4c5dcab7347e`.
+- **VM-002:** implementação preparada localmente continua não publicada durante o reparo do gate. O staging corrigido passou 28/28 testes, `py_compile` e `bash -n`, mantendo `features.vm_write_enabled=false` e sem executor.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base anterior `6b9e157b394b637403fa50af653cd4bd64a15b14`.
+
 ## 2026-09-12 — VM-001A — Fechamento remoto do planner dry-run
 
 - **Resultado:** VM-001 está concluído no head funcional `45bd655269d8ef45f1c6f5ace9ff82ce3f8454fc`. Host agent `34699051160` (#69), Project continuity `34699051144` (#81), Development image `34699051205` (#75) e Bootable media `34699051187` (#49) terminaram verdes.

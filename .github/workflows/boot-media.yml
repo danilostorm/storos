@@ -139,8 +139,11 @@ jobs:
             cp --dereference "$firmware_vars" "$vars_copy"
             chmod u+w "$vars_copy"
 
+            # This TCG guest is a correctness probe, not a CPU/performance benchmark.
+            # A single vCPU avoids the SMP clock/watchdog instability reproduced on
+            # ubuntu-24.04 runners before StorOS services start.
             qemu-system-x86_64 \
-              -machine q35,accel=tcg -cpu max -smp 2 -m 2048 \
+              -machine q35,accel=tcg -cpu max -smp 1 -m 2048 \
               -drive "if=pflash,format=raw,unit=0,readonly=on,file=$firmware_code" \
               -drive "if=pflash,format=raw,unit=1,file=$vars_copy" \
               -drive "file=$QCOW2,format=qcow2,if=virtio" \
@@ -150,6 +153,7 @@ jobs:
             local ready=0
             local web_ready=0
             local agent_ready=0
+            local guest_fatal=0
 
             while kill -0 "$qemu_pid" 2>/dev/null; do
               if grep -q 'STOROS_WEB_READY auth=ok ' "$log"; then
@@ -162,6 +166,11 @@ jobs:
                 ready=1
                 break
               fi
+              if grep -q 'Failed to fork off sandboxing environment for executing generators: Protocol error' "$log" && \
+                 grep -q 'Failed to start up manager\.' "$log"; then
+                guest_fatal=1
+                break
+              fi
               if (( SECONDS >= deadline )); then
                 break
               fi
@@ -169,7 +178,10 @@ jobs:
             done
 
             if [[ "$ready" -ne 1 ]]; then
-              echo "StorOS web+agent readiness markers not both reached during ${boot} boot within ${max_wait}s (web=${web_ready}, agent=${agent_ready})" >&2
+              echo "StorOS web+agent readiness markers not both reached during ${boot} boot within ${max_wait}s (web=${web_ready}, agent=${agent_ready}, guest_fatal=${guest_fatal})" >&2
+              if [[ "$guest_fatal" -eq 1 ]]; then
+                echo 'Guest systemd failed before StorOS services; CI will not classify this as an agent/web timeout.' >&2
+              fi
               kill -TERM "$qemu_pid" 2>/dev/null || true
               wait "$qemu_pid" 2>/dev/null || true
               tail -n 250 "$log" || true
