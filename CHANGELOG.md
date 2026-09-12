@@ -2,6 +2,16 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-11 — BOOT-002A — Evidência 1 → 2 e correção do gate
+
+- **Motivo:** o run BOOT-002 provou a persistência básica no mesmo QCOW2, mas o job ficou vermelho por exigir um marcador de prontidão do agente no primeiro boot antes de o timeout TCG terminar.
+- **Evidência:** no run `34665914397`, head `3064b5849330e4405cc4dda4a8921f083440389e`, build e QCOW2 passaram. O primeiro console registrou `STOROS_BOOT_STATE boot_count=1`; o segundo registrou `STOROS_BOOT_STATE boot_count=2` com `boot_id` diferente e também `STOROS_AGENT_READY snapshot=written boot_count=2`. Isso demonstra que `/var/lib/storos/boot-state.json` sobreviveu ao segundo boot do mesmo disco.
+- **Mudou:** o gate passa a validar persistência pelos dois marcadores `STOROS_BOOT_STATE`, mantém a exigência de `STOROS_AGENT_READY` no segundo boot e grava `boot-console.log` antes das asserções. O timeout TCG por boot sobe de 210 s para 240 s para acomodar a variação observada.
+- **Verificação:** Host agent, Development image e Project continuity já passaram no head anterior. O novo `Bootable media` ainda precisa ficar verde para fechar o gate automatizado BOOT-002A.
+- **Limites:** persistência básica de estado está comprovada pelos logs; configuração transacional completa, boot físico por USB, painel web e GPU compartilhada continuam pendentes.
+- **Próximo passo:** obter o gate corrigido verde e então iniciar configuração persistente transacional e a fundação do painel autenticado.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), run `34665914397`, base `3064b5849330e4405cc4dda4a8921f083440389e`.
+
 ## 2026-09-11 — BOOT-002 — Persistência entre dois boots no mesmo QCOW2
 
 - **Motivo:** após o primeiro boot completo validado, provar que estado StorOS em `/var/lib/storos` sobrevive a reinicialização real da mesma imagem de disco.

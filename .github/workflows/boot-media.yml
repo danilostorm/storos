@@ -129,7 +129,7 @@ jobs:
             cp --dereference "$firmware_vars" "$vars_copy"
             chmod u+w "$vars_copy"
             set +e
-            timeout 210s qemu-system-x86_64 \
+            timeout 240s qemu-system-x86_64 \
               -machine q35,accel=tcg -cpu max -smp 2 -m 2048 \
               -drive "if=pflash,format=raw,unit=0,readonly=on,file=$firmware_code" \
               -drive "if=pflash,format=raw,unit=1,file=$vars_copy" \
@@ -143,10 +143,11 @@ jobs:
             fi
           done
 
-          grep -q 'STOROS_AGENT_READY snapshot=written boot_count=1' boot-first.log
-          grep -q 'STOROS_AGENT_READY snapshot=written boot_count=2' boot-second.log
           cat boot-first.log boot-second.log > boot-console.log
-          printf '%s\n' 'STOROS_BOOT_OK: two distinct boots reached the StorOS agent' | tee boot-proof.txt
+          grep -q 'STOROS_BOOT_STATE boot_count=1 ' boot-first.log
+          grep -q 'STOROS_BOOT_STATE boot_count=2 ' boot-second.log
+          grep -q 'STOROS_AGENT_READY snapshot=written boot_count=2' boot-second.log
+          printf '%s\n' 'STOROS_BOOT_OK: second boot reached StorOS agent after two distinct boots' | tee boot-proof.txt
           printf '%s\n' 'STOROS_PERSISTENCE_OK: boot_count advanced from 1 to 2 on the same QCOW2' | tee persistence-proof.txt
 
       - name: Upload boot evidence

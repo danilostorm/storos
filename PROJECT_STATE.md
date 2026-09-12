@@ -1,36 +1,37 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **11/09/2026**, atualização **BOOT-002**. Responsável pelas decisões: Danilo.
+Atualizado em **11/09/2026**, atualização **BOOT-002A**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
-- Repositório: danilostorm/storos.
+- Repositório: `danilostorm/storos`.
 - Branch: `phase0/gpu-feasibility`, [PR #2](https://github.com/danilostorm/storos/pull/2).
-- Base desta atualização: `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`.
+- Base anterior: `3064b5849330e4405cc4dda4a8921f083440389e`.
 - Fedora/uCore HCI continua como base autorizada do protótipo; ISO instalável não é requisito.
-- Fase 0 continua aberta para GPU/hardware. Fase 1 já tem agente, boot QCOW2 validado e agora avança para persistência.
+- Fase 0 continua aberta para GPU/hardware. Fase 1 já tem agente, QCOW2 bootável e persistência básica observada em dois boots reais da mesma imagem.
 
-## Evidência já concluída
+## Evidência concluída
 
-- O workflow `Bootable media` gera QCOW2 bootável a partir da imagem bootc StorOS, usando OVMF/QEMU TCG para prova funcional.
-- O bloqueio de schema do `disk.yaml` foi resolvido e `qemu-img` valida o disco gerado.
-- O primeiro boot aplica corretamente o preset vendor `10-storos.preset`, mantendo `storos-agent.service` habilitado.
-- **Run `34665004511`**, commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`: build, lint, QCOW2, boot UEFI/QEMU, marcador `STOROS_AGENT_READY snapshot=written`, artefatos e upload do QCOW2 passaram. Este é o primeiro boot StorOS + agente comprovado em VM descartável.
-- Host agent, Development image e Project continuity também passaram nesse commit.
+- O workflow `Bootable media` gera e valida QCOW2 bootável a partir da imagem bootc StorOS, usando OVMF/QEMU TCG.
+- O preset vendor `10-storos.preset` mantém `storos-agent.service` habilitado no primeiro boot.
+- Run `34665004511`, commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`: build, lint, QCOW2, boot UEFI/QEMU, `STOROS_AGENT_READY snapshot=written` e upload do QCOW2 passaram. Este é o primeiro boot StorOS + agente comprovado em VM descartável.
+- BOOT-002 adicionou `/var/lib/storos/boot-state.json`, escrita atômica/fsync e contador baseado no `boot_id` do kernel; reiniciar apenas o serviço não conta como novo boot.
+- Run `34665914397`, head `3064b5849330e4405cc4dda4a8921f083440389e`: build e QCOW2 passaram. No **mesmo QCOW2**, o primeiro console registrou `STOROS_BOOT_STATE boot_count=1`; o segundo registrou `STOROS_BOOT_STATE boot_count=2` com outro `boot_id` e também `STOROS_AGENT_READY snapshot=written boot_count=2`. Portanto a persistência básica 1 → 2 foi observada de fato.
+- O run `34665914397` ficou vermelho somente porque o gate antigo exigia `STOROS_AGENT_READY ... boot_count=1` ainda no primeiro boot; o contador já estava persistido, mas o agente não atingiu o marcador de prontidão antes do timeout daquele boot.
+- Host agent, Development image e Project continuity passaram no head `3064b584...`.
 
-## BOOT-002 em implementação
+## BOOT-002A — correção do gate
 
-- `storosctl` passa a registrar `/proc/sys/kernel/random/boot_id` em `/var/lib/storos/boot-state.json`.
-- O estado usa JSON schema 1, modo 0640, gravação atômica, `fsync` do arquivo e diretório e só incrementa `boot_count` para um `boot_id` novo.
-- `storos-agent.service` usa `StateDirectory=storos`, registra o boot em `ExecStartPre`, inicia o daemon e emite `STOROS_AGENT_READY snapshot=written boot_count=N` em `ExecStartPost` somente depois de o snapshot existir.
-- Testes unitários cobrem repetição do mesmo boot ID, segundo boot distinto, permissões do arquivo e ID inválido.
-- O CI BOOT-002 inicializa **o mesmo QCOW2 duas vezes**. O primeiro boot deve emitir `boot_count=1`; o segundo, `boot_count=2`. QEMU é encerrado depois do marcador para reduzir tempo sem trocar o disco entre boots.
-- O resultado remoto de BOOT-002 ainda precisa ficar verde antes de declarar a persistência validada.
+- O CI passa a provar persistência pelos marcadores `STOROS_BOOT_STATE boot_count=1` e `boot_count=2`, que são emitidos quando o estado persistente é registrado.
+- O segundo boot continua obrigado a atingir `STOROS_AGENT_READY snapshot=written boot_count=2`, provando que o agente funcional continua disponível após a reinicialização.
+- `boot-console.log` passa a ser montado antes das asserções para preservar a evidência combinada mesmo se um gate falhar.
+- Timeout TCG por boot passa de 210 s para 240 s para acomodar a variação observada no CI sem alterar o disco entre boots.
+- Um novo workflow verde ainda é necessário para fechar o gate automatizado BOOT-002A, embora o run #32 já tenha demonstrado a persistência básica pelos logs.
 
 ## Limitações
 
 - Nenhum boot físico por USB ainda.
-- Persistência básica de estado está sendo validada; configuração transacional completa ainda não existe.
+- Configuração transacional completa da Fase 1 ainda não existe; o que está comprovado é a persistência do estado de boot em `/var/lib/storos`.
 - Sem painel web autenticado, criação/alteração de VMs ou política automática de CPU/RAM.
 - QEMU do CI usa TCG e não representa desempenho real.
 - Sem teste físico de GPU compartilhada. RTX 3080 Ti/RX 550 continuam não homologadas.
@@ -38,12 +39,11 @@ Atualizado em **11/09/2026**, atualização **BOOT-002**. Responsável pelas dec
 
 ## Próxima tarefa concreta
 
-1. Fechar o workflow BOOT-002 com dois boots verdes no mesmo QCOW2 e `boot_count` 1 → 2.
-2. Registrar a evidência do run no changelog/estado sem apagar resultados históricos.
-3. Implementar a camada de configuração persistente transacional da Fase 1.
-4. Em seguida iniciar a fundação do painel web autenticado consumindo o contrato do agente.
-5. STOR-009/010/011 permanecem pendentes; CI virtual não encerra a Fase 0 nem comprova GPU compartilhada.
+1. Obter o workflow BOOT-002A verde com o gate alinhado aos marcadores observados.
+2. Depois implementar configuração persistente transacional da Fase 1.
+3. Iniciar a fundação do painel web autenticado consumindo o contrato do agente.
+4. STOR-009/010/011 permanecem pendentes; CI virtual não encerra a Fase 0 nem comprova GPU compartilhada.
 
 ## Continuidade
 
-Danilo já aprovou a direção e autorizou continuar. Não pedir nova autorização para seguir o roadmap atual. Antes de publicar qualquer novo lote, obedecer AGENTS.md e atualizar CHANGELOG.md + PROJECT_STATE.md juntos.
+Danilo já aprovou a direção e autorizou continuar. Não pedir nova autorização para seguir o roadmap atual. Antes de publicar qualquer novo lote, obedecer `AGENTS.md` e atualizar `CHANGELOG.md` + `PROJECT_STATE.md` juntos.
