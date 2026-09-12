@@ -75,6 +75,7 @@ for vm in vms:
 print('StorOS discovery and virtual hardware observation passed against libvirt test driver (no real VM).')
 PY
 
+# Legacy schema 1 must remain valid and hash-stable through the existing store/planner/task path.
 vm_uuid="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 cat > "$scratch/intent.json" <<'JSON'
 {
@@ -90,7 +91,7 @@ cat > "$scratch/intent.json" <<'JSON'
 JSON
 
 storosctl vm-intent-apply --intent-file "$scratch/intent.json" --intent-root "$scratch/intents" --expected-generation 0 > "$scratch/intent-record.json"
-python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["generation"] == 1; assert r["vm_uuid"] == sys.argv[2]; assert len(r["intent_sha256"]) == 64' "$scratch/intent-record.json" "$vm_uuid"
+python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["generation"] == 1; assert r["vm_uuid"] == sys.argv[2]; assert r["intent"]["schema_version"] == 1; assert "hardware" not in r["intent"]; assert len(r["intent_sha256"]) == 64' "$scratch/intent-record.json" "$vm_uuid"
 
 storosctl vm-plan --vm-uuid "$vm_uuid" --intent-root "$scratch/intents" --snapshot "$snapshot" > "$scratch/plan.json"
 python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["mode"] == "dry_run"; assert p["can_apply"] is False; assert p["status"] == "changes_planned"; assert p["actions"]; assert all(a["executable"] is False for a in p["actions"])' "$scratch/plan.json"
@@ -101,4 +102,41 @@ python3 -c 'import json,sys; t=json.load(open(sys.argv[1])); assert t["schema_ve
 storosctl task-list --task-root "$scratch/tasks" > "$scratch/tasks.json"
 python3 -c 'import json,sys; t=json.load(open(sys.argv[1])); assert len(t) == 1; assert t[0]["executable"] is False; assert all(a["executable"] is False for a in t[0]["plan"]["actions"])' "$scratch/tasks.json"
 
-printf '%s\n' 'StorOS image content check passed; persisted VM intent and reconciliation remain dry-run only. This smoke check does not prove boot, physical media, hypervisor mutation, or GPU sharing.'
+# Schema 2 is built from the observed test-driver VM itself. Empty managed device lists
+# mean "manage none", not detach observed extras; firmware is asserted only when known.
+python3 - "$snapshot" "$scratch/intent-v2.json" <<'PY'
+import json
+import sys
+
+snapshot = json.load(open(sys.argv[1]))
+vm = snapshot['libvirt']['vms'][0]
+assert vm['vcpus_reported'] is not None
+assert vm['max_memory_reported_kib'] is not None
+assert vm['max_memory_reported_kib'] % 1024 == 0
+mode = vm['hardware']['firmware']['mode']
+firmware = {'mode': mode} if mode in ('bios', 'efi') else None
+intent = {
+    'schema_version': 2,
+    'uuid': vm['uuid'],
+    'name': vm['name'],
+    'desired_state': 'running' if vm['active'] else 'stopped',
+    'resources': {
+        'vcpus': vm['vcpus_reported'],
+        'memory_mib': vm['max_memory_reported_kib'] // 1024,
+    },
+    'hardware': {
+        'firmware': firmware,
+        'disks': [],
+        'interfaces': [],
+    },
+}
+json.dump(intent, open(sys.argv[2], 'w'), sort_keys=True)
+PY
+
+vm_uuid_v2=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["uuid"])' "$scratch/intent-v2.json")
+storosctl vm-intent-apply --intent-file "$scratch/intent-v2.json" --intent-root "$scratch/intents-v2" --expected-generation 0 > "$scratch/intent-v2-record.json"
+python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["intent"]["schema_version"] == 2; assert set(r["intent"]["hardware"]) == {"firmware", "disks", "interfaces"}; assert len(r["intent_sha256"]) == 64' "$scratch/intent-v2-record.json"
+storosctl vm-plan --vm-uuid "$vm_uuid_v2" --intent-root "$scratch/intents-v2" --snapshot "$snapshot" > "$scratch/plan-v2.json"
+python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["intent"]["schema_version"] == 2; assert p["mode"] == "dry_run"; assert p["can_apply"] is False; assert p["status"] == "converged"; assert p["actions"] == []' "$scratch/plan-v2.json"
+
+printf '%s\n' 'StorOS image content check passed; VM intent schemas 1 and 2 remain dry-run only. This smoke check does not prove physical media, hypervisor mutation, or GPU sharing.'
