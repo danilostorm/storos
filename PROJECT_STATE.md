@@ -92,6 +92,14 @@ Hardware indisponível gera `inspect_hardware` e nenhuma mudança de hardware é
 
 Todas as ações continuam `executable=false`; plano continua `mode=dry_run` e `can_apply=false`.
 
+### Correção semântica de Secure Boot
+
+Durante a revisão do VM-003B, a documentação oficial do libvirt confirmou que `loader secure='yes'` informa **capacidade** de Secure Boot do firmware e não habilita/desabilita a feature. Como o planner v2 não gerencia Secure Boot, o observador foi endurecido antes de qualquer uso futuro desse campo:
+
+- `409f77c5fdcf7a5d0e531c7586d25cf3554b68c5`: `storos_agent.py` deixa de inferir `secure_boot` a partir de `loader@secure`; somente `firmware/feature name='secure-boot' enabled='yes|no'` define `true|false`; caso contrário permanece `null`.
+- `84927ecd77ba7d1fde98363381a009cacb253f1c`: teste dedicado prova que `loader secure=yes` sem feature explícita resulta em `secure_boot=None`.
+- `7ca50e9a7e3e3aadb15440c5e51160027b5f4f6a`: `docs/AGENT.md` registra essa semântica.
+
 ### Cobertura publicada
 
 - `802399c3eb7a1925ceb9ed6acc3b1257316be2d2`: testes do planner/validador v2, incluindo compatibilidade v1, normalização, duplicatas, convergência, diferenças determinísticas, attach sem detach, hardware extra ignorado e fail-closed.
@@ -100,7 +108,7 @@ Todas as ações continuam `executable=false`; plano continua `mode=dry_run` e `
 - `79f5bb09d20fcad94ae497cf3b49b9722c30688a`: contrato atualizado em `docs/VM_PLANNER.md`.
 - `4febbc02b9439b0054bc670e1a32c0b81444bdf5`: arquitetura atualizada com as fronteiras VM-003A/VM-003B.
 
-Os resultados remotos do head final **ainda precisam ser confirmados**. Nenhum check deve ser tratado como verde por antecipação.
+Os resultados remotos do **novo head final após a correção Secure Boot** ainda precisam ser confirmados. Nenhum check anterior deve ser usado como fechamento do VM-003B.
 
 ## Segurança preservada
 
@@ -126,8 +134,8 @@ Os resultados remotos do head final **ainda precisam ser confirmados**. Nenhum c
 
 ## Próxima tarefa concreta
 
-1. Fechar o lote documental obrigatório com `CHANGELOG.md` no mesmo head lógico.
-2. Executar/confirmar a suíte integral e corrigir qualquer regressão do schema v2.
+1. Fechar `CHANGELOG.md` no mesmo lote lógico da correção Secure Boot.
+2. Executar/confirmar a suíte integral do head final e corrigir qualquer regressão do schema v2.
 3. Confirmar o smoke da imagem para **schema 1 e schema 2**.
 4. Confirmar o mesmo QCOW2 em dois boots sem regressão de persistência.
 5. Registrar IDs/digests finais e só então marcar VM-003B como concluído.
