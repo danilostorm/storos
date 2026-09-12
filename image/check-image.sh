@@ -55,7 +55,25 @@ test "$(stat -c '%a' "$scratch/admin.token")" = 600
 
 snapshot="$scratch/status.json"
 storosctl discover --uri test:///default --json > "$snapshot"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["source"] == "simulation"; assert d["libvirt"]["status"] == "ok"; assert d["libvirt"]["vms"]; print("StorOS discovery passed against libvirt test driver (no real VM).")' "$snapshot"
+python3 - "$snapshot" <<'PY'
+import json
+import sys
+
+d = json.load(open(sys.argv[1]))
+assert d['source'] == 'simulation'
+assert d['libvirt']['status'] == 'ok'
+vms = d['libvirt']['vms']
+assert vms
+for vm in vms:
+    hardware = vm.get('hardware')
+    assert hardware is not None
+    assert hardware['status'] == 'ok'
+    assert isinstance(hardware['firmware'], dict)
+    assert set(hardware['firmware']) == {'mode', 'secure_boot', 'nvram_present'}
+    assert isinstance(hardware['disks'], list)
+    assert isinstance(hardware['interfaces'], list)
+print('StorOS discovery and virtual hardware observation passed against libvirt test driver (no real VM).')
+PY
 
 vm_uuid="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 cat > "$scratch/intent.json" <<'JSON'
