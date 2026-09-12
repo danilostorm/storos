@@ -1,4 +1,5 @@
-import base64
+import contextlib
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -7,7 +8,8 @@ import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from storos_config import basic_auth_value, ensure_admin_token, init_config
+from storos_cli import main as cli_main
+from storos_config import apply_settings, basic_auth_value, ensure_admin_token, init_config, read_config
 from storos_web import make_handler
 from http.server import ThreadingHTTPServer
 
@@ -53,6 +55,26 @@ class WebPanelTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as raised:
             self._request('/api/config', method='POST')
         self.assertEqual(raised.exception.code, 405)
+
+    def test_web_marker_authenticates_without_revealing_token(self):
+        settings = read_config(self.root / 'config')['settings']
+        settings['web']['port'] = self.server.server_port
+        document = apply_settings(settings, self.root / 'config', expected_generation=1, reason='marker-test')
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            code = cli_main([
+                'web-marker',
+                '--config-root', str(self.root / 'config'),
+                '--token-file', str(self.root / 'admin.token'),
+                '--wait', '2',
+            ])
+        marker = output.getvalue().strip()
+        self.assertEqual(code, 0)
+        self.assertNotIn(self.token, marker)
+        self.assertIn(f'config_generation={document["generation"]}', marker)
+        self.assertRegex(marker, r'config_sha256=[0-9a-f]{64}')
+        self.assertRegex(marker, r'token_sha256=[0-9a-f]{64}')
+        self.assertIn('STOROS_WEB_READY auth=ok', marker)
 
 
 if __name__ == '__main__':

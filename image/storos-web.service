@@ -10,6 +10,7 @@ StateDirectoryMode=0750
 ExecStartPre=/usr/bin/storosctl config-init
 ExecStartPre=/usr/bin/storosctl web-token-init
 ExecStart=/usr/bin/python3 /usr/libexec/storos/storos_web.py
+ExecStartPost=/usr/bin/storosctl web-marker --wait 60
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=20
@@ -30,8 +31,8 @@ RestrictSUIDSGID=yes
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 ReadOnlyPaths=/run/storos
 ReadWritePaths=/var/lib/storos
-StandardOutput=journal
-StandardError=journal
+StandardOutput=journal+console
+StandardError=journal+console
 
 [Install]
 WantedBy=multi-user.target

@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import sys
+import time
+from urllib.error import HTTPError, URLError
+from urllib.request import ProxyHandler, Request, build_opener
 
 from storos_agent import main as agent_main
 from storos_config import (
@@ -12,6 +16,7 @@ from storos_config import (
     TOKEN_FILE,
     ConfigError,
     apply_settings,
+    basic_auth_value,
     ensure_admin_token,
     init_config,
     list_revisions,
@@ -21,12 +26,65 @@ from storos_config import (
 
 CONFIG_COMMANDS = {
     'config-init', 'config-show', 'config-history', 'config-apply', 'config-rollback',
-    'web-token-init', 'web-token-show',
+    'web-token-init', 'web-token-show', 'web-marker',
 }
 
 
 def _json(data):
     print(json.dumps(data, ensure_ascii=True, indent=2, sort_keys=True))
+
+
+def _canonical_sha256(data):
+    canonical = json.dumps(data, ensure_ascii=True, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _probe_url(config):
+    web = config['settings']['web']
+    host = web['listen_host']
+    if host in ('0.0.0.0', 'localhost'):
+        host = '127.0.0.1'
+    elif host == '::':
+        host = '::1'
+    if ':' in host and not host.startswith('['):
+        host = f'[{host}]'
+    return f'http://{host}:{web["port"]}/api/config'
+
+
+def web_marker(config_root=CONFIG_ROOT, token_file=TOKEN_FILE, wait=60):
+    if not isinstance(wait, int) or isinstance(wait, bool) or not 1 <= wait <= 300:
+        raise ConfigError('A espera do painel deve ser de 1 a 300 segundos')
+    deadline = time.monotonic() + wait
+    opener = build_opener(ProxyHandler({}))
+    last_error = 'painel indisponível'
+    while time.monotonic() < deadline:
+        try:
+            config = read_config(config_root)
+            token = ensure_admin_token(token_file)
+            request = Request(
+                _probe_url(config),
+                headers={'Authorization': basic_auth_value(token), 'Accept': 'application/json'},
+                method='GET',
+            )
+            remaining = max(0.2, deadline - time.monotonic())
+            with opener.open(request, timeout=min(3.0, remaining)) as response:
+                if response.status != 200:
+                    raise ConfigError(f'Painel respondeu HTTP {response.status}')
+                remote = json.load(response)
+            if remote != config:
+                raise ConfigError('Painel respondeu configuração diferente da persistida')
+            print(
+                'STOROS_WEB_READY auth=ok '
+                f'config_generation={config["generation"]} '
+                f'config_sha256={_canonical_sha256(config)} '
+                f'token_sha256={hashlib.sha256(token.encode("utf-8")).hexdigest()}',
+                flush=True,
+            )
+            return 0
+        except (ConfigError, OSError, ValueError, TypeError, json.JSONDecodeError, HTTPError, URLError, TimeoutError) as exc:
+            last_error = str(exc)
+            time.sleep(min(1.0, max(0.0, deadline - time.monotonic())))
+    raise ConfigError(f'Painel local não ficou pronto no prazo: {last_error}')
 
 
 def main(argv=None):
@@ -41,6 +99,7 @@ def main(argv=None):
     parser.add_argument('--expected-generation', type=int)
     parser.add_argument('--target-generation', type=int)
     parser.add_argument('--token-file', default=str(TOKEN_FILE))
+    parser.add_argument('--wait', type=int, default=60)
     args = parser.parse_args(argv)
 
     try:
@@ -72,6 +131,8 @@ def main(argv=None):
         if args.command == 'web-token-show':
             print(ensure_admin_token(args.token_file))
             return 0
+        if args.command == 'web-marker':
+            return web_marker(args.config_root, args.token_file, args.wait)
     except (ConfigError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         print(json.dumps({'error': 'configuration_error', 'message': str(exc)}, ensure_ascii=True))
         return 2

@@ -104,7 +104,7 @@ jobs:
           qemu-img info "$QCOW2"
           sha256sum "$QCOW2" | tee storos-qcow2.sha256
 
-      - name: Boot same QCOW2 twice and prove persistence
+      - name: Boot same QCOW2 twice and prove panel persistence
         shell: bash
         run: |
           set -euo pipefail
@@ -124,31 +124,80 @@ jobs:
           test -n "$firmware_code"
           test -n "$firmware_vars"
 
-          for boot in first second; do
-            vars_copy="$RUNNER_TEMP/storos-OVMF_VARS-${boot}.fd"
+          : > boot-first.log
+          : > boot-second.log
+          finalize_logs() {
+            cat boot-first.log boot-second.log > boot-console.log || true
+          }
+          trap finalize_logs EXIT
+
+          boot_guest() {
+            local boot=$1
+            local max_wait=$2
+            local log="boot-${boot}.log"
+            local vars_copy="$RUNNER_TEMP/storos-OVMF_VARS-${boot}.fd"
             cp --dereference "$firmware_vars" "$vars_copy"
             chmod u+w "$vars_copy"
-            set +e
-            timeout 240s qemu-system-x86_64 \
+
+            qemu-system-x86_64 \
               -machine q35,accel=tcg -cpu max -smp 2 -m 2048 \
               -drive "if=pflash,format=raw,unit=0,readonly=on,file=$firmware_code" \
               -drive "if=pflash,format=raw,unit=1,file=$vars_copy" \
               -drive "file=$QCOW2,format=qcow2,if=virtio" \
-              -display none -monitor none -serial stdio -no-reboot > "boot-${boot}.log" 2>&1
-            rc=$?
-            set -e
-            if [[ "$rc" -ne 0 && "$rc" -ne 124 ]]; then
-              cat "boot-${boot}.log"
-              exit "$rc"
-            fi
-          done
+              -display none -monitor none -serial stdio -no-reboot > "$log" 2>&1 &
+            local qemu_pid=$!
+            local deadline=$((SECONDS + max_wait))
+            local ready=0
 
-          cat boot-first.log boot-second.log > boot-console.log
+            while kill -0 "$qemu_pid" 2>/dev/null; do
+              if grep -q 'STOROS_WEB_READY auth=ok ' "$log"; then
+                ready=1
+                break
+              fi
+              if (( SECONDS >= deadline )); then
+                break
+              fi
+              sleep 2
+            done
+
+            if [[ "$ready" -ne 1 ]]; then
+              echo "StorOS web readiness marker not reached during ${boot} boot within ${max_wait}s" >&2
+              kill -TERM "$qemu_pid" 2>/dev/null || true
+              wait "$qemu_pid" 2>/dev/null || true
+              tail -n 250 "$log" || true
+              return 1
+            fi
+
+            sleep 2
+            kill -TERM "$qemu_pid" 2>/dev/null || true
+            wait "$qemu_pid" 2>/dev/null || true
+          }
+
+          # TCG first boot applies more one-time system work than subsequent boots.
+          boot_guest first 420
+          boot_guest second 300
+          finalize_logs
+          trap - EXIT
+
           grep -q 'STOROS_BOOT_STATE boot_count=1 ' boot-first.log
+          grep -q 'STOROS_AGENT_READY snapshot=written boot_count=1' boot-first.log
+          grep -q 'STOROS_WEB_READY auth=ok config_generation=1 ' boot-first.log
           grep -q 'STOROS_BOOT_STATE boot_count=2 ' boot-second.log
           grep -q 'STOROS_AGENT_READY snapshot=written boot_count=2' boot-second.log
-          printf '%s\n' 'STOROS_BOOT_OK: second boot reached StorOS agent after two distinct boots' | tee boot-proof.txt
+          grep -q 'STOROS_WEB_READY auth=ok config_generation=1 ' boot-second.log
+
+          first_config=$(grep -oE 'config_sha256=[0-9a-f]{64}' boot-first.log | tail -n1 | cut -d= -f2)
+          second_config=$(grep -oE 'config_sha256=[0-9a-f]{64}' boot-second.log | tail -n1 | cut -d= -f2)
+          first_token=$(grep -oE 'token_sha256=[0-9a-f]{64}' boot-first.log | tail -n1 | cut -d= -f2)
+          second_token=$(grep -oE 'token_sha256=[0-9a-f]{64}' boot-second.log | tail -n1 | cut -d= -f2)
+          test -n "$first_config"
+          test -n "$first_token"
+          [[ "$first_config" == "$second_config" ]]
+          [[ "$first_token" == "$second_token" ]]
+
+          printf '%s\n' 'STOROS_BOOT_OK: both boots reached the StorOS agent and authenticated web panel' | tee boot-proof.txt
           printf '%s\n' 'STOROS_PERSISTENCE_OK: boot_count advanced from 1 to 2 on the same QCOW2' | tee persistence-proof.txt
+          printf '%s\n' 'STOROS_WEB_PERSISTENCE_OK: config and admin token fingerprints survived reboot and authenticated /api/config' | tee web-persistence-proof.txt
 
       - name: Upload boot evidence
         if: always()
@@ -162,6 +211,7 @@ jobs:
             boot-second.log
             boot-proof.txt
             persistence-proof.txt
+            web-persistence-proof.txt
           if-no-files-found: warn
           retention-days: 14
 

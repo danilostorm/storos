@@ -1,35 +1,37 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **12/09/2026**, atualização **CFG-001**. Responsável pelas decisões: Danilo.
+Atualizado em **12/09/2026**, atualização **CFG-001A**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: `danilostorm/storos`.
 - Branch: `phase0/gpu-feasibility`, [PR #2](https://github.com/danilostorm/storos/pull/2).
-- Base anterior deste incremento: `250fb9e972ff472376658dbc3ac17a7dd2617ecd`.
+- Base anterior deste incremento: `ed1d5ff18e3c376cd0aafaf267f134f5c73919df`.
 - Fedora/uCore HCI continua como base autorizada do protótipo; ISO instalável não é requisito.
-- Fase 0 continua aberta para GPU/hardware. A Fase 1 já tem agente, boot/persistência comprovados e agora avança para configuração transacional e painel autenticado.
+- Fase 0 continua aberta para GPU/hardware. A Fase 1 tem agente, persistência básica, store transacional e painel autenticado somente leitura; CFG-001A fecha a prova de boot do painel.
 
-## Evidência concluída
+## Evidência concluída antes de CFG-001A
 
-- O workflow `Bootable media` gera QCOW2 bootável a partir da imagem bootc StorOS, usando OVMF/QEMU TCG.
-- Run `34665004511`, commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`: primeiro boot StorOS + agente comprovado com `STOROS_AGENT_READY snapshot=written`.
-- Run `34668185335`, commit `250fb9e972ff472376658dbc3ac17a7dd2617ecd`: o mesmo QCOW2 foi iniciado duas vezes, o estado persistente avançou de `boot_count=1` para `boot_count=2`, o segundo boot confirmou `STOROS_AGENT_READY`, e o QCOW2 foi publicado como artefato. Host agent, Development image e Project continuity também ficaram verdes no mesmo head.
+- Run `34665004511`, commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`: primeiro boot StorOS + agente comprovado.
+- Run `34668185335`, commit `250fb9e972ff472376658dbc3ac17a7dd2617ecd`: o mesmo QCOW2 iniciou duas vezes, `boot_count=1 → 2`, segundo boot com `STOROS_AGENT_READY`; Host agent, Development image e Project continuity também verdes.
+- No head `ed1d5ff18e3c376cd0aafaf267f134f5c73919df`, Host agent `34671399198`, Development image `34671399204` e Project continuity `34671399235` ficaram verdes. Isso valida os testes do store/painel e a integração dos dois services na imagem.
 
-## CFG-001 em implementação
+## Causa real do Bootable media #40
 
-- Novo store persistente em `/var/lib/storos/config`, com `current.json`, revisões por geração e lock local.
-- Aplicações usam validação completa, geração monotônica e `expected_generation` opcional para rejeitar escrita concorrente obsoleta.
-- O protocolo grava a revisão antes de substituir `current.json` atomicamente; rollback cria uma nova geração e preserva histórico.
-- `features.vm_write_enabled` permanece obrigatoriamente `false`; o validador rejeita tentativa de habilitar escrita em VMs.
-- Novo `storos-web.service`: painel HTTP autenticado e somente leitura, padrão `127.0.0.1:8080`, `/healthz`, `/`, `/api/status` e `/api/config`.
-- Autenticação administrativa usa token aleatório local em `/var/lib/storos/auth/admin.token`, modo `0600`; métodos mutáveis são recusados.
-- Exposição fora do loopback exige opt-in explícito `allow_insecure_lan=true`, porque TLS integrado ainda não existe.
-- `storosctl` ganha `config-init`, `config-show`, `config-history`, `config-apply`, `config-rollback`, `web-token-init` e `web-token-show` sem retirar os comandos do agente.
-- Testes locais do novo store/painel passaram antes da publicação.
-- A primeira execução remota Host agent `34670864403`, head `49c563e225c4dcbd72ae5413f1c80789b3c5b10a`, executou 21 testes: 20 passaram e um falhou por typo no próprio teste (`settings['wec']` no lugar de `settings['web']`).
-- O corretivo `c77c676774fe39c7d3fbfa70caabbfe363f747a5` deixou Host agent `34671066203` e Project continuity `34671066176` verdes. Development image `34671066182` também confirmou os dois symlinks de preset, mas falhou no smoke check porque `check-image.sh` apontava para `/usr/lib/system/storos-web.service` em vez de `/usr/lib/systemd/system/storos-web.service`; a implementação do service não foi a causa.
-- O próximo lote corrige apenas esse caminho no smoke check e os registros de continuidade. CFG-001 ainda precisa de novo CI verde antes de ser marcado como concluído.
+- Run `34671399200`, head `ed1d5ff18e3c376cd0aafaf267f134f5c73919df`: build bootc, smoke check, geração e inspeção do QCOW2 passaram.
+- O primeiro QEMU foi encerrado aos 240 s antes de alcançar o agente; o console mostra tarefas pesadas de primeiro boot e só chega à inicialização de `storos-agent.service` perto do limite.
+- A segunda execução do mesmo QCOW2 chegou ao agente e registrou `STOROS_BOOT_STATE boot_count=1` e `STOROS_AGENT_READY snapshot=written boot_count=1`. Portanto a falha do gate não demonstrou perda de persistência: o primeiro boot lógico só terminou durante a segunda execução do QEMU.
+- O timeout fixo de 240 s era inadequado para o trabalho único do primeiro boot sob TCG depois da ampliação da imagem.
+
+## CFG-001A em implementação
+
+- `storosctl web-marker` faz uma requisição HTTP Basic local autenticada a `/api/config`, confirma que a resposta é exatamente a configuração persistida e publica `STOROS_WEB_READY`.
+- O marcador não imprime o token. Ele publica geração, SHA-256 canônico da configuração e SHA-256 do token aleatório, permitindo comparar identidade entre boots sem expor a credencial.
+- `storos-web.service` executa o marcador em `ExecStartPost` e envia stdout/stderr ao journal + console para o gate serial.
+- `ensure_admin_token` passa a fazer `fsync` também no diretório depois da troca atômica, alinhando a durabilidade do token à do store de configuração.
+- O workflow deixa de usar dois timeouts cegos. Cada QEMU roda até `STOROS_WEB_READY`, com teto de 420 s no primeiro boot e 300 s no segundo; depois é encerrado e o mesmo QCOW2 é reutilizado.
+- O gate exige em ambos os boots agente e painel prontos, `boot_count=1 → 2`, `config_generation=1` e fingerprints idênticos de configuração/token.
+- Testes locais do store e painel passaram: 9 testes focados, incluindo autenticação real do novo marcador e verificação de que o token bruto não aparece na saída. YAML do workflow e sintaxe Bash do gate também foram validados localmente.
 
 ## Limitações
 
@@ -43,11 +45,11 @@ Atualizado em **12/09/2026**, atualização **CFG-001**. Responsável pelas deci
 
 ## Próxima tarefa concreta
 
-1. Obter Host agent, Development image, Project continuity e Bootable media verdes no commit corretivo CFG-001, incluindo `storos-web.service` habilitado na imagem.
-2. Confirmar em boot QCOW2 que o painel inicia sem impedir o marcador do agente e que a configuração/token sobrevivem ao segundo boot.
-3. Fazer o primeiro teste funcional do painel no sistema iniciado e registrar evidência sem expor token no log.
-4. Depois criar a camada de tarefas/reconciliação e modelos de configuração de VM, mantendo escrita no libvirt desativada até validação separada.
-5. STOR-009/010/011 permanecem pendentes; CI virtual não encerra a Fase 0 nem comprova GPU compartilhada.
+1. Obter Host agent, Development image, Project continuity e Bootable media verdes no head CFG-001A.
+2. No Bootable media, exigir `STOROS_WEB_PERSISTENCE_OK` com hashes de config/token idênticos entre dois boots e sem segredo bruto nos logs.
+3. Se o gate ficar verde, marcar CFG-001 concluído e iniciar a camada de tarefas/reconciliação + modelos de configuração de VM, mantendo escrita no libvirt desativada.
+4. Depois preparar a primeira operação de VM em modo dry-run/plan antes de qualquer mutação real.
+5. STOR-009/010/011 permanecem pendentes; CI virtual não encerra Fase 0 nem comprova GPU compartilhada.
 
 ## Continuidade
 
