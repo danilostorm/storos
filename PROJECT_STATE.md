@@ -1,6 +1,6 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **12/09/2026**, fechamento **VM-003A**. Responsável pelas decisões: Danilo.
+Atualizado em **12/09/2026**, lote **VM-003B**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
@@ -9,96 +9,134 @@ Atualizado em **12/09/2026**, fechamento **VM-003A**. Responsável pelas decisõ
 - VM-002 está fechado remotamente.
 - WEB-VM-001 está fechado remotamente no head `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef`.
 - **VM-003A está fechado remotamente** no head `6108e0ec45f79e7a399f7f96733076effe3a2f47`.
+- **VM-003B está publicado e em validação remota**; ainda não deve ser marcado como concluído.
 - Fedora/uCore HCI continua como base autorizada do protótipo; ISO instalável não é requisito.
 - `features.vm_write_enabled=false` permanece obrigatório; não existe worker/executor de mutação libvirt.
 - Fase 0 continua aberta para hardware/GPU; RTX 3080 Ti/RX 550 seguem não homologadas para compartilhamento simultâneo.
 
-## VM-003A — fechamento remoto
-
-O VM-003A acrescentou observação tipada e somente leitura de firmware, discos e interfaces ao snapshot do agente, sem alterar o schema de intenção, sem criar ações aplicáveis e sem habilitar escrita no hipervisor.
+## VM-003A — fechamento remoto preservado
 
 No head `6108e0ec45f79e7a399f7f96733076effe3a2f47` os quatro gates aplicáveis ficaram verdes:
 
-- Project continuity `34713932768`: verde.
-- Host agent `34713932769`: verde, **50/50 testes**.
-- Development image `34713932991`: verde.
-- Bootable media `34713932817`, job `103607586216`: verde.
+- Project continuity `34713932768`;
+- Host agent `34713932769`, **50/50 testes**;
+- Development image `34713932991`;
+- Bootable media `34713932817`, job `103607586216`.
 
-O smoke da imagem confirmou duas vezes, com libvirt 12.0.0 e QEMU 10.2.2 empacotados no StorOS:
+O smoke da imagem confirmou observação de hardware com libvirt 12.0.0/QEMU 10.2.2. O mesmo QCOW2 foi inicializado duas vezes e emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`, com `boot_count=1 → 2`, agente/painel autenticado nos dois boots e fingerprints persistentes.
 
-`StorOS discovery and virtual hardware observation passed against libvirt test driver (no real VM).`
+Evidência: QCOW2 SHA-256 `d8075fbaa6693d7087db689922741a171b3e752cb1242072ec9f3b5b5ce1b091`; `storos-boot-evidence` ID `10304262931`, digest `sha256:5fc0a60aaff96e107512cbf1596d7589e085e5caf5801e8f539b81dc369e3100`; `storos-qcow2` ID `10304721991`, digest `sha256:a191ed814adc020ae79f097231df9c95cf25a7f9de28842d513aaf0343c0c4e4`.
 
-Esse gate exige ao menos uma VM simulada e `hardware.status=ok`, estrutura tipada de firmware e listas válidas de discos/interfaces; portanto o fechamento não depende apenas de importação sintática do módulo.
+## VM-003B — contrato hardware de intenção v2
 
-O Bootable media gerou e inspecionou o QCOW2 e inicializou **o mesmo disco duas vezes** com o QEMU 10.2.2 da própria imagem StorOS. Foram comprovados:
+### Compatibilidade
 
-- `STOROS_BOOT_OK`;
-- `STOROS_PERSISTENCE_OK`;
-- `STOROS_WEB_PERSISTENCE_OK`;
-- `boot_count=1 → 2`;
-- agente e painel autenticado prontos nos dois boots;
-- `config_generation=1` nos dois boots;
-- fingerprints de configuração e token preservados entre os boots;
-- QCOW2 SHA-256 `d8075fbaa6693d7087db689922741a171b3e752cb1242072ec9f3b5b5ce1b091`;
-- `storos-boot-evidence` ID `10304262931`, digest `sha256:5fc0a60aaff96e107512cbf1596d7589e085e5caf5801e8f539b81dc369e3100`;
-- `storos-qcow2` ID `10304721991`, digest do artefato `sha256:a191ed814adc020ae79f097231df9c95cf25a7f9de28842d513aaf0343c0c4e4`.
+`storos_vm.py` agora aceita schema 1 e schema 2.
 
-## Contrato observado fechado no VM-003A
+- Schema 1 continua com a forma histórica exata: UUID, nome, estado, vCPU e RAM fixa.
+- A validação de um documento v1 **não adiciona `hardware`**. Isso preserva hashes, revisões e rollbacks existentes.
+- Schema 2 acrescenta `hardware` para novas intenções.
+- O schema do store permanece 1; uma linha de revisões pode conter intenções v1 e v2.
+- Rollback para uma revisão v1 cria nova geração v1 e reutiliza o conteúdo/hash da intenção alvo.
 
-`src/storos_agent.py` continua lendo identidade básica por `dominfo` e usa a definição persistente da VM em modo somente leitura para acrescentar `hardware` ao snapshot schema 1:
+Implementação principal publicada em `f55d190e4dcf9329a3417f4a23cc5722397dea63`.
 
-- firmware EFI/BIOS/desconhecido;
-- Secure Boot apenas quando explicitamente determinável;
-- presença de NVRAM;
-- discos: dispositivo/tipo, target/bus, origem, formato, somente leitura e ordem de boot;
-- interfaces: tipo, MAC, origem, modelo, target e estado de link.
+### Subconjunto v2
 
-Fail-closed permanece obrigatório:
+O bloco `hardware` contém exatamente `firmware`, `disks` e `interfaces`.
 
-- falha de identidade impede materializar a VM naquele ciclo e usa `scope=identity`;
-- falha apenas de hardware preserva a VM com `hardware.status=unavailable`, usa `scope=hardware` e torna o inventário `partial`;
-- hardware não observado nunca é convertido em hardware ausente;
-- o parser limita o documento, valida UUID e rejeita XML fora do subconjunto aceito.
+Firmware:
 
-A decisão arquitetural permanece em [docs/VM_HARDWARE_OBSERVER.md](docs/VM_HARDWARE_OBSERVER.md) e o contrato do agente em [docs/AGENT.md](docs/AGENT.md).
+- `firmware` pode ser `null` para não ser gerenciado;
+- quando gerenciado, aceita somente `mode=bios|efi`;
+- nenhum caminho OVMF/loader/NVRAM do host entra na intenção;
+- Secure Boot/enrolled keys/NVRAM continuam fora do contrato VM-003B.
+
+Discos:
+
+- no máximo 64 itens;
+- identidade pelo `target`;
+- buses suportados: `virtio`, `sata`, `scsi`;
+- fontes locais `file` ou `block`, com caminho absoluto;
+- formatos `raw` ou `qcow2`;
+- `readonly` booleano e `boot_order` opcional;
+- target duplicado é rejeitado;
+- lista é normalizada por target para hash determinístico.
+
+Interfaces:
+
+- no máximo 64 itens;
+- identidade pelo MAC, normalizado para minúsculas;
+- `type=network` exige `source.network`;
+- `type=bridge` exige `source.bridge`;
+- modelo é explícito;
+- MAC duplicado é rejeitado;
+- lista é normalizada por MAC.
+
+As listas são **subconjuntos gerenciados**. Discos/interfaces observados que não aparecem na intenção não geram remoção automática.
+
+### Planner v2
+
+Para VM existente, o planner só compara firmware/discos/interfaces se `hardware.status=ok`.
+
+Novas descrições dry-run:
+
+- `set_firmware_mode`;
+- `attach_disk`;
+- `reconfigure_disk`;
+- `attach_interface`;
+- `reconfigure_interface`;
+- bloqueios `inspect_hardware`, `inspect_firmware`, `inspect_disk`, `inspect_interface`.
+
+Hardware indisponível gera `inspect_hardware` e nenhuma mudança de hardware é inferida. Firmware `unknown`, identidade ambígua ou dados observados incompletos também bloqueiam a parte correspondente.
+
+Todas as ações continuam `executable=false`; plano continua `mode=dry_run` e `can_apply=false`.
+
+### Cobertura publicada
+
+- `802399c3eb7a1925ceb9ed6acc3b1257316be2d2`: testes do planner/validador v2, incluindo compatibilidade v1, normalização, duplicatas, convergência, diferenças determinísticas, attach sem detach, hardware extra ignorado e fail-closed.
+- `43daed4f5dd0ad60d0dbc30b9846d44e3f439154`: store v1/v2, incluindo round-trip v2 e prova v1 → v2 → rollback-v1 com preservação do hash da intenção v1.
+- `780173c0817b6e26cd0ab4279ae51d387e16cc09`: smoke da imagem mantém o fluxo schema 1 e acrescenta intenção schema 2 construída a partir da VM do `test:///default`; o plano v2 deve convergir sem qualquer ação executável.
+- `79f5bb09d20fcad94ae497cf3b49b9722c30688a`: contrato atualizado em `docs/VM_PLANNER.md`.
+- `4febbc02b9439b0054bc670e1a32c0b81444bdf5`: arquitetura atualizada com as fronteiras VM-003A/VM-003B.
+
+Os resultados remotos do head final **ainda precisam ser confirmados**. Nenhum check deve ser tratado como verde por antecipação.
 
 ## Segurança preservada
 
-- Todas as consultas do agente ao libvirt continuam somente leitura.
+- Agente/libvirt continuam somente leitura.
 - Nenhum endpoint web ganhou autoridade de escrita.
 - Nenhum executor foi adicionado.
 - Nenhuma chamada mutável ao libvirt foi adicionada.
-- Planos continuam `mode=dry_run`, `can_apply=false`; ações/tarefas continuam `executable=false`.
-- `features.vm_write_enabled=true` continua rejeitado pela configuração.
-- O painel continua autenticado e somente leitura; listener padrão permanece no loopback.
+- `features.vm_write_enabled=true` continua rejeitado.
+- Planos continuam `dry_run`/`can_apply=false`; tarefas e ações continuam `executable=false`.
+- Não há detach automático de hardware não gerenciado.
+- Secure Boot, NVRAM, hotplug, passthrough, SR-IOV, mediated devices e GPU não foram promovidos para intenção v2.
 
 ## Limitações atuais
 
 - Sem criação/start/stop real de VM pelo control plane StorOS.
-- O contrato persistido de intenção continua schema 1 e cobre somente UUID/nome/estado/vCPU/RAM fixa.
-- Firmware/discos/rede estão **observados**, mas ainda não são campos de intenção nem inputs de reconciliação.
+- VM-003B ainda precisa passar Host agent, Project continuity, Development image e Bootable media no head final.
 - Sem política dinâmica aplicada de CPU/RAM.
 - Sem TLS integrado e sem RBAC/múltiplos usuários.
 - Nenhum boot físico por USB foi executado.
-- QEMU/TCG de CI é prova funcional, não benchmark de desempenho.
+- QEMU/TCG de CI é prova funcional, não benchmark.
 - Nenhum teste físico de GPU compartilhada foi realizado.
-- A observação básica de hardware virtual não comprova passthrough, SR-IOV, mediated devices ou vGPU.
-- O QCOW2 continua sendo artefato de laboratório, não release para instalação pelo usuário.
+- O QCOW2 continua artefato de laboratório, não release de instalação.
 
-## Próxima tarefa concreta — VM-003B
+## Próxima tarefa concreta
 
-1. Ampliar o contrato de intenção de forma **backward-compatible**, mantendo registros schema 1 válidos e seus hashes históricos intactos.
-2. Introduzir um novo schema apenas para novas intenções que incluam um subconjunto estreito e tipado de firmware/discos/rede.
-3. Fazer o planner usar esses campos somente quando a observação `hardware.status=ok`; snapshot parcial/ausente deve bloquear em vez de presumir mudanças.
-4. Manter todas as novas ações `executable=false`, plano `mode=dry_run` e `can_apply=false`.
-5. Não codificar caminhos de firmware do host na intenção; usar abstrações como BIOS/EFI.
-6. Adicionar testes de compatibilidade schema 1, hashing/revisões, convergência e fail-closed antes de qualquer exposição web adicional.
-7. Só depois dos gates remotos verdes considerar VM-003B fechado. Executor real, GPU e mídia física continuam etapas separadas.
+1. Fechar o lote documental obrigatório com `CHANGELOG.md` no mesmo head lógico.
+2. Executar/confirmar a suíte integral e corrigir qualquer regressão do schema v2.
+3. Confirmar o smoke da imagem para **schema 1 e schema 2**.
+4. Confirmar o mesmo QCOW2 em dois boots sem regressão de persistência.
+5. Registrar IDs/digests finais e só então marcar VM-003B como concluído.
+6. Não iniciar executor real, GPU ou mídia física antes desse fechamento.
 
 ## Continuidade
 
-- O histórico anterior de `CHANGELOG.md` foi restaurado a partir do head validado `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef`; as entradas novas permanecem apenas como acréscimos no topo.
-- O QCOW2 continua sendo laboratório interno até a base ficar sólida. A entrega final continua orientada a mídia física/pendrive em etapa posterior.
+- O histórico de `CHANGELOG.md` deve permanecer somente aditivo; não reescrever entradas antigas.
+- QCOW2 continua laboratório interno. A entrega final continua orientada a mídia física/pendrive em etapa posterior.
 - Danilo autorizou continuar sem pular etapas. Não pedir nova autorização para seguir o roadmap.
 - Obedecer `AGENTS.md` em toda publicação.
 - **Não mesclar o PR #2 sem instrução explícita.**
