@@ -5,8 +5,11 @@ After=network.target virtqemud.socket
 
 [Service]
 Type=simple
+StateDirectory=storos
+StateDirectoryMode=0750
+ExecStartPre=/usr/bin/storosctl boot-record
 ExecStart=/usr/bin/storosctl daemon
-ExecStartPost=/usr/bin/bash -c 'for i in {1..45}; do if test -s /run/storos/status.json; then echo "STOROS_AGENT_READY snapshot=written" >/dev/console; exit 0; fi; sleep 1; done; exit 1'
+ExecStartPost=/usr/bin/storosctl boot-marker
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=30
@@ -23,7 +26,7 @@ ProtectKernelModules=yes
 ProtectControlGroups=yes
 RestrictAddressFamilies=AF_UNIX
 PrivateTmp=yes
-ReadWritePaths=/run/storos
+ReadWritePaths=/run/storos /var/lib/storos
 StandardOutput=journal+console
 StandardError=journal+console
 
