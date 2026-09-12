@@ -8,7 +8,6 @@ import unittest
 
 import storos_cli
 
-
 UUID = '11111111-2222-3333-4444-555555555555'
 
 
@@ -48,16 +47,35 @@ class CLITests(unittest.TestCase):
             self.assertFalse(result['can_apply'])
             self.assertTrue(all(a['executable'] is False for a in result['actions']))
 
-    def test_reconcile_records_task(self):
+    def test_persisted_intent_reconcile_records_preconditioned_task(self):
         with tempfile.TemporaryDirectory() as tmp:
             intent, snapshot = self.fixtures(tmp)
+            intents = Path(tmp) / 'intents'
             tasks = Path(tmp) / 'tasks'
+            code, stored = self.call([
+                'vm-intent-apply', '--intent-file', str(intent),
+                '--intent-root', str(intents), '--expected-generation', '0',
+            ])
+            self.assertEqual(code, 0)
+            self.assertEqual(stored['generation'], 1)
+
+            code, planned = self.call([
+                'vm-plan', '--vm-uuid', UUID, '--intent-root', str(intents),
+                '--snapshot', str(snapshot),
+            ])
+            self.assertEqual(code, 0)
+            self.assertEqual(planned['intent_sha256'], stored['intent_sha256'])
+
             code, result = self.call([
-                'vm-reconcile-dry-run', '--intent-file', str(intent),
-                '--snapshot', str(snapshot), '--task-root', str(tasks),
+                'vm-reconcile-dry-run', '--vm-uuid', UUID,
+                '--intent-root', str(intents), '--snapshot', str(snapshot),
+                '--task-root', str(tasks),
             ])
             self.assertEqual(code, 0)
             self.assertFalse(result['executable'])
+            self.assertEqual(result['preconditions']['intent_generation'], 1)
+            self.assertEqual(result['preconditions']['intent_sha256'], stored['intent_sha256'])
+            self.assertEqual(result['preconditions']['snapshot_sha256'], result['plan']['snapshot_sha256'])
             self.assertTrue((tasks / f"{result['task_id']}.json").exists())
 
 
