@@ -2,6 +2,16 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — CFG-001D — Fechamento: configuração e painel persistentes comprovados
+
+- **Resultado:** CFG-001 está concluído como fundação da Fase 1. No head `496e3bfbba637519c1fabe32414ea0a64ac018da`, Host agent `34693451988`, Development image `34693452020`, Project continuity `34693451976` e Bootable media `34693452040` ficaram verdes.
+- **Prova de boot:** a tentativa 2 do Bootable media iniciou o mesmo QCOW2 duas vezes. O primeiro boot registrou `boot_count=1`, `STOROS_AGENT_READY` e `STOROS_WEB_READY auth=ok config_generation=1`; o segundo registrou `boot_count=2` com novo `boot_id` e repetiu agente/painel prontos. Os fingerprints de configuração e token administrativo foram idênticos entre os dois boots, sem publicar a credencial bruta.
+- **Prova explícita:** o workflow emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`. O artefato `storos-boot-evidence` da tentativa verde é o ID `10298937312`, digest `sha256:ac25baaf918e1217bda3ac5064c46370685a1d0c279f8fb232b355522153ed82`. O QCOW2 validado teve SHA-256 `72772b43e2f11eca2f935ad717c0bf36774308bf9f729a3fa217f1b22011ee84`.
+- **Tentativa anterior preservada:** a tentativa 1 do mesmo run falhou antes dos services StorOS, durante a subida do manager do systemd sob QEMU/TCG, com `web=0` e `agent=0`. O rerun limpo passou integralmente sem mudança de código; portanto essa ocorrência fica registrada como instabilidade do ambiente TCG/runner, não como prova de falha da configuração/painel.
+- **Limites:** este fechamento comprova a fundação virtual em CI, não boot físico por USB. O painel continua somente leitura; sem TLS integrado, RBAC/múltiplos usuários, criação/start/stop de VM, política automática de CPU/RAM ou GPU compartilhada. `features.vm_write_enabled` permanece `false` e nenhuma mutação libvirt foi habilitada.
+- **Próximo passo:** iniciar modelo de intenção de VM + fila/reconciliação em dry-run, produzindo planos auditáveis sem executar alterações no hipervisor.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), run Bootable media `34693452040`.
+
 ## 2026-09-12 — CFG-001C — Gate exige painel e agente no mesmo boot
 
 - **Motivo:** após CFG-001B permitir que painel e agente iniciem em paralelo, a revisão do workflow mostrou que `boot_guest` ainda encerrava o QEMU no primeiro `STOROS_WEB_READY`, embora as asserções posteriores também exigissem `STOROS_AGENT_READY`. Se o painel ficasse pronto primeiro, o próprio gate poderia matar um boot saudável antes do snapshot do agente.

@@ -1,56 +1,69 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **12/09/2026**, atualização **CFG-001C**. Responsável pelas decisões: Danilo.
+Atualizado em **12/09/2026**, atualização **CFG-001D**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: `danilostorm/storos`.
 - Branch: `phase0/gpu-feasibility`, [PR #2](https://github.com/danilostorm/storos/pull/2).
-- Base anterior deste incremento: `1a7e372bc022f15978f5d43bce9fb4da689a4be5`.
+- Base anterior deste fechamento: `496e3bfbba637519c1fabe32414ea0a64ac018da`.
 - Fedora/uCore HCI continua como base autorizada do protótipo; ISO instalável não é requisito.
-- Fase 0 continua aberta para GPU/hardware. A Fase 1 já tem agente, persistência básica, store transacional e painel autenticado somente leitura; CFG-001C alinha o gate de boot à inicialização concorrente de painel e agente.
+- Fase 0 continua aberta para validação física de GPU/hardware.
+- **CFG-001 está concluído:** a Fase 1 possui agente somente leitura, persistência básica de boot, configuração transacional e painel autenticado somente leitura com persistência comprovada entre dois boots do mesmo QCOW2.
 
-## Evidência concluída
+## Evidência de fechamento do CFG-001
 
-- Run `34665004511`, commit `12562cefeff3dc3dc3c84891e14a458b70fcd5ce`: primeiro boot StorOS + agente comprovado.
-- Run `34668185335`, commit `250fb9e972ff472376658dbc3ac17a7dd2617ecd`: o mesmo QCOW2 iniciou duas vezes, `boot_count=1 → 2`, segundo boot com `STOROS_AGENT_READY`; Host agent, Development image e Project continuity também verdes.
-- No head `d368fba2c0b7fb3bba0994ed4d926bf988dcce4e`, Host agent `34672437628`, Development image `34672437583` e Project continuity `34672437600` ficaram verdes. O Bootable media `34672437568` comprovou `boot_count=1`, agente, config geração 1 e criação persistente do token no primeiro boot, mas não alcançou `STOROS_WEB_READY` antes de 420 s porque a unidade web ainda estava serializada atrás do agente.
-- No head `1a7e372bc022f15978f5d43bce9fb4da689a4be5`, Host agent `34693093926`, Development image `34693093931` e Project continuity `34693093913` ficaram verdes. A imagem passou o smoke check que proíbe `After=storos-agent.service` e exige `After=network.target`.
+- Head validado: `496e3bfbba637519c1fabe32414ea0a64ac018da`.
+- Host agent `34693451988`: verde.
+- Development image `34693452020`: verde.
+- Project continuity `34693451976`: verde.
+- Bootable media `34693452040`: verde após rerun limpo do job.
+- No primeiro boot do mesmo QCOW2: `STOROS_BOOT_STATE boot_count=1`, `STOROS_AGENT_READY snapshot=written boot_count=1` e `STOROS_WEB_READY auth=ok config_generation=1`.
+- No segundo boot: `boot_count=2` com `boot_id` diferente, agente pronto novamente e painel autenticado novamente com `config_generation=1`.
+- Os fingerprints SHA-256 da configuração e do token administrativo foram idênticos entre os dois boots; a credencial bruta não foi impressa pelos marcadores.
+- O gate emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`.
+- Artefato verde `storos-boot-evidence`: ID `10298937312`, digest `sha256:ac25baaf918e1217bda3ac5064c46370685a1d0c279f8fb232b355522153ed82`.
+- QCOW2 validado no run: SHA-256 `72772b43e2f11eca2f935ad717c0bf36774308bf9f729a3fa217f1b22011ee84`.
 
-## Correção de startup do CFG-001B
+## Tentativa 1 do Bootable media #47
 
-- `storos-web.service` mantém `Wants=storos-agent.service`, remove `After=storos-agent.service` e usa `After=network.target`.
-- Painel e agente aquecem em paralelo. `/api/config` e autenticação não dependem do snapshot do agente.
-- `/api/status` continua retornando `503` enquanto `/run/storos/status.json` ainda não existe; o estado observado não é falsificado.
-- `ExecStartPost=/usr/bin/storosctl web-marker --wait 60` continua sendo a prova autenticada de prontidão do painel e não imprime o token bruto.
+- A primeira tentativa do run `34693452040` passou build bootc, geração do QCOW2 e inspeção, mas congelou antes de qualquer service StorOS alcançar prontidão.
+- O console registrou falha do manager do systemd durante os generators sob QEMU/TCG e o diagnóstico do gate terminou com `web=0` e `agent=0`.
+- O mesmo commit, sem mudança de código, passou integralmente em um rerun limpo no job `103559632566`.
+- Essa ocorrência fica preservada como instabilidade do ambiente TCG/runner e não é usada como evidência de falha da camada de configuração/painel.
 
-## CFG-001C — gate conjunto em implementação
+## Estado funcional atual
 
-- A revisão do workflow mostrou uma incompatibilidade com o startup paralelo: `boot_guest` encerrava QEMU assim que aparecia `STOROS_WEB_READY`, mas as asserções posteriores também exigiam `STOROS_AGENT_READY`.
-- Com o painel agora podendo ficar pronto antes do agente, esse comportamento poderia encerrar um boot saudável cedo demais e produzir falso negativo.
-- O loop passa a acompanhar separadamente `web_ready` e `agent_ready`; `ready=1` somente quando os dois marcadores já existem no mesmo console.
-- O diagnóstico de timeout informa `(web=0/1, agent=0/1)`, permitindo distinguir painel indisponível de aquecimento lento do inventário.
-- Os limites permanecem 420 s no primeiro boot e 300 s no segundo. O QEMU é encerrado assim que os dois componentes ficam prontos, não por espera fixa.
-- A sintaxe Bash do gate conjunto foi validada localmente antes da publicação. O resultado remoto deste lote ainda precisa ficar verde antes de CFG-001 ser marcado como concluído.
+- `storos-agent.service` observa libvirt em modo somente leitura e publica snapshot atômico em `/run/storos/status.json`.
+- Estado de boot persiste em `/var/lib/storos/boot-state.json` e diferencia boots reais por `boot_id` do kernel.
+- Configuração persiste em `/var/lib/storos/config` com geração monotônica, revisões, lock local, escrita atômica/fsync, concorrência otimista e rollback que cria nova geração.
+- Token administrativo persiste em `/var/lib/storos/auth/admin.token` com modo `0600` e escrita durável.
+- `storos-web.service` inicia em paralelo ao aquecimento do agente, escuta por padrão em `127.0.0.1:8080`, autentica dados administrativos e permanece somente leitura.
+- `/api/status` retorna `503` enquanto o snapshot observado ainda não existe; `/api/config` não depende do agente.
+- `features.vm_write_enabled=false` é obrigatório e qualquer tentativa de ativá-lo continua rejeitada.
+- O workflow de boot só considera cada boot pronto quando **agente e painel autenticado** estão prontos no mesmo console.
 
-## Limitações
+## Limitações atuais
 
 - Nenhum boot físico por USB ainda.
-- O painel não cria, edita, inicia, pausa ou remove VMs.
-- Sem TLS integrado e sem RBAC/múltiplos usuários nesta fundação.
-- Sem política automática de CPU/RAM aplicada ao libvirt.
-- QEMU do CI usa TCG e não representa desempenho real.
-- Sem teste físico de GPU compartilhada. RTX 3080 Ti/RX 550 continuam não homologadas.
+- Sem TLS integrado e sem RBAC/múltiplos usuários.
+- O painel ainda não cria, edita, inicia, pausa ou remove VMs.
+- Nenhuma mutação libvirt está habilitada.
+- Sem política automática de CPU/RAM aplicada ao hipervisor.
+- QEMU no CI usa TCG e não representa desempenho real.
+- Sem teste físico de GPU compartilhada; RTX 3080 Ti/RX 550 continuam não homologadas.
 - O QCOW2 de CI é artefato de laboratório, não release de produção.
 
-## Próxima tarefa concreta
+## Próxima tarefa concreta — VM-001
 
-1. Obter Host agent, Development image, Project continuity e Bootable media verdes no head CFG-001C.
-2. No Bootable media, exigir dois boots lógicos do mesmo QCOW2, `boot_count=1 → 2`, `STOROS_AGENT_READY` e `STOROS_WEB_READY` em ambos e fingerprints idênticos de config/token.
-3. Somente com `STOROS_WEB_PERSISTENCE_OK`, marcar CFG-001 concluído.
-4. Depois iniciar modelos de configuração de VM + fila/reconciliação em dry-run, mantendo escrita no libvirt desativada.
-5. STOR-009/010/011 permanecem pendentes; CI virtual não encerra Fase 0 nem comprova GPU compartilhada.
+1. Definir um modelo versionado de **intenção de VM** com identificador/nome, vCPU, memória e requisitos básicos, sem traduzir ainda para mutações libvirt.
+2. Criar um **planner/reconciler dry-run** que compare intenção com estado observado e gere uma lista auditável de ações propostas.
+3. Criar a fundação de tarefas persistentes para registrar planos, sem executor mutável nesta etapa.
+4. Expor os planos inicialmente pela CLI/testes; o painel continua somente leitura.
+5. Manter `features.vm_write_enabled=false` durante todo VM-001.
+6. Só depois de contratos, testes e auditoria verdes preparar uma operação de VM em modo plan/dry-run antes de discutir qualquer escrita real.
+7. STOR-009/010/011 e a validação de GPU física permanecem pendentes; CI virtual não encerra Fase 0.
 
 ## Continuidade
 
-Danilo já aprovou a direção e autorizou continuar. Não pedir nova autorização para seguir o roadmap atual. Antes de publicar qualquer novo lote, obedecer `AGENTS.md` e atualizar `CHANGELOG.md` + `PROJECT_STATE.md` juntos.
+Danilo já aprovou a direção e autorizou continuar. Não pedir nova autorização para seguir o roadmap atual. Antes de publicar qualquer novo lote, obedecer `AGENTS.md` e atualizar `CHANGELOG.md` + `PROJECT_STATE.md` juntos. Não mesclar o PR #2 sem instrução explícita.
