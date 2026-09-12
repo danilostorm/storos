@@ -2,6 +2,17 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-003B2 — Fechamento remoto da intenção hardware v2
+
+- **Resultado:** VM-003B está concluído funcionalmente no head `a8e0e9895efd24e4814c87297feefb34e5d123bb`. Project continuity `34715892296`, Host agent `34715892293`, Development image `34715892321` e Bootable media `34715892313` ficaram verdes; a suíte remota executou **63/63 testes**.
+- **Imagem:** o smoke passou durante a construção e novamente na imagem final com libvirt 12.0.0/QEMU 10.2.2, confirmando observação de hardware e que `VM intent schemas 1 and 2 remain dry-run only`. `image-evidence` ID `10303869538`, digest `sha256:a97e88a04ddfe595d5c25d4443af815ae0efcfb5845fcfc01fe5127243593c05`.
+- **Compatibilidade:** intenções v1 continuam com forma/hash históricos; v2 adiciona firmware/discos/rede como subconjuntos gerenciados e tipados, sem detach implícito. Rollback v2→v1 preserva o conteúdo/hash da intenção v1. A semântica de Secure Boot foi endurecida para não tratar `loader secure=yes` como estado ativo.
+- **Prova de boot:** o job `103612991227` gerou e inspecionou o QCOW2 e inicializou o mesmo disco duas vezes com o QEMU 10.2.2 da imagem StorOS. Foram emitidos `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`, com `boot_count=1 → 2`, `config_generation=1` e fingerprints persistentes de configuração/token.
+- **Artefatos:** QCOW2 SHA-256 `7e1466e575254dfd8c40c7eff3dec5f683e24a43385fd36709f15a68922ff44c`; `storos-boot-evidence` ID `10304634825`, digest `sha256:d4bb72db8d61c5e100c13b697e697db39263fd078f5c963b14591f610ed8bbd8`; `storos-qcow2` ID `10304931834`, digest `sha256:20d06f112745fd9982c6382501eb5751691f77d3859e930bfe6e7afe9c410184`.
+- **Segurança preservada:** `features.vm_write_enabled=false`, planos `dry_run`/`can_apply=false`, ações/tarefas `executable=false`; nenhum executor, endpoint web mutável ou chamada libvirt de escrita foi introduzido. QCOW2 continua artefato de laboratório.
+- **Próximo passo:** VM-004A deve criar apenas a fronteira de preflight de execução — releitura de tarefa/intenção/snapshot, precondições e locks — mantendo o feature gate de escrita desligado e sem executar mutações.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), head funcional validado `a8e0e9895efd24e4814c87297feefb34e5d123bb`.
+
 ## 2026-09-12 — VM-003B1 — Secure Boot: capacidade não é estado
 
 - **Motivo:** a revisão do contrato VM-003B confirmou na documentação oficial do libvirt que `loader secure='yes'` descreve capacidade do firmware para Secure Boot, não que a feature esteja efetivamente habilitada. O observador precisava eliminar essa ambiguidade antes de hardware observado sustentar decisões futuras.
@@ -132,7 +143,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 ## 2026-09-12 — VM-001 — Planner de VM e ledger dry-run
 
 - **Motivo:** após o fechamento do CFG-001, iniciar a camada de tarefas/reconciliação da Fase 1 sem conceder autoridade de escrita ao hipervisor.
-- **Mudou:** novo `storos_vm.py` com intenção de VM schema v1 (UUID, nome, estado desejado, vCPU e RAM fixa) e planner determinístico que compara intenção com o snapshot observado. O plano descreve `create_vm`, `rename_vm`, `set_vcpus`, `set_memory`, `start_vm` e `shutdown_vm`, mas sempre usa `mode=dry_run`, `can_apply=false` e `executable=false` em todas as ações.
+- **Mudou:** novo `storos_vm.py` com intenção de VM schema v1 (UUID, nome, estado desejado, vCPU e RAM fixa) e planner determinístico que compara intenção com o snapshot observado. O plano descreve ações como `create_vm`, `rename_vm`, `set_vcpus`, `set_memory`, `start_vm` e `shutdown_vm`, mas sempre usa `mode=dry_run`, `can_apply=false` e `executable=false` em todas as ações.
 - **Segurança de observação:** a CLI usa `read_snapshot(..., max_age=30)`. Snapshot stale bloqueia com `refresh_snapshot`; inventário `partial` sem a VM não pode gerar `create_vm`; recurso observado ausente bloqueia CPU/RAM em vez de presumir valor. RAM é comparada com `max_memory_reported_kib`, não com memória usada.
 - **Tarefas:** novo `storos_tasks.py` grava `/var/lib/storos/tasks/<task_id>.json` com UUID, timestamp, plano completo, escrita atômica/fsync e modos `0750/0640`. O ledger rejeita plano aplicável ou ação executável. Não existe worker/executor neste incremento.
 - **CLI/imagem:** `storosctl` ganha `vm-plan`, `vm-reconcile-dry-run`, `task-list` e `task-show`. Containerfile inclui os módulos e `check-image.sh` executa planner + ledger contra `test:///default`, exigindo que nada seja aplicável/executável.
