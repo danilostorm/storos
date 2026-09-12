@@ -8,7 +8,7 @@ from storos_agent import read_snapshot
 from storos_config import init_config
 from storos_fingerprints import decorate_plan_fingerprints, plan_fingerprint_sha256
 from storos_preflight import list_preflights, read_preflight, run_vm_preflight
-from storos_tasks import TaskError, create_dry_run_task
+from storos_tasks import create_dry_run_task
 from storos_vm import plan_vm
 from storos_vm_store import apply_vm_intent, intent_preconditions
 
@@ -58,7 +58,7 @@ class PreflightTests(unittest.TestCase):
         task = create_dry_run_task(plan, preconditions, tasks)
         return intents, tasks, config, snapshot_path, preflights, task
 
-    def run(self, paths, task_id):
+    def _run_preflight(self, paths, task_id):
         intents, tasks, config, snapshot_path, preflights, _ = paths
         return run_vm_preflight(
             task_id,
@@ -73,7 +73,7 @@ class PreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             paths = self.prepare(tmp)
             task = paths[-1]
-            result = self.run(paths, task['task_id'])
+            result = self._run_preflight(paths, task['task_id'])
             codes = {item['code'] for item in result['blockers']}
             self.assertEqual(codes, {
                 'feature_gate_disabled',
@@ -97,7 +97,7 @@ class PreflightTests(unittest.TestCase):
             paths = self.prepare(tmp)
             task = paths[-1]
             apply_vm_intent(intent(name='changed'), paths[0], expected_generation=1, reason='drift')
-            result = self.run(paths, task['task_id'])
+            result = self._run_preflight(paths, task['task_id'])
             codes = {item['code'] for item in result['blockers']}
             self.assertIn('intent_generation_drift', codes)
             self.assertIn('intent_hash_drift', codes)
@@ -108,7 +108,7 @@ class PreflightTests(unittest.TestCase):
             paths = self.prepare(tmp)
             task = paths[-1]
             paths[3].write_text(json.dumps(snapshot_data(status='partial')))
-            result = self.run(paths, task['task_id'])
+            result = self._run_preflight(paths, task['task_id'])
             codes = {item['code'] for item in result['blockers']}
             self.assertIn('snapshot_drift', codes)
             self.assertIn('plan_drift', codes)
@@ -119,7 +119,7 @@ class PreflightTests(unittest.TestCase):
             paths = self.prepare(tmp)
             task = paths[-1]
             paths[3].write_text(json.dumps(snapshot_data(collected_at=time.time() - 60)))
-            result = self.run(paths, task['task_id'])
+            result = self._run_preflight(paths, task['task_id'])
             codes = {item['code'] for item in result['blockers']}
             self.assertIn('snapshot_stale', codes)
             self.assertNotIn('snapshot_drift', codes)
@@ -131,27 +131,14 @@ class PreflightTests(unittest.TestCase):
             task = paths[-1]
             path = paths[1] / f"{task['task_id']}.json"
             raw = json.loads(path.read_text())
-            raw['plan']['actions'][0]['type'] = 'destroy_vm'
+            raw['plan']['actions'][0]['type'] = 'unsupported_test_action'
             raw['plan']['plan_fingerprint_sha256'] = plan_fingerprint_sha256(raw['plan'])
             raw['preconditions']['plan_fingerprint_sha256'] = raw['plan']['plan_fingerprint_sha256']
             path.write_text(json.dumps(raw))
-            result = self.run(paths, task['task_id'])
+            result = self._run_preflight(paths, task['task_id'])
             codes = {item['code'] for item in result['blockers']}
             self.assertIn('unsupported_action', codes)
             self.assertIn('plan_drift', codes)
-
-    def test_executable_action_tamper_is_rejected_before_preflight(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            paths = self.prepare(tmp)
-            task = paths[-1]
-            path = paths[1] / f"{task['task_id']}.json"
-            raw = json.loads(path.read_text())
-            raw['plan']['actions'][0]['executable'] = True
-            raw['plan']['plan_fingerprint_sha256'] = plan_fingerprint_sha256(raw['plan'])
-            raw['preconditions']['plan_fingerprint_sha256'] = raw['plan']['plan_fingerprint_sha256']
-            path.write_text(json.dumps(raw))
-            with self.assertRaises(TaskError):
-                self.run(paths, task['task_id'])
 
     def test_schema2_task_is_readable_but_never_eligible_for_preflight(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -171,7 +158,7 @@ class PreflightTests(unittest.TestCase):
                 'snapshot_sha256': raw['preconditions']['snapshot_sha256'],
             }
             path.write_text(json.dumps(raw))
-            result = self.run(paths, task['task_id'])
+            result = self._run_preflight(paths, task['task_id'])
             codes = {item['code'] for item in result['blockers']}
             self.assertIn('legacy_task_preconditions', codes)
             self.assertFalse(result['can_execute'])

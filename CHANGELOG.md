@@ -2,6 +2,16 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-004A1 — Correção do harness de preflight
+
+- **Evidência:** no head `f3f1b1a5983019214cf5ebca32cbee6492d8d0a1`, Project continuity `34720322042` ficou verde; Host agent `34720322040`, job `103624880382`, falhou antes de executar `PreflightTests` por conflito com o runner do `unittest`.
+- **Causa:** o helper do teste havia sido nomeado `run(self, paths, task_id)`, sobrescrevendo `unittest.TestCase.run()`; o runner chamou esse método com seu objeto de resultado e recebeu `TypeError` por argumento ausente.
+- **Correção:** o helper passa a `_run_preflight()` e todas as chamadas do teste usam o novo nome. A lógica de produção do VM-004A não muda.
+- **Cobertura:** a rejeição de ação executável continua validada no ledger por `tests/test_tasks.py`; o preflight mantém cobertura de drift, snapshot stale, ação desconhecida, compatibilidade schema 2 e bloqueios deliberados.
+- **Validação:** o head corretivo deve repetir Project continuity, suíte integral, Development image e Bootable media; resultados do head anterior não serão usados para fechamento.
+- **Segurança:** escrita em VM, autorização e backend mutável permanecem indisponíveis; nenhum executor foi introduzido.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2).
+
 ## 2026-09-12 — VM-004A — Preflight fail-closed sem executor
 
 - **Motivo:** criar a fronteira verificável imediatamente anterior a um futuro `JOBS → COMPUTE` mutável sem antecipar autorização, feature gate habilitável ou backend de escrita.
