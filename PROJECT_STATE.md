@@ -1,102 +1,106 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **12/09/2026**, atualização **WEB-VM-001**. Responsável pelas decisões: Danilo.
+Atualizado em **12/09/2026**, lote **VM-003A**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: `danilostorm/storos`.
 - Branch: `phase0/gpu-feasibility`, [PR #2](https://github.com/danilostorm/storos/pull/2).
-- VM-002 está **fechado remotamente** no head `9f7366e84819f5053efc44c129a7a8f8c0d68286`.
-- WEB-VM-001 está publicado no branch: projeção autenticada e somente leitura de intenções, planos e tarefas no painel/API.
+- VM-002 está fechado remotamente.
+- WEB-VM-001 está **fechado remotamente** no head funcional/documental `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef`.
+- VM-003A está em validação: observação somente leitura de firmware, discos e interfaces já foi implementada e a suíte corrigida está verde; gates finais do lote documental ainda precisam fechar.
 - Fedora/uCore HCI continua como base autorizada do protótipo; ISO instalável não é requisito.
 - `features.vm_write_enabled=false` permanece obrigatório; não existe worker/executor de mutação libvirt.
 - Fase 0 continua aberta para hardware/GPU; RTX 3080 Ti/RX 550 seguem não homologadas para compartilhamento simultâneo.
 
-## Fechamento remoto do VM-002
+## WEB-VM-001 — fechamento remoto
 
-No head `9f7366e84819f5053efc44c129a7a8f8c0d68286` os gates do VM-002 ficaram verdes:
+No head `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef` os quatro gates aplicáveis ficaram verdes:
 
-- Host agent `34710051568`: verde; suíte integral com **42/42 testes**.
-- Project continuity `34710051542`: verde.
-- Development image `34710051546`: verde; smoke dentro da imagem confirmou intenção persistida e reconciliação ainda exclusivamente dry-run.
-- Bootable media `34710051552`, job `103597090745`: verde.
+- Project continuity `34712230631`: verde.
+- Host agent `34712230846`: verde; suíte integral com **47/47 testes**.
+- Development image `34712230629`: verde.
+- Bootable media `34712230653`, job `103602983309`: verde.
 
-O Bootable media construiu e inspecionou o QCOW2 e inicializou **o mesmo disco duas vezes** usando QEMU 10.2.2 da própria imagem StorOS. O gate registrou `boot_count=1 → 2`, agente e painel autenticado nos dois boots, `config_generation=1` e fingerprints idênticos de configuração/token.
-
-Provas preservadas:
+O Bootable media construiu e inspecionou o mesmo QCOW2 e o inicializou duas vezes com QEMU 10.2.2 da própria imagem StorOS. O gate registrou:
 
 - `STOROS_BOOT_OK`;
 - `STOROS_PERSISTENCE_OK`;
 - `STOROS_WEB_PERSISTENCE_OK`;
-- QCOW2 SHA-256 `cde00c270df09e3f28cc0b4341a55dfa88ed8d50d1bfcd59678e4bc4329211b6`;
-- artefato `storos-boot-evidence` ID `10303516398`, digest `sha256:780236c38216fe6df3464d650c418c2c24894dd32af9ec830204720467092730`;
-- artefato `storos-qcow2` ID `10303451532`, digest do ZIP `sha256:536591efcc59a5872e41bfef1fcdcbd1cbb20ffbda1319726d7c284860b57cee`.
+- `boot_count=1 → 2`;
+- painel autenticado e agente prontos nos dois boots;
+- `config_generation=1` e fingerprints persistentes de configuração/token;
+- QCOW2 SHA-256 `a081b7480d19d85fd5a014e2ba8327d37c4fc8b11f2beac6cd8f6997aae333a8`;
+- artefato `storos-boot-evidence` ID `10303234826`, digest do ZIP `sha256:2d84494a73c4f82a789b55410edf392cd8b0b1a48974953de7849eca194e2010`;
+- artefato `storos-qcow2` ID `10303549406`, digest do ZIP `sha256:c8117f02ee200068e18bdd059ee3f8a61206e4d87f6a153d7b805258aa308198`.
 
-Essa evidência fecha VM-002 como fundação de consistência. Ela não habilita escrita em VM nem transforma o QCOW2 em release para o usuário.
+Isso fecha a projeção read-only de intenções, planos e tarefas no painel. Nenhuma escrita em VM foi habilitada.
 
-## VM-002 — estado entregue
+## VM-003A — observação de hardware virtual
 
-### Store de intenção por VM
+### Objetivo
 
-`src/storos_vm_store.py` persiste estado desejado em `/var/lib/storos/vm-intents/<uuid>/` com `current.json`, histórico por revisão, geração monotônica, `expected_generation`, rollback por nova geração, `intent_sha256`, escrita atômica/fsync e lock por UUID.
+Antes de colocar firmware, discos ou rede na intenção/planner, observar esses recursos de forma tipada e conservadora no snapshot do agente.
 
-### Tarefas e precondições
+### Implementação
 
-`storos_tasks.py` usa schema 2. Cada reconciliação dry-run carrega `intent_generation`, `intent_sha256` e `snapshot_sha256`. O ledger mantém `mode=dry_run`, `can_apply=false` e `executable=false`; drift de precondição é rejeitado. Não existe executor.
+`src/storos_agent.py` agora mantém a leitura básica por `dominfo` e acrescenta uma consulta somente leitura à definição persistente da VM. O campo aditivo `hardware` observa:
 
-### CLI
+- firmware EFI/BIOS/desconhecido;
+- Secure Boot quando explicitamente determinável;
+- presença de NVRAM;
+- discos: dispositivo/tipo, target/bus, origem, formato, somente leitura e ordem de boot;
+- interfaces: tipo, MAC, origem, modelo, target e estado de link.
 
-`storosctl` possui `vm-intent-apply/show/history/list/rollback`; `vm-plan` aceita intenção ad hoc ou persistida; `vm-reconcile-dry-run` exige intenção persistida e grava a tarefa vinculada à geração/hash e ao snapshot observado.
+O snapshot continua `schema_version: 1`; consumidores atuais podem ignorar `hardware`.
 
-## WEB-VM-001 — painel/API somente leitura
+A decisão arquitetural e os limites estão em [docs/VM_HARDWARE_OBSERVER.md](docs/VM_HARDWARE_OBSERVER.md). [docs/AGENT.md](docs/AGENT.md) foi atualizado para refletir o estado atual do componente.
 
-O novo incremento estende `storos_web.py` sem adicionar autoridade de comando. Endpoints autenticados publicados:
+### Fail-closed
 
-- `GET /api/vms/intents` — lista intenções persistidas;
-- `GET /api/vms/intents/<uuid>` — mostra uma intenção validada;
-- `GET /api/vms/intents/<uuid>/plan` — calcula em memória um plano determinístico a partir da intenção atual e do snapshot observado;
-- `GET /api/tasks` — lista o ledger dry-run;
-- `GET /api/tasks/<task_id>` — mostra um registro de tarefa.
+- Se identidade básica falhar, a VM não é materializada naquele ciclo e o erro recebe `scope=identity`.
+- Se identidade for válida mas a observação de hardware falhar, a VM continua visível com `hardware.status=unavailable`, erro `scope=hardware` e inventário geral `partial`.
+- Hardware não observado não é tratado como ausente.
+- O parser limita o documento, valida o UUID e rejeita construções XML fora do subconjunto seguro aceito.
 
-O cálculo de plano não cria tarefa e não grava estado. Snapshot ausente/corrompido/incompatível retorna indisponibilidade em vez de gerar plano por suposição. `POST`, `PUT`, `PATCH` e `DELETE` continuam retornando `405` no painel autenticado.
+### Evidência até agora
 
-O HTML inicial também mostra contagem de intenções/tarefas e uma tabela simples de intenções, mantendo explicitamente **Escrita em VMs: bloqueada**.
+A primeira publicação do agente foi o commit `4257da8a989e837bb72fd0d5571c5ea8098f1f7a`. O Host agent correspondente, run `34713090955`, executou 47 testes: **45 passaram e 2 falharam**. As duas falhas eram mocks antigos que devolviam texto de `dominfo` para a nova consulta de XML; não houve falha do parser real nem do smoke da imagem. O Development image desse head ficou verde.
 
-## Verificação WEB-VM-001 até este ponto
+Os mocks foram corrigidos e a cobertura ampliada no commit `847520c1cbac7d56d56f121dd81e6f46964f5516`. O Host agent `34713412563` ficou verde com **50/50 testes**. A cobertura nova inclui firmware, Secure Boot/NVRAM, discos, interfaces, UUID divergente, declaração XML recusada e preservação da VM em estado parcial quando apenas hardware não pode ser observado.
 
-- A nova implementação e os testes foram publicados nos commits `f9d12acc7e451600ee9a533f6b3d97d7e9a651f1` e `2018e205dea05e0dd36066371b36de80ecfc1b9e`.
-- Sintaxe Python da implementação e dos testes foi validada antes da publicação.
-- Host agent do head arquitetural `59aa924aefa8d1960ecc5703e2f363339743e9c0`, run `34712075217`, ficou verde com a suíte que inclui os novos testes web.
-- O Project continuity desse head ficou vermelho somente porque esta atualização obrigatória de `CHANGELOG.md`/`PROJECT_STATE.md` ainda não estava presente; não foi tratado como falha funcional.
-- Development image do mesmo head ainda precisa ser confirmado após a publicação do lote documental final.
-- WEB-VM-001 não deve ser marcado como fechado até os gates aplicáveis do head funcional/documental ficarem verdes.
+No mesmo commit de testes, Project continuity `34713412537` ficou verde. Development image `34713412526` e Bootable media `34713412533` foram disparados, mas o lote documental subsequente altera o head e exige nova confirmação dos gates finais antes de VM-003A ser fechado.
 
 ## Segurança preservada
 
-- Nenhum endpoint web chama `apply_vm_intent`, `rollback_vm_intent` ou `create_dry_run_task`.
+- Todas as consultas ao libvirt continuam usando o caminho somente leitura do agente.
+- Nenhum endpoint web ganhou autoridade de escrita.
 - Nenhum executor foi adicionado.
 - Nenhuma chamada mutável ao libvirt foi adicionada.
 - Planos continuam `mode=dry_run`, `can_apply=false`; ações/tarefas continuam `executable=false`.
 - `features.vm_write_enabled=true` continua rejeitado pela configuração.
-- O painel continua autenticado e somente leitura; o listener padrão continua no loopback.
+- O painel continua autenticado e somente leitura; listener padrão permanece no loopback.
 
 ## Limitações atuais
 
 - Sem criação/start/stop real de VM pelo control plane StorOS.
-- O contrato de VM ainda não cobre discos, rede, firmware, passthrough ou política dinâmica de CPU/RAM.
+- O contrato de intenção ainda cobre apenas UUID/nome/estado/vCPU/RAM fixa; firmware/discos/rede são somente observados no VM-003A.
+- Sem política dinâmica aplicada de CPU/RAM.
 - Sem TLS integrado e sem RBAC/múltiplos usuários.
 - Nenhum boot físico por USB foi executado.
 - QEMU/TCG de CI é prova funcional, não benchmark de desempenho.
 - Nenhum teste físico de GPU compartilhada foi realizado.
+- A observação básica de hardware virtual não comprova passthrough, SR-IOV, mediated devices ou vGPU.
 - O QCOW2 continua sendo artefato de laboratório, não release para Danilo instalar.
 
 ## Próxima tarefa concreta
 
-1. Fechar os gates remotos aplicáveis do WEB-VM-001 sem relaxar critérios.
-2. Se o painel read-only permanecer verde na imagem/boot, registrar o fechamento WEB-VM-001.
-3. Em seguida avançar para o próximo contrato de VM — discos, firmware e rede — ainda primeiro em modelo/validação/dry-run, antes de qualquer executor.
-4. Manter QCOW2 como laboratório interno e só preparar mídia física USB quando a base virtual continuar estável.
-5. STOR-009/010/011 e validação física de GPU permanecem pendentes.
+1. Fechar Project continuity, Host agent, Development image e Bootable media no head documental final do VM-003A sem relaxar critérios.
+2. Confirmar que o driver `test:///default` produz hardware observado válido dentro da imagem final e que dois boots do mesmo QCOW2 continuam verdes.
+3. Registrar o fechamento VM-003A com os IDs/digests finais.
+4. Iniciar VM-003B: ampliar o contrato de intenção e o planner para um subconjunto explicitamente validado de firmware/discos/rede, ainda apenas em `dry_run` e sem executor.
+5. Manter QCOW2 como laboratório interno e preparar mídia física USB apenas quando a base virtual continuar estável.
+6. STOR-009/010/011 e validação física de GPU permanecem pendentes.
 
 ## Continuidade
 
