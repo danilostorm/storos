@@ -118,4 +118,6 @@ Assim, o Development image passa a provar que o parser de hardware funciona com 
 
 ## Continuidade
 
+- O histórico anterior de `CHANGELOG.md` foi restaurado a partir do head validado `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef`; as entradas novas do VM-003A/WEB-VM-001A permanecem apenas como acréscimos no topo. Essa correção é documental e não altera comportamento funcional.
+
 Danilo autorizou continuar sem pular etapas e confirmou que o QCOW2 deve permanecer como laboratório interno até a base ficar sólida. O objetivo de entrega ao usuário continua sendo mídia física/pendrive em etapa posterior. Não pedir nova autorização para seguir este roadmap. Obedecer `AGENTS.md` em toda publicação. **Não mesclar o PR #2 sem instrução explícita.**
