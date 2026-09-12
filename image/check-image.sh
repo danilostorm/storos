@@ -8,7 +8,9 @@ test -s /usr/libexec/storos/storos_agent.py
 test -s /usr/libexec/storos/storos_config.py
 test -s /usr/libexec/storos/storos_vm.py
 test -s /usr/libexec/storos/storos_vm_store.py
+test -s /usr/libexec/storos/storos_fingerprints.py
 test -s /usr/libexec/storos/storos_tasks.py
+test -s /usr/libexec/storos/storos_preflight.py
 test -s /usr/libexec/storos/storos_cli.py
 test -s /usr/libexec/storos/storos_web.py
 test -s /usr/lib/systemd/system/storos-agent.service
@@ -36,7 +38,9 @@ for path in (
     '/usr/libexec/storos/storos_config.py',
     '/usr/libexec/storos/storos_vm.py',
     '/usr/libexec/storos/storos_vm_store.py',
+    '/usr/libexec/storos/storos_fingerprints.py',
     '/usr/libexec/storos/storos_tasks.py',
+    '/usr/libexec/storos/storos_preflight.py',
     '/usr/libexec/storos/storos_cli.py',
     '/usr/libexec/storos/storos_web.py',
 ):
@@ -97,10 +101,19 @@ storosctl vm-plan --vm-uuid "$vm_uuid" --intent-root "$scratch/intents" --snapsh
 python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["mode"] == "dry_run"; assert p["can_apply"] is False; assert p["status"] == "changes_planned"; assert p["actions"]; assert all(a["executable"] is False for a in p["actions"])' "$scratch/plan.json"
 
 storosctl vm-reconcile-dry-run --vm-uuid "$vm_uuid" --intent-root "$scratch/intents" --snapshot "$snapshot" --task-root "$scratch/tasks" > "$scratch/task.json"
-python3 -c 'import json,sys; t=json.load(open(sys.argv[1])); assert t["schema_version"] == 2; assert t["mode"] == "dry_run"; assert t["executable"] is False; assert t["status"] == "planned"; assert t["preconditions"]["intent_generation"] == 1; assert t["preconditions"]["intent_sha256"] == t["plan"]["intent_sha256"]; assert t["preconditions"]["snapshot_sha256"] == t["plan"]["snapshot_sha256"]; assert t["plan"]["can_apply"] is False' "$scratch/task.json"
+python3 -c 'import json,sys; t=json.load(open(sys.argv[1])); assert t["schema_version"] == 3; assert t["mode"] == "dry_run"; assert t["executable"] is False; assert t["status"] == "planned"; assert t["preconditions"]["intent_generation"] == 1; assert t["preconditions"]["intent_sha256"] == t["plan"]["intent_sha256"]; assert t["preconditions"]["snapshot_sha256"] == t["plan"]["snapshot_sha256"]; assert t["preconditions"]["snapshot_fingerprint_sha256"] == t["plan"]["snapshot_fingerprint_sha256"]; assert t["preconditions"]["plan_fingerprint_sha256"] == t["plan"]["plan_fingerprint_sha256"]; assert t["plan"]["can_apply"] is False' "$scratch/task.json"
 
 storosctl task-list --task-root "$scratch/tasks" > "$scratch/tasks.json"
-python3 -c 'import json,sys; t=json.load(open(sys.argv[1])); assert len(t) == 1; assert t[0]["executable"] is False; assert all(a["executable"] is False for a in t[0]["plan"]["actions"])' "$scratch/tasks.json"
+python3 -c 'import json,sys; t=json.load(open(sys.argv[1])); assert len(t) == 1; assert t[0]["schema_version"] == 3; assert t[0]["executable"] is False; assert all(a["executable"] is False for a in t[0]["plan"]["actions"])' "$scratch/tasks.json"
+
+task_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["task_id"])' "$scratch/task.json")
+storosctl vm-preflight --task-id "$task_id" --task-root "$scratch/tasks" --intent-root "$scratch/intents" --snapshot "$snapshot" --config-root "$scratch/config" --preflight-root "$scratch/preflights" > "$scratch/preflight.json"
+python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"] == "blocked"; assert p["can_execute"] is False; assert p["executed"] is False; assert all(v is False for v in p["requirements"].values()); assert {b["code"] for b in p["blockers"]} == {"feature_gate_disabled","authorization_unavailable","mutating_backend_unavailable"}; assert p["resource_keys"]' "$scratch/preflight.json"
+preflight_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["preflight_id"])' "$scratch/preflight.json")
+storosctl preflight-show --preflight-id "$preflight_id" --preflight-root "$scratch/preflights" > "$scratch/preflight-show.json"
+python3 -c 'import json,sys; a=json.load(open(sys.argv[1])); b=json.load(open(sys.argv[2])); assert a == b' "$scratch/preflight.json" "$scratch/preflight-show.json"
+storosctl preflight-list --preflight-root "$scratch/preflights" > "$scratch/preflights.json"
+python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert len(p) == 1; assert p[0]["can_execute"] is False; assert p[0]["executed"] is False' "$scratch/preflights.json"
 
 # Schema 2 is built from the observed test-driver VM itself. Empty managed device lists
 # mean "manage none", not detach observed extras; firmware is asserted only when known.
@@ -139,4 +152,4 @@ python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["intent"][
 storosctl vm-plan --vm-uuid "$vm_uuid_v2" --intent-root "$scratch/intents-v2" --snapshot "$snapshot" > "$scratch/plan-v2.json"
 python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["intent"]["schema_version"] == 2; assert p["mode"] == "dry_run"; assert p["can_apply"] is False; assert p["status"] == "converged"; assert p["actions"] == []' "$scratch/plan-v2.json"
 
-printf '%s\n' 'StorOS image content check passed; VM intent schemas 1 and 2 remain dry-run only. This smoke check does not prove physical media, hypervisor mutation, or GPU sharing.'
+printf '%s\n' 'StorOS image content check passed; VM intent schemas 1 and 2 remain dry-run only; VM-004A preflight remains blocked and non-executing. This smoke check does not prove physical media, hypervisor mutation, or GPU sharing.'

@@ -1,134 +1,172 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **12/09/2026**, fechamento funcional **VM-003B**. Responsável pelas decisões: Danilo.
+Atualizado em **12/09/2026**, lote **VM-004A**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: `danilostorm/storos`.
 - Branch: `phase0/gpu-feasibility`, [PR #2](https://github.com/danilostorm/storos/pull/2).
-- VM-002 está fechado remotamente.
-- WEB-VM-001 está fechado remotamente no head `550e8ac1a92de7fb6c89e7bcdd96581e45f533ef`.
-- VM-003A está fechado remotamente no head `6108e0ec45f79e7a399f7f96733076effe3a2f47`.
-- **VM-003B está fechado funcionalmente** no head `a8e0e9895efd24e4814c87297feefb34e5d123bb`; o fechamento documental é mantido como um lote atômico de `PROJECT_STATE.md` + `CHANGELOG.md` antes da próxima etapa.
-- Fedora/uCore HCI continua como base autorizada do protótipo; ISO instalável não é requisito.
-- `features.vm_write_enabled=false` permanece obrigatório; não existe worker/executor de mutação libvirt.
-- Fase 0 continua aberta para hardware/GPU; RTX 3080 Ti/RX 550 seguem não homologadas para compartilhamento simultâneo.
+- VM-002, WEB-VM-001 e VM-003A permanecem fechados.
+- **VM-003B está fechado funcional e documentalmente.**
+- Head funcional VM-003B: `a8e0e9895efd24e4814c87297feefb34e5d123bb`.
+- Head documental VM-003B: `874db3cb783bc4c18e9ca0c42f46963d06480f86`.
+- **VM-004A está em implementação/validação remota neste lote**; não é executor.
+- `features.vm_write_enabled=false` permanece obrigatório.
+- Nenhum backend libvirt mutável, endpoint web de escrita ou autorização de aplicação foi introduzido.
+- Fase 0 continua aberta para laboratório físico/GPU; nenhum modelo está homologado para compartilhamento simultâneo.
 
-## VM-003B — fechamento funcional remoto
+## VM-003B — fechamento documental confirmado
 
-O VM-003B estende intenção/planner para um subconjunto tipado de firmware, discos e rede, preservando integralmente intenções schema 1 já persistidas e mantendo toda reconciliação em `dry_run`.
+O head documental `874db3cb783bc4c18e9ca0c42f46963d06480f86` repetiu os quatro gates:
 
-No head funcional `a8e0e9895efd24e4814c87297feefb34e5d123bb` os quatro gates ficaram verdes:
+- Project continuity `34717404728`: verde;
+- Host agent `34717404729`: **63/63 testes**;
+- Development image `34717404730`: verde;
+- Bootable media `34717404733`, job `103617073406`: verde.
 
-- Project continuity `34715892296`;
-- Host agent `34715892293`: **63/63 testes**;
-- Development image `34715892321`, job `103612989742`;
-- Bootable media `34715892313`, job `103612991227`.
+Development image:
 
-O Development image confirmou, dentro da imagem final com libvirt 12.0.0 e QEMU 10.2.2, os dois marcadores funcionais do smoke:
+- `image-evidence` ID `10305900646`;
+- digest `sha256:4f609548ae0aa0b98941ad59dd9420136b1c46e2ff18ec92210adb659636198e`.
 
-- `StorOS discovery and virtual hardware observation passed against libvirt test driver (no real VM).`
-- `StorOS image content check passed; VM intent schemas 1 and 2 remain dry-run only.`
+Bootable media:
 
-Esse smoke passou durante a construção da imagem e novamente em execução isolada. Artefato `image-evidence`: ID `10303869538`, digest `sha256:a97e88a04ddfe595d5c25d4443af815ae0efcfb5845fcfc01fe5127243593c05`.
-
-### Prova de boot/persistência
-
-O Bootable media gerou um QCOW2 de 10 GiB virtual / ~2,22 GiB ocupado, inspecionou-o como `qcow2` compat 1.1 e inicializou **o mesmo disco duas vezes** com o QEMU 10.2.2 empacotado na própria imagem StorOS.
-
-Foram emitidos:
-
+- libvirt 12.0.0 e QEMU 10.2.2;
+- mesmo QCOW2 inicializado duas vezes;
 - `STOROS_BOOT_OK`;
 - `STOROS_PERSISTENCE_OK`;
-- `STOROS_WEB_PERSISTENCE_OK`.
+- `STOROS_WEB_PERSISTENCE_OK`;
+- QCOW2 SHA-256 `5af00fe1802072a080f3ce2cfa94d2d62312d037ecebbe67132f4fecdd8a8998`;
+- `storos-boot-evidence` ID `10305392144`, digest `sha256:eaa1e78cda0ba7103e87f1e1d6d31bbd7dbf74d330358f9e74df6f2cba70fba2`;
+- `storos-qcow2` ID `10305182438`, digest `sha256:0a9c20020afca1054788eff4de88f8301cc65928a6c132e3c1b437c172b29996`.
 
-Detalhes comprovados pelos logs do artefato:
+Isso encerra o VM-003B sem promover QCOW2 a mídia de instalação e sem autorizar escrita no hipervisor.
 
-- primeiro boot: `boot_count=1`, `boot_id=ab79f354-8f8b-49dd-9ed7-588810f59a49`;
-- segundo boot: `boot_count=2`, `boot_id=d1308e55-474c-479d-8e55-22c363ffa31f`;
-- `config_generation=1` nos dois boots;
-- `config_sha256=4a820303e19f686b0da10bea78bd5cdabc39a8a07be935e6540a801d0958d936` nos dois boots;
-- `token_sha256=100e08e84180765bc9695d5c4d3a342a52d4759271da0a14406f265f4a546d2d` nos dois boots;
-- agente e painel autenticado ficaram prontos nos dois boots.
+## VM-004A — preflight fail-closed
 
-Artefatos finais:
+Objetivo: materializar a fronteira de segurança imediatamente anterior a um futuro executor, ainda sem qualquer capacidade de executar.
 
-- QCOW2 SHA-256 `7e1466e575254dfd8c40c7eff3dec5f683e24a43385fd36709f15a68922ff44c`;
-- `storos-boot-evidence` ID `10304634825`, digest `sha256:d4bb72db8d61c5e100c13b697e697db39263fd078f5c963b14591f610ed8bbd8`;
-- `storos-qcow2` ID `10304931834`, digest do artefato `sha256:20d06f112745fd9982c6382501eb5751691f77d3859e930bfe6e7afe9c410184`.
+A decisão/contrato está em [docs/VM_PREFLIGHT.md](docs/VM_PREFLIGHT.md).
 
-## Contrato fechado no VM-003B
+### Fingerprints estáveis
 
-### Compatibilidade v1/v2
+Foi identificado que o `snapshot_sha256` histórico do plano inclui campos derivados por `read_snapshot()`, como `age_seconds` e `stale`. Esse hash é preservado para auditoria e compatibilidade, mas não é usado sozinho como precondição futura.
 
-`storos_vm.py` aceita schema 1 e schema 2 sem migrar silenciosamente documentos antigos.
+O novo `storos_fingerprints.py` define:
 
-- Schema 1 mantém exatamente UUID, nome, estado, vCPU e RAM fixa.
-- Validar v1 não acrescenta `hardware`; hashes históricos continuam válidos.
-- Schema 2 acrescenta um bloco `hardware` para novas intenções.
-- O store pode manter revisões v1 e v2 na mesma linha do tempo.
-- Rollback de v2 para revisão v1 cria nova geração v1 preservando o conteúdo/hash da intenção alvo.
+- `snapshot_fingerprint_version=1`;
+- fingerprint semântico de snapshot que exclui apenas timestamps/frescor derivados e normaliza ordem de VMs/erros;
+- `plan_fingerprint_version=1`;
+- fingerprint semântico do plano que ignora o hash/idade legados do snapshot e mantém intenção, ações, warnings, status e fingerprint estável do snapshot.
 
-### Hardware gerenciado pelo schema 2
+### Ledger schema 3
 
-- firmware opcional por abstração `bios|efi`, sem caminhos OVMF do host;
-- discos por target, buses `virtio|sata|scsi`, fonte local `file|block`, formato `raw|qcow2`, readonly e ordem de boot opcional;
-- interfaces por MAC, fontes `network|bridge` e modelo explícito;
-- targets/MACs duplicados são rejeitados;
-- listas são normalizadas deterministicamente;
-- listas representam **subconjuntos gerenciados**: hardware observado extra não gera detach automático.
+Novas tarefas `vm_reconcile` passam a schema 3 com:
 
-O planner v2 descreve apenas ações não executáveis `set_firmware_mode`, `attach_disk`, `reconfigure_disk`, `attach_interface` e `reconfigure_interface`, além de bloqueios `inspect_hardware`, `inspect_firmware`, `inspect_disk` e `inspect_interface`.
+- geração/hash da intenção;
+- `snapshot_sha256` legado;
+- versão/hash semântico do snapshot;
+- versão/hash semântico do plano.
 
-Se `hardware.status!=ok`, firmware estiver `unknown` ou a identidade observada for insuficiente, o planner falha fechado e não presume alteração.
+Tarefas schema 2 continuam legíveis para histórico/API, mas o preflight as bloqueia como `legacy_task_preconditions`.
 
-### Secure Boot
+A validação do ledger também endurece coerência de status, ações, sequência, `blocked`, `reason` e warnings sem permitir ação executável.
 
-`loader secure='yes'` não é tratado como estado ativo de Secure Boot. O observador só produz `secure_boot=true|false` quando existe `firmware/feature name='secure-boot' enabled='yes|no'` explícito; caso contrário retorna `null`. O teste dedicado `test_loader_secure_is_capability_not_secure_boot_state` passou na suíte final.
+### Preflight
 
-Secure Boot, enrolled keys, NVRAM gerenciado, hotplug, passthrough, SR-IOV, mediated devices e GPU continuam fora da intenção VM-003B.
+Novo `storos_preflight.py`:
+
+- recebe somente tarefa persistida validada;
+- deriva locks de VM/recurso;
+- adquire locks em ordem determinística;
+- relê tarefa, intenção, snapshot fresco e configuração **sob lock**;
+- recalcula plano e fingerprints;
+- detecta drift de geração/hash, snapshot e plano;
+- rejeita snapshot stale;
+- rejeita ação bloqueada/desconhecida;
+- persiste auditoria em `/var/lib/storos/preflight`;
+- nunca chama `virsh` ou adaptador mutável.
+
+Locks são representados por chaves como `vm:<uuid>`, firmware, target de disco e MAC de interface; o nome físico do lock é SHA-256 da chave e o arquivo usa modo `0600`.
+
+### Bloqueios deliberados
+
+Mesmo com tarefa e estado perfeitamente consistentes, VM-004A exige e registra:
+
+- `feature_gate_enabled=false`;
+- `authorization_granted=false`;
+- `mutating_backend_available=false`.
+
+Consequentemente todo resultado possui:
+
+- `status=blocked`;
+- `can_execute=false`;
+- `executed=false`.
+
+A configuração ainda rejeita `features.vm_write_enabled=true`, portanto o lote não cria caminho oculto para aplicação.
+
+### CLI e imagem
+
+Novos comandos locais:
+
+- `storosctl vm-preflight --task-id <uuid>`;
+- `storosctl preflight-list`;
+- `storosctl preflight-show --preflight-id <uuid>`.
+
+O smoke da imagem passa a exigir os módulos de fingerprints/preflight e executa um preflight real sobre a tarefa dry-run criada no próprio smoke, exigindo exatamente os três bloqueios deliberados acima.
+
+## Cobertura adicionada
+
+O lote adiciona testes para:
+
+- fingerprint estável apesar de timestamps/idade e ordem de VMs;
+- fingerprint mudando quando o estado observado muda;
+- ledger schema 3;
+- leitura backward-compatible de tarefa schema 2;
+- detecção de fingerprint de plano adulterado;
+- preflight consistente ainda bloqueado pelos três requisitos de segurança;
+- drift de intenção;
+- drift semântico de snapshot;
+- snapshot stale;
+- ação desconhecida;
+- tentativa de tornar ação executável;
+- schema 2 inelegível para preflight;
+- fluxo CLI de criação da tarefa e preflight;
+- painel continuando apenas a expor tarefas não executáveis.
 
 ## Segurança preservada
 
-- Agente/libvirt continuam somente leitura.
-- Nenhum endpoint web ganhou autoridade de escrita.
-- Nenhum executor foi adicionado.
-- Nenhuma chamada mutável ao libvirt foi adicionada.
-- `features.vm_write_enabled=true` continua rejeitado.
-- Planos continuam `mode=dry_run`, `can_apply=false`; tarefas e ações continuam `executable=false`.
-- Não existe detach automático de hardware não gerenciado.
-- QCOW2 é artefato de laboratório, não release de instalação.
+- `features.vm_write_enabled=false`.
+- Sem executor/worker mutável.
+- Sem `virsh define/start/shutdown/setvcpus/setmem` no preflight.
+- Sem endpoint web de preflight ou aplicação.
+- Sem autorização de escrita.
+- Sem detach automático.
+- Sem Secure Boot/NVRAM gerenciado.
+- Sem passthrough, SR-IOV, mediated devices ou GPU.
+- Sem boot físico USB.
+- QCOW2 continua laboratório interno.
 
-## Limitações atuais
+## Validação pendente deste lote
 
-- Sem criação/start/stop/import real de VM pelo control plane StorOS.
-- Sem política dinâmica aplicada de CPU/RAM.
-- Sem TLS integrado e sem RBAC/múltiplos usuários.
-- Nenhum boot físico por USB foi executado.
-- QEMU/TCG de CI é prova funcional, não benchmark.
-- Nenhum teste físico de GPU compartilhada foi realizado.
-- Passthrough/GPU continuam dependentes de laboratório físico e matriz de suporte.
+Este texto descreve a implementação publicada, **não afirma sucesso remoto antecipado**. O VM-004A só poderá ser fechado após:
 
-## Próxima tarefa concreta — VM-004A
+1. Project continuity verde;
+2. Host agent/suíte integral verde;
+3. Development image verde com o novo smoke;
+4. Bootable media verde com o mesmo QCOW2 em dois boots;
+5. comparação do changelog confirmando histórico somente aditivo.
 
-Antes de habilitar qualquer escrita real, criar a **fronteira de preflight de execução** separada do planner e do futuro executor.
+Qualquer falha deve ser corrigida na causa; não reduzir os critérios.
 
-1. Receber somente tarefa persistida `vm_reconcile` já validada pelo ledger.
-2. Relê-la junto com intenção atual, geração/hash e snapshot fresco imediatamente antes de qualquer decisão.
-3. Revalidar `intent_generation`, `intent_sha256`, `snapshot_sha256`, UUID e estado do plano.
-4. Exigir explicitamente feature gate de escrita, autorização e backend/capacidade suportados; no VM-004A o gate continuará `false`, portanto o resultado deve ser bloqueado.
-5. Modelar lock de execução por VM/recurso e resultado auditável de preflight, sem chamar `virsh define/start/shutdown` ou equivalente.
-6. Cobrir drift, tarefa adulterada, snapshot stale, intenção atualizada, ação desconhecida e tentativa executável indevida.
-7. Manter painel somente leitura e `features.vm_write_enabled=false` até uma etapa de escrita explicitamente separada.
+## Próxima tarefa após VM-004A
 
-VM-004A é fundação de segurança para a futura passagem `JOBS → COMPUTE`; **não é ainda o executor real**.
+Somente depois do fechamento remoto do preflight, desenhar uma etapa separada de autorização/capacidade/adaptador para futura aplicação. Não habilitar escrita real automaticamente e não mesclar o PR #2 sem instrução explícita.
 
 ## Continuidade
 
-- O head funcional fechado do VM-003B é `a8e0e9895efd24e4814c87297feefb34e5d123bb`.
-- O head documental de fechamento deve passar continuidade/testes/imagem/boot antes de iniciar VM-004A.
-- `CHANGELOG.md` deve permanecer somente aditivo; não reescrever entradas antigas.
+- Obedecer `AGENTS.md`.
+- `CHANGELOG.md` permanece somente aditivo.
+- Toda publicação altera `CHANGELOG.md` + `PROJECT_STATE.md` no mesmo commit/lote.
 - A entrega final continua orientada a mídia física/pendrive em etapa posterior.
-- Danilo autorizou continuar sem pular etapas. Não pedir nova autorização para seguir o roadmap.
-- Obedecer `AGENTS.md` em toda publicação.
 - **Não mesclar o PR #2 sem instrução explícita.**

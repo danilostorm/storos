@@ -23,6 +23,14 @@ from storos_config import (
     read_config,
     rollback_config,
 )
+from storos_fingerprints import decorate_plan_fingerprints
+from storos_preflight import (
+    PREFLIGHT_ROOT,
+    PreflightError,
+    list_preflights,
+    read_preflight,
+    run_vm_preflight,
+)
 from storos_tasks import TASK_ROOT, TaskError, create_dry_run_task, list_tasks, read_task
 from storos_vm import VMError, plan_vm
 from storos_vm_store import (
@@ -41,6 +49,7 @@ LOCAL_COMMANDS = {
     'web-token-init', 'web-token-show', 'web-marker',
     'vm-intent-apply', 'vm-intent-show', 'vm-intent-history', 'vm-intent-list',
     'vm-intent-rollback', 'vm-plan', 'vm-reconcile-dry-run', 'task-list', 'task-show',
+    'vm-preflight', 'preflight-list', 'preflight-show',
 }
 
 
@@ -134,6 +143,8 @@ def main(argv=None):
     parser.add_argument('--snapshot', default=SNAPSHOT)
     parser.add_argument('--task-root', default=str(TASK_ROOT))
     parser.add_argument('--task-id')
+    parser.add_argument('--preflight-root', default=str(PREFLIGHT_ROOT))
+    parser.add_argument('--preflight-id')
     args = parser.parse_args(argv)
 
     try:
@@ -203,11 +214,17 @@ def main(argv=None):
                 parser.error('vm-reconcile-dry-run usa intenção persistida; remova --intent-file')
             record = read_vm_intent(args.vm_uuid, args.intent_root)
             snapshot = read_snapshot(args.snapshot, max_age=30)
-            plan = plan_vm(record['intent'], snapshot)
+            plan = decorate_plan_fingerprints(plan_vm(record['intent'], snapshot), snapshot)
             if plan['intent_sha256'] != record['intent_sha256']:
                 raise VMIntentStoreError('Hash do plano diverge da intenção persistida')
             preconditions = intent_preconditions(record)
-            preconditions['snapshot_sha256'] = plan['snapshot_sha256']
+            preconditions.update({
+                'snapshot_sha256': plan['snapshot_sha256'],
+                'snapshot_fingerprint_version': plan['snapshot_fingerprint_version'],
+                'snapshot_fingerprint_sha256': plan['snapshot_fingerprint_sha256'],
+                'plan_fingerprint_version': plan['plan_fingerprint_version'],
+                'plan_fingerprint_sha256': plan['plan_fingerprint_sha256'],
+            })
             _json(create_dry_run_task(plan, preconditions, args.task_root))
             return 0
         if args.command == 'task-list':
@@ -218,7 +235,27 @@ def main(argv=None):
                 parser.error('task-show exige --task-id')
             _json(read_task(args.task_id, args.task_root))
             return 0
-    except (ConfigError, VMError, VMIntentStoreError, TaskError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        if args.command == 'vm-preflight':
+            if not args.task_id:
+                parser.error('vm-preflight exige --task-id')
+            _json(run_vm_preflight(
+                args.task_id,
+                task_root=args.task_root,
+                intent_root=args.intent_root,
+                snapshot_path=args.snapshot,
+                config_root=args.config_root,
+                preflight_root=args.preflight_root,
+            ))
+            return 0
+        if args.command == 'preflight-list':
+            _json(list_preflights(args.preflight_root))
+            return 0
+        if args.command == 'preflight-show':
+            if not args.preflight_id:
+                parser.error('preflight-show exige --preflight-id')
+            _json(read_preflight(args.preflight_id, args.preflight_root))
+            return 0
+    except (ConfigError, VMError, VMIntentStoreError, TaskError, PreflightError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         print(json.dumps({'error': 'storos_command_error', 'message': str(exc)}, ensure_ascii=True))
         return 2
     return 2

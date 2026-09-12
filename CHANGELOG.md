@@ -2,6 +2,19 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-004A — Preflight fail-closed sem executor
+
+- **Motivo:** criar a fronteira verificável imediatamente anterior a um futuro `JOBS → COMPUTE` mutável sem antecipar autorização, feature gate habilitável ou backend de escrita.
+- **Fingerprints:** novo `storos_fingerprints.py` preserva o `snapshot_sha256` histórico e adiciona fingerprints semânticos versionados para snapshot/plano. Campos apenas temporais/derivados de frescor deixam de causar drift falso, enquanto mudança observada continua alterando a precondição estável.
+- **Ledger:** novas tarefas `vm_reconcile` passam ao schema 3 com geração/hash de intenção, hash legado do snapshot, fingerprint estável do snapshot e fingerprint do plano. Schema 2 continua legível para histórico/API, mas é inelegível ao preflight por não conter as novas precondições.
+- **Preflight:** novo `storos_preflight.py` adquire locks determinísticos por VM/recurso, relê tarefa/intenção/snapshot/configuração sob lock, recalcula plano/fingerprints, detecta drift/stale/ação desconhecida e grava auditoria em `/var/lib/storos/preflight`.
+- **Bloqueio obrigatório:** mesmo sem drift, todo preflight desta etapa registra `feature_gate_enabled=false`, `authorization_granted=false` e `mutating_backend_available=false`, resultando sempre em `status=blocked`, `can_execute=false` e `executed=false`.
+- **CLI/imagem:** adicionados `vm-preflight`, `preflight-list` e `preflight-show`; o smoke da imagem passa a executar o preflight e exigir os três bloqueios deliberados. `features.vm_write_enabled=true` continua rejeitado.
+- **Testes:** cobertura adicionada para estabilidade dos fingerprints, ledger schema 2→3, drift de intenção/snapshot/plano, snapshot stale, ação desconhecida, tentativa executável, auditoria/locks, fluxo CLI e painel read-only.
+- **Arquitetura:** [docs/VM_PREFLIGHT.md](docs/VM_PREFLIGHT.md) registra a decisão. Não há `virsh` mutável, executor, endpoint web de aplicação, GPU, passthrough ou boot físico USB neste lote.
+- **Validação:** publicação deste lote deve passar Project continuity, suíte integral, Development image e Bootable media antes de VM-004A ser considerado fechado; esta entrada não antecipa sucesso remoto.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base documental fechada `874db3cb783bc4c18e9ca0c42f46963d06480f86`.
+
 ## 2026-09-12 — VM-003B2 — Fechamento remoto da intenção hardware v2
 
 - **Resultado:** VM-003B está concluído funcionalmente no head `a8e0e9895efd24e4814c87297feefb34e5d123bb`. Project continuity `34715892296`, Host agent `34715892293`, Development image `34715892321` e Bootable media `34715892313` ficaram verdes; a suíte remota executou **63/63 testes**.

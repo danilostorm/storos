@@ -12,6 +12,7 @@ from http.server import ThreadingHTTPServer
 
 from storos_cli import main as cli_main
 from storos_config import apply_settings, basic_auth_value, ensure_admin_token, init_config, read_config
+from storos_fingerprints import decorate_plan_fingerprints
 from storos_tasks import create_dry_run_task, list_tasks
 from storos_vm import plan_vm
 from storos_vm_store import apply_vm_intent, intent_preconditions, read_vm_intent
@@ -48,15 +49,18 @@ class WebPanelTests(unittest.TestCase):
             expected_generation=0,
             reason='web-test',
         )
-        self.plan = plan_vm(self.intent, self.snapshot_document)
-        self.task = create_dry_run_task(
-            self.plan,
-            {
-                **intent_preconditions(self.intent_record),
-                'snapshot_sha256': self.plan['snapshot_sha256'],
-            },
-            self.task_root,
+        self.plan = decorate_plan_fingerprints(
+            plan_vm(self.intent, self.snapshot_document), self.snapshot_document
         )
+        preconditions = {
+            **intent_preconditions(self.intent_record),
+            'snapshot_sha256': self.plan['snapshot_sha256'],
+            'snapshot_fingerprint_version': self.plan['snapshot_fingerprint_version'],
+            'snapshot_fingerprint_sha256': self.plan['snapshot_fingerprint_sha256'],
+            'plan_fingerprint_version': self.plan['plan_fingerprint_version'],
+            'plan_fingerprint_sha256': self.plan['plan_fingerprint_sha256'],
+        }
+        self.task = create_dry_run_task(self.plan, preconditions, self.task_root)
         handler = make_handler(
             self.config_root,
             self.snapshot,
@@ -124,6 +128,7 @@ class WebPanelTests(unittest.TestCase):
         with self._request(f'/api/tasks/{self.task["task_id"]}') as response:
             task = json.load(response)
         self.assertEqual(task['task_id'], self.task['task_id'])
+        self.assertEqual(task['schema_version'], 3)
         self.assertEqual(task['mode'], 'dry_run')
         self.assertFalse(task['executable'])
         self.assertFalse(task['plan']['can_apply'])

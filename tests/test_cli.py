@@ -47,11 +47,14 @@ class CLITests(unittest.TestCase):
             self.assertFalse(result['can_apply'])
             self.assertTrue(all(a['executable'] is False for a in result['actions']))
 
-    def test_persisted_intent_reconcile_records_preconditioned_task(self):
+    def test_persisted_intent_reconcile_and_preflight_remain_non_executable(self):
         with tempfile.TemporaryDirectory() as tmp:
             intent, snapshot = self.fixtures(tmp)
             intents = Path(tmp) / 'intents'
             tasks = Path(tmp) / 'tasks'
+            config = Path(tmp) / 'config'
+            preflights = Path(tmp) / 'preflights'
+
             code, stored = self.call([
                 'vm-intent-apply', '--intent-file', str(intent),
                 '--intent-root', str(intents), '--expected-generation', '0',
@@ -72,11 +75,45 @@ class CLITests(unittest.TestCase):
                 '--task-root', str(tasks),
             ])
             self.assertEqual(code, 0)
+            self.assertEqual(result['schema_version'], 3)
             self.assertFalse(result['executable'])
             self.assertEqual(result['preconditions']['intent_generation'], 1)
             self.assertEqual(result['preconditions']['intent_sha256'], stored['intent_sha256'])
             self.assertEqual(result['preconditions']['snapshot_sha256'], result['plan']['snapshot_sha256'])
+            self.assertEqual(
+                result['preconditions']['snapshot_fingerprint_sha256'],
+                result['plan']['snapshot_fingerprint_sha256'],
+            )
+            self.assertEqual(
+                result['preconditions']['plan_fingerprint_sha256'],
+                result['plan']['plan_fingerprint_sha256'],
+            )
             self.assertTrue((tasks / f"{result['task_id']}.json").exists())
+
+            code, _ = self.call(['config-init', '--config-root', str(config)])
+            self.assertEqual(code, 0)
+            code, checked = self.call([
+                'vm-preflight', '--task-id', result['task_id'],
+                '--task-root', str(tasks), '--intent-root', str(intents),
+                '--snapshot', str(snapshot), '--config-root', str(config),
+                '--preflight-root', str(preflights),
+            ])
+            self.assertEqual(code, 0)
+            self.assertFalse(checked['can_execute'])
+            self.assertFalse(checked['executed'])
+            codes = {item['code'] for item in checked['blockers']}
+            self.assertEqual(codes, {
+                'feature_gate_disabled',
+                'authorization_unavailable',
+                'mutating_backend_unavailable',
+            })
+
+            code, shown = self.call([
+                'preflight-show', '--preflight-id', checked['preflight_id'],
+                '--preflight-root', str(preflights),
+            ])
+            self.assertEqual(code, 0)
+            self.assertEqual(shown, checked)
 
 
 if __name__ == '__main__':
