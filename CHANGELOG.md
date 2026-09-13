@@ -2,6 +2,19 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-004B — Contrato de execução deny-only
+
+- **Motivo:** formalizar a futura fronteira `JOBS → COMPUTE` depois do fechamento do VM-004A, sem pular diretamente de preflight para um executor libvirt real. O identificador VM-004B passa a nomear esta subtarefa arquitetural a partir deste registro.
+- **Contrato:** novo `storos_execution_contract.py` define catálogo fechado das 11 ações mutáveis já conhecidas pelo planner/preflight, com escopo do recurso, classe de operação, verificação esperada e classificação de compensação. Ações de inspeção/bloqueio e tipos desconhecidos não entram no adaptador futuro.
+- **Tipagem:** o contrato valida a forma atual dos payloads de criação, rename, vCPU, RAM, lifecycle, firmware, discos e interfaces. A ação ainda precisa chegar como `executable=false` e `blocked=false`; formato inválido ou tentativa de ação desconhecida falha fechada.
+- **Backend/autorização:** o único backend desta etapa é `disabled/none`, com `mutating_available=false` e todas as ações `supported=false`. A decisão de autorização recebe identidade, ação e UUID, mas sempre retorna `granted=false`, `reason_code=authorization_unavailable` e nenhum scope.
+- **Resultado:** VM-004B só aceita `status=not_attempted`, `executed=false`, `applied=false` e `observed_after_apply=null`; resultado forjado como aplicado/executado é rejeitado.
+- **Imagem/testes:** o Containerfile inclui o novo módulo e executa uma prova deny-only no build. Antes da publicação, **7/7 testes isolados** do novo contrato passaram; a suíte também compara o catálogo com `SUPPORTED_ACTION_TYPES` do preflight.
+- **Arquitetura:** [docs/VM_EXECUTION_CONTRACT.md](docs/VM_EXECUTION_CONTRACT.md) registra o contrato, invariantes e critérios. Não foi criado comando apply/execute, worker, endpoint mutável ou adaptador libvirt de escrita.
+- **Segurança:** `features.vm_write_enabled=false` permanece obrigatório; os três bloqueios deliberados do VM-004A continuam ativos. O token administrativo atual não vira autorização de escrita.
+- **Validação:** esta publicação deve repetir Project continuity, suíte integral, Development image e Bootable media antes de VM-004B ser tratado como validado remotamente; esta entrada não antecipa sucesso do CI.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base fechada `c247ff6ea636e0c8394cf37b7390fcd6f4d30ca0`.
+
 ## 2026-09-12 — VM-004A2 — Fechamento remoto do preflight fail-closed
 
 - **Resultado:** VM-004A está fechado funcionalmente no head `66e4d9341a5ca9a9ff57f12d3a5612188d77ecb4`. Project continuity `34722963474`, Host agent `34722963483`, Development image `34722963475` e Bootable media `34722963476` ficaram verdes; a suíte remota executou **74/74 testes**.
