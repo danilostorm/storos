@@ -1,92 +1,89 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **12/09/2026**, lote **VM-004B em publicação/validação**. Responsável pelas decisões: Danilo.
+Atualizado em **12/09/2026**, lote **VM-004C em publicação/validação**. Responsável pelas decisões: Danilo.
 
 ## Onde está o trabalho
 
 - Repositório: `danilostorm/storos`.
 - Branch: `phase0/gpu-feasibility`, PR #2 aberto e **não autorizado para merge**.
-- VM-002, WEB-VM-001, VM-003A e VM-003B permanecem fechados.
-- **VM-004A está fechado funcional e documentalmente.**
-- Head documental fechado VM-004A: `c247ff6ea636e0c8394cf37b7390fcd6f4d30ca0`.
-- VM-004B formaliza o contrato futuro `JOBS → COMPUTE` em modo **deny-only/contract-only**.
+- VM-002, WEB-VM-001, VM-003A, VM-003B e VM-004A permanecem fechados.
+- **VM-004B está validado remotamente** no head `27d233d1f6f115928219e5974cbfe0ac898ea13a`.
+- VM-004C adiciona somente admission simulada/deny-only; não adiciona execução real.
 - `features.vm_write_enabled=false` permanece obrigatório.
-- Não existe executor, worker mutável, endpoint web de aplicação, autorização de escrita ou backend libvirt mutável.
+- Não existe executor, worker mutável, endpoint web de aplicação, autorização real de escrita ou backend libvirt mutável.
 - Fase 0 continua aberta para laboratório físico/GPU.
 
-## VM-004A — fechamento formal confirmado
+## VM-004B — fechamento remoto
 
-O head documental `c247ff6ea636e0c8394cf37b7390fcd6f4d30ca0` repetiu os gates após registrar o fechamento:
+Head validado: `27d233d1f6f115928219e5974cbfe0ac898ea13a`.
 
-- Project continuity `34727613164`: verde;
-- Host agent `34727613165`, job `103644447734`: **74/74 testes**;
-- Development image `34727613151`, job `103644447808`: verde;
-- Bootable media `34727613159`, job `103644447779`: verde.
+Quatro gates de push ficaram verdes:
 
-Evidências dessa rodada documental:
+- Project continuity `34730616504`, job `103652600134`;
+- Host agent `34730616508`, job `103652600220`: **81/81 testes**;
+- Development image `34730616538`, job `103652600407`;
+- Bootable media `34730616503`, job `103652600394`.
 
-- `image-evidence` ID `10307924863`, digest `sha256:9037319da169b2af9e057acb565e186cb7c95fac3d14aaa851a0ec50f775af52`;
-- QCOW2 SHA-256 `5c3f04c7cba8263bac06dbfe861f43d310aad2123d634c36021e163375740543`;
-- `storos-boot-evidence` ID `10308806410`, digest `sha256:cc57a0072cf4b9bb241b614216fb0fa7bb3ed9d831d8cec9bbf3fed3c5835694`;
-- `storos-qcow2` ID `10308127235`, digest `sha256:e889474434bff18d4ab386f9cb11a04da8dda1890c60e2525860d6a13af4be4c`.
+Evidências:
 
-O mesmo QCOW2 foi inicializado duas vezes e o gate emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`. Nenhum outro commit de “fechamento do fechamento” é necessário.
+- `image-evidence` ID `10308434031`, digest `sha256:f0714c001145d3c44034da0d9596f365a12b37fd7d6f9d8ae316781372656952`;
+- QCOW2 SHA-256 `d834399388ec5da20d67150efe64832db1e992a85c3868edefb72cf6f1e50372`;
+- `storos-boot-evidence` ID `10308459678`, digest `sha256:5e4ca31e806c350a1e7fc857bc80a393fb68dac12f632c147c802781483eb377`;
+- `storos-qcow2` ID `10309940637`, digest `sha256:6555a48c2cb2fe5fa3d2e6bffd3e53c2c58088c27a4ca24c4f4be1a303b7697e`.
 
-## VM-004B — contrato de execução deny-only
+O mesmo QCOW2 inicializou duas vezes, avançou `boot_count=1 → 2`, preservou `config_generation=1` e os fingerprints da configuração/token, e emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`.
 
-A nova decisão arquitetural está em `docs/VM_EXECUTION_CONTRACT.md`.
+## VM-004C — admission simulada deny-only
+
+A decisão arquitetural está em `docs/VM_EXECUTION_ADMISSION.md`.
 
 ### Objetivo
 
-Definir a forma futura do adaptador de escrita e da autorização antes de criar qualquer executor real. Esta etapa não concede autoridade nova; ela torna explícito o que uma etapa posterior precisará implementar e verificar.
+Conectar uma tarefa persistida a um preflight fresco, ao contrato tipado VM-004B, a uma identidade apenas alegada e às capacidades deny-only do backend, produzindo uma decisão auditável que continua incapaz de executar qualquer ação.
 
-### Contrato implementado
+### Implementação preparada
 
-Novo `src/storos_execution_contract.py`:
+Novo `src/storos_execution_admission.py`:
 
-- catálogo fechado das 11 ações não bloqueantes já descritas pelo planner/preflight;
-- metadados por ação: escopo do recurso, classe de operação, verificação esperada e classificação de compensação;
-- validação tipada dos payloads atuais de criação, rename, vCPU, RAM, lifecycle, firmware, discos e interfaces;
-- rejeição de ação desconhecida, ação marcada bloqueada ou ação que tente chegar ao contrato com `executable=true`;
-- capacidades do backend fixadas em `backend_id=disabled`, `backend_kind=none`, `mutating_available=false` e `supported=false` para todas as ações;
-- decisão de autorização com identidade explícita, UUID e ação, mas sempre `granted=false`, `reason_code=authorization_unavailable` e `scopes=[]`;
-- resultado desta etapa restrito a `status=not_attempted`, `executed=false`, `applied=false` e `observed_after_apply=null`; resultado forjado como aplicado deve ser rejeitado.
+- lê a tarefa e executa um novo preflight;
+- relê a tarefa depois do preflight;
+- exige tarefa schema 3 `planned`, `dry_run`, `executable=false`;
+- exige plano `changes_planned`, `dry_run`, `can_apply=false`;
+- vincula tarefa/preflight por `task_id`, `vm_uuid` e `plan_fingerprint_sha256`;
+- exige os três blockers deliberados do estágio atual;
+- valida cada ação pelo contrato VM-004B;
+- consulta autorização deny-all e backend `disabled/none`;
+- usa `DenyOnlySimulationAdapter`, sem método `apply`;
+- gera por ação somente `not_attempted`, `executed=false`, `applied=false`;
+- grava admission `status=denied`, `can_execute=false`, `executed=false` em `/var/lib/storos/execution-admissions` com modos `0750/0640` e escrita atômica/fsync;
+- marca `claimed_identity` explicitamente como `identity_authenticated=false`.
 
-O catálogo do contrato é comparado em teste com `SUPPORTED_ACTION_TYPES` do preflight para impedir divergência silenciosa entre as duas fronteiras.
+### Verificação local
 
-### Integração na imagem
+A suíte isolada do VM-004C passou **8/8 testes**, cobrindo:
 
-O `Containerfile` passa a copiar o módulo e executa uma prova deny-only durante o build:
+- admission válida somente como denial/non-execution;
+- inexistência do método `apply`;
+- mismatch tarefa/preflight;
+- drift do fingerprint do plano;
+- ação desconhecida;
+- tentativa de forjar identidade autenticada;
+- persistência privada do registro;
+- descarte de registro corrompido na listagem.
 
-- contrato não executável e sem worker;
-- feature gate não pode habilitar escrita pela camada de contrato;
-- backend mutável indisponível e todas as ações sem suporte real;
-- autorização de exemplo negada.
-
-O `image/check-image.sh` existente continua provando que intenção/planner/tarefas/preflight permanecem dry-run/bloqueados; não foi criado comando `apply`, `execute` ou endpoint mutável.
-
-## Verificação antes da publicação
-
-Teste isolado do novo módulo executado localmente: **7/7 testes verdes**, cobrindo catálogo, payloads tipados, ação desconhecida, ação bloqueada/malformada, backend deny-only, autorização deny-all e impossibilidade de forjar resultado aplicado.
-
-A publicação deste lote ainda precisa repetir no head final:
-
-1. Project continuity;
-2. suíte integral do Host agent;
-3. Development image com a prova deny-only do Containerfile;
-4. Bootable media com dois boots do mesmo QCOW2.
-
-Nenhum resultado remoto é antecipado neste registro.
+O lote ainda precisa repetir os quatro gates remotos no head publicado antes de VM-004C ser considerado fechado.
 
 ## Segurança preservada
 
-- `features.vm_write_enabled=false` continua obrigatório e o validador de configuração ainda rejeita `true`.
-- Preflight VM-004A continua com `feature_gate_enabled=false`, `authorization_granted=false` e `mutating_backend_available=false`.
+- `features.vm_write_enabled=false` continua obrigatório e `true` continua rejeitado.
+- Preflight continua fail-closed.
+- VM-004C não autentica identidades e não concede scopes.
+- Token administrativo do painel não vira autorização de escrita.
+- Adaptador simulado não possui `apply`.
 - Sem executor/worker.
 - Sem shell arbitrário.
-- Sem `virsh define/start/shutdown/setvcpus/setmem` ou equivalente mutável.
+- Sem chamada mutável a `virsh`/libvirt.
 - Sem endpoint web mutável.
-- Token administrativo do painel não é promovido a autorização de escrita.
 - Sem remoção automática de hardware não gerenciado.
 - Sem gerenciamento de Secure Boot/NVRAM.
 - Sem passthrough, SR-IOV, mediated devices ou GPU.
@@ -95,25 +92,27 @@ Nenhum resultado remoto é antecipado neste registro.
 
 ## Limitações atuais
 
-- O control plane StorOS ainda não cria/inicia/para/importa VMs de verdade.
-- Não existe política dinâmica aplicada de CPU/RAM.
-- Sem RBAC/scopes reais para escrita.
-- Sem TLS integrado.
+- O control plane ainda não cria/inicia/para/importa VMs de verdade.
+- Não existe identidade/autorização real para aplicação.
+- Não existe backend mutável nem política dinâmica aplicada de CPU/RAM.
+- Sem TLS integrado/RBAC de escrita.
 - Nenhum boot físico em pendrive foi executado.
 - QEMU/TCG de CI é prova funcional, não benchmark.
 - Nenhuma GPU foi homologada para compartilhamento simultâneo.
 
 ## Próxima tarefa concreta
 
-Primeiro, obter os quatro gates verdes do VM-004B sem enfraquecer os testes. Só depois desenhar a etapa seguinte que conectará **preflight + decisão de autorização + declaração de capacidades** a um adaptador ainda simulado, mantendo mutação real desabilitada até autorização e validação próprias.
+Primeiro, obter Project continuity, Host agent, Development image e Bootable media verdes no head VM-004C.
 
-Qualquer backend libvirt real, worker ou habilitação de `features.vm_write_enabled` permanece uma etapa separada e não está autorizada por este lote.
+Depois disso, desenhar uma etapa separada para **identidade/autorização real e negociação de capacidades ainda sem mutação**, preservando preflight/locks/fingerprints e exigindo nova validação antes de qualquer executor. Um estágio de aplicação real deverá readquirir locks e relevar estado fresco; nenhum registro VM-004C poderá ser reutilizado como autorização de execução.
+
+Backend libvirt mutável, worker e habilitação de `features.vm_write_enabled` continuam fora do VM-004C e exigirão etapa própria e autorização explícita antes de uso real.
 
 ## Continuidade
 
 - Obedecer `AGENTS.md`.
 - `CHANGELOG.md` permanece somente aditivo.
 - Toda publicação altera `CHANGELOG.md` e `PROJECT_STATE.md` no mesmo lote.
-- Mudança arquitetural VM-004B está documentada em `docs/VM_EXECUTION_CONTRACT.md`.
+- Mudança arquitetural VM-004C está documentada em `docs/VM_EXECUTION_ADMISSION.md`.
 - A entrega final continua orientada a mídia física/pendrive em etapa posterior.
 - **Não mesclar o PR #2 sem instrução explícita.**

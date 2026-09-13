@@ -2,6 +2,22 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-004C — Admission simulada deny-only
+
+- **Base fechada:** VM-004B foi validado remotamente no head `27d233d1f6f115928219e5974cbfe0ac898ea13a`: Project continuity `34730616504`, Host agent `34730616508` (**81/81 testes**), Development image `34730616538` e Bootable media `34730616503` ficaram verdes.
+- **Evidência VM-004B:** `image-evidence` ID `10308434031`, digest `sha256:f0714c001145d3c44034da0d9596f365a12b37fd7d6f9d8ae316781372656952`; QCOW2 SHA-256 `d834399388ec5da20d67150efe64832db1e992a85c3868edefb72cf6f1e50372`; `storos-boot-evidence` ID `10308459678`, digest `sha256:5e4ca31e806c350a1e7fc857bc80a393fb68dac12f632c147c802781483eb377`; `storos-qcow2` ID `10309940637`, digest `sha256:6555a48c2cb2fe5fa3d2e6bffd3e53c2c58088c27a4ca24c4f4be1a303b7697e`.
+- **Motivo:** conectar preflight + contrato tipado + identidade declarada + capacidades de backend em uma fronteira auditável sem antecipar executor, autorização real ou mutação libvirt.
+- **Admission:** novo `storos_execution_admission.py` executa preflight fresco, relê a tarefa e exige schema 3 `planned`/`dry_run`/`executable=false`, plano `changes_planned`/`can_apply=false` e os três bloqueios deliberados da etapa atual.
+- **Vínculo anti-drift:** tarefa e preflight precisam concordar em `task_id`, `vm_uuid` e `plan_fingerprint_sha256`; divergência falha fechada antes de produzir registro válido.
+- **Identidade:** `claimed_identity` é somente metadado de auditoria; todo registro grava `identity_authenticated=false`. O token administrativo do painel não é promovido a identidade/scopes de escrita.
+- **Adaptador:** `DenyOnlySimulationAdapter` declara `mutating_available=false` e `apply_method_available=false`, não possui método `apply` e produz somente resultados `not_attempted`, `executed=false`, `applied=false`.
+- **Auditoria:** admissions são persistidas em `/var/lib/storos/execution-admissions` com diretório `0750`, arquivo `0640`, escrita atômica e `fsync`; cada decisão continua `status=denied`, `can_execute=false`, `executed=false`.
+- **Testes locais:** **8/8 testes** do VM-004C passaram, cobrindo denial/non-execution, ausência de `apply`, mismatch tarefa/preflight, drift de fingerprint, ação desconhecida, identidade forjada, persistência privada e registro corrompido.
+- **Arquitetura:** [docs/VM_EXECUTION_ADMISSION.md](docs/VM_EXECUTION_ADMISSION.md) registra que os locks do preflight não autorizam replay: uma futura aplicação deverá readquirir locks e reler estado/autorização/capacidades imediatamente antes de qualquer mutação.
+- **Segurança:** `features.vm_write_enabled=false` permanece obrigatório; sem worker, shell arbitrário, endpoint web mutável ou chamada libvirt de escrita.
+- **Validação:** o head final deste lote deve repetir Project continuity, suíte integral, Development image e Bootable media antes de VM-004C ser tratado como fechado remotamente; esta entrada não antecipa sucesso do CI.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), base validada `27d233d1f6f115928219e5974cbfe0ac898ea13a`.
+
 ## 2026-09-12 — VM-004B — Contrato de execução deny-only
 
 - **Motivo:** formalizar a futura fronteira `JOBS → COMPUTE` depois do fechamento do VM-004A, sem pular diretamente de preflight para um executor libvirt real. O identificador VM-004B passa a nomear esta subtarefa arquitetural a partir deste registro.
