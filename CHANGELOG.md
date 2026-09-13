@@ -2,6 +2,18 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-12 — VM-004A2 — Fechamento remoto do preflight fail-closed
+
+- **Resultado:** VM-004A está fechado funcionalmente no head `66e4d9341a5ca9a9ff57f12d3a5612188d77ecb4`. Project continuity `34722963474`, Host agent `34722963483`, Development image `34722963475` e Bootable media `34722963476` ficaram verdes; a suíte remota executou **74/74 testes**.
+- **Preflight:** tarefas schema 3, fingerprints semânticos, locks por VM/recurso, releitura sob lock, detecção de drift/stale e auditoria persistente foram validados mantendo todo resultado `blocked`, `can_execute=false` e `executed=false`.
+- **Imagem:** o smoke da imagem confirmou que schemas de intenção 1/2 permanecem dry-run e que o VM-004A continua bloqueado/não executável. `image-evidence` ID `10306154568`, digest `sha256:c9c99c39edd0dcb624bd466b8d7d8b71f6e4522c83e41acc7973e05f3ab8598f`.
+- **Prova de boot:** o Bootable media inicializou o mesmo QCOW2 duas vezes com QEMU 10.2.2 e emitiu `STOROS_BOOT_OK`, `STOROS_PERSISTENCE_OK` e `STOROS_WEB_PERSISTENCE_OK`.
+- **Artefatos:** QCOW2 SHA-256 `f8bbb35ab5feb333d4bc544da5081d1c74cd3e0ceff2cbd267eee35a63e2862e`; `storos-boot-evidence` ID `10307126883`, digest `sha256:caab500492f2426172a295e1c63294d13603a8ed401c19cd331d96fb5c1240bc`; `storos-qcow2` ID `10306997232`, digest `sha256:b9ef5d46f174977025cef4a272aa00470a0c0ee16447b7fad129a757a4cf4825`.
+- **Segurança preservada:** `features.vm_write_enabled=false`; autorização de escrita e backend mutável continuam indisponíveis; não existe executor, worker mutável, endpoint web de aplicação ou chamada libvirt de escrita.
+- **Limites:** o fechamento comprova consistência do preflight, auditoria e persistência virtual em CI. Não comprova criação/start/stop real de VM pelo control plane, boot físico USB, passthrough ou GPU compartilhada.
+- **Próximo passo:** definir o contrato do adaptador de escrita e da autorização da Fase 1, mantendo qualquer capacidade mutável explicitamente desabilitada até uma etapa posterior aprovada e validada.
+- **Referência:** [PR #2](https://github.com/danilostorm/storos/pull/2), head funcional validado `66e4d9341a5ca9a9ff57f12d3a5612188d77ecb4`.
+
 ## 2026-09-12 — VM-004A1 — Correção do harness de preflight
 
 - **Evidência:** no head `f3f1b1a5983019214cf5ebca32cbee6492d8d0a1`, Project continuity `34720322042` ficou verde; Host agent `34720322040`, job `103624880382`, falhou antes de executar `PreflightTests` por conflito com o runner do `unittest`.
