@@ -2,6 +2,14 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-13 — VM-004D
+
+- **Mudou:** adicionada a nova camada local de decisão do VM-004D, com testes e documentação correspondentes.
+- **Verificação local:** **13/13** testes específicos e **102/102** testes integrais passaram.
+- **Limites:** esta etapa não realiza mudanças reais em VMs.
+- **Validação:** fechamento depende dos quatro gates remotos no head publicado.
+- **Referência:** PR #2, base `ca168a5c63a2be9925b7468a18599167ecb7c508`.
+
 ## 2026-09-12 — VM-004C — Admission simulada deny-only
 
 - **Base fechada:** VM-004B foi validado remotamente no head `27d233d1f6f115928219e5974cbfe0ac898ea13a`: Project continuity `34730616504`, Host agent `34730616508` (**81/81 testes**), Development image `34730616538` e Bootable media `34730616503` ficaram verdes.

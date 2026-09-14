@@ -122,3 +122,13 @@ Secure Boot, enrolled keys, regeneração de NVRAM, detach automático, pinning/
 ## Fronteira para escrita futura
 
 A futura passagem de `JOBS` para `COMPUTE` será uma camada separada. Antes de existir escrita real, ela deverá validar, no mínimo: autenticação/autorização, feature gate explícito, lock por VM e recurso, geração/hash esperado, capacidade do host, snapshot fresco, releitura imediatamente anterior à mutação, timeout, resultado observado e auditoria persistente. Nenhum desses requisitos deve ser inferido como concluído apenas porque VM-002 persiste intenção e precondições ou porque VM-003B descreve hardware em dry-run.
+
+## VM-004D — autoridade local e negociação deny-only
+
+A etapa [VM-004D](VM_EXECUTION_AUTHORITY.md) separa identidade, autorização e capacidade real do backend antes de qualquer executor. O caminho persistente autentica o principal local pelo UID/GID observado pelo sistema operacional e consulta uma política versionada com scopes por ação e seletores de VM.
+
+O token administrativo do painel web permanece independente e não vira credencial de execução. Uma política pode conceder uma ação a um principal autenticado, mas essa concessão não é suficiente para executar: o provider de capacidades continua `mutating_available=false`, não possui método `apply` e marca todas as ações como inelegíveis.
+
+O registro final do VM-004D continua `status=denied`, `can_execute=false` e `executed=false`, preservando `features.vm_write_enabled=false`. O preflight VM-004A continua bloqueado e não é reescrito; registros anteriores de preflight/admission/authority nunca são tickets reutilizáveis para uma futura mutação.
+
+Qualquer aplicação real futura deverá readquirir locks, reler estado persistido e observado, reautenticar/reautorizar o chamador e renegociar capacidades imediatamente antes da mutação. Backend libvirt mutável, worker/executor e endpoint de escrita permanecem fora deste estágio e dependem de autorização explícita posterior.
