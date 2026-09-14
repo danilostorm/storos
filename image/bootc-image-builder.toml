@@ -1,0 +1,2 @@
+[customizations.kernel]
+append = "console=tty0 console=ttyS0,115200n8 systemd.show_status=yes systemd.status_unit_format=name"

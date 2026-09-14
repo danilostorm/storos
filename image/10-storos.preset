@@ -1,0 +1,2 @@
+enable storos-agent.service
+enable storos-web.service

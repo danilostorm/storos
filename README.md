@@ -2,9 +2,9 @@
 
 **Virtualização com CPU, RAM e GPU compartilhadas entre máquinas virtuais.**
 
-Projeto em planejamento para várias VMs usarem o hardware do mesmo servidor simultaneamente. NAS, Docker e catálogo de apps são complementares. A base está aberta: MOS não é obrigatório.
+Projeto em desenvolvimento inicial para várias VMs usarem o hardware do mesmo servidor simultaneamente. NAS, Docker e catálogo de apps são complementares. Fedora/uCore HCI é a base do protótipo; a homologação ainda depende de testes.
 
-**Estado: roadmap revisão 2, de 11/09/2026.** A mudança de foco e as regras de continuidade foram solicitadas por Danilo. Não existe ISO, sistema implementado ou GPU homologada.
+**Estado: Fase 0 em andamento; primeiro build da composição da imagem aprovado no CI.** Ainda não há mídia de boot pronta, painel StorOS ou GPU homologada.
 
 ## Para continuar o projeto
 
@@ -14,6 +14,8 @@ Projeto em planejamento para várias VMs usarem o hardware do mesmo servidor sim
 4. Revise [ROADMAP.md](ROADMAP.md) e [aprovações](docs/APROVACAO.md).
 
 Outros documentos: [arquitetura](docs/ARQUITETURA.md), [referências](docs/REFERENCIAS.md) e [PR #1](https://github.com/danilostorm/storos/pull/1).
+
+Pesquisa inicial: [triagem GPU e bases](docs/FASE0_GPU.md), [protocolo de laboratório](docs/FASE0_LAB.md) e coletor de inventário. Testes físicos pendentes.
 
 ## Prioridades
 
@@ -29,3 +31,11 @@ Outros documentos: [arquitetura](docs/ARQUITETURA.md), [referências](docs/REFER
 Passthrough exclusivo é uma opção auxiliar, não a entrega do requisito de GPU compartilhada. RTX 3080 Ti/RX 550 citadas por Danilo são candidatas a investigação, sem suporte comprovado.
 
 Toda atualização publicada deve atualizar changelog e estado do projeto, com mudanças, verificações, pendências e próximos passos.
+
+## Desenvolvimento iniciado
+
+Base do protótipo: **Fedora/uCore HCI**. [Decisão, build e limitações](docs/BASE_FEDORA.md). A entrega pretendida é preparar a mídia, dar boot e configurar pelo navegador; [ISO não é requisito](docs/BOOT_MEDIA.md).
+
+O primeiro build passou; veja [versões e evidências](docs/BUILD_EVIDENCE.md). O próximo marco é inicializar a imagem em uma VM descartável.
+
+O [agente do host](docs/AGENT.md) é o primeiro componente funcional: inventário, descoberta de VMs por UUID, serviço periódico e interface `storosctl`. A integração é testada no CI; boot e VMs reais continuam pendentes.

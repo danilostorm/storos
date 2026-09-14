@@ -1,45 +1,52 @@
 # Estado do projeto — ponto de retomada
 
-Atualizado em **11/09/2026**, atualização **DOC-002**. Responsável pelas decisões: Danilo.
+Atualizado em **13/09/2026**. Lote atual: **VM-004D preparado para publicação/validação**.
 
 ## Onde está o trabalho
 
-- Repositório: danilostorm/storos.
-- Branch de trabalho: proposal/storos-roadmap.
-- Revisão: [PR #1](https://github.com/danilostorm/storos/pull/1), proposta não mesclada no momento deste registro.
-- Base anterior desta atualização: 689871f2d6df26f8c78b4e72a26491de9ffc2588. Consulte o head atual do PR antes de editar.
-- Fase atual: planejamento; roadmap revisão 2. Ainda não existe implementação, ISO ou laboratório homologado.
+- Repositório: `danilostorm/storos`.
+- Branch: `phase0/gpu-feasibility`; PR #2 aberto e **não autorizado para merge**.
+- Base do lote: `ca168a5c63a2be9925b7468a18599167ecb7c508`.
+- VM-004C está fechado remotamente.
+- VM-004D adiciona uma nova fronteira local de decisão, ainda deny-only.
+- `features.vm_write_enabled=false` permanece obrigatório.
+- Fase 0 segue aberta para laboratório físico/GPU.
 
-## Decisões confirmadas
+## Evidência da base
 
-Danilo liberou a escolha de outra base operacional e definiu prioridade em VMs com CPU/RAM/GPU compartilhadas, especialmente GPU simultânea. Docker e outros complementos não são o foco. Solicitou atualização do roadmap e changelog obrigatório para continuidade.
+VM-004C no head `ca168a5c...`: Project continuity `34760366989`; Host agent `34760367022` com **89/89 testes**; Development image `34760367038`; Bootable media `34760367055`.
 
-A revisão documental está autorizada. A Fase 0 permanece proposta para aprovação de execução. Não há base/driver escolhidos, GPU comprovada, licença final do código novo ou prazo fechado.
+QCOW2 SHA-256: `a03311a1718e4c73315f62a7aed69efb559c66a2a37dd06ff186c38c6e262cfc`. O mesmo disco iniciou duas vezes e emitiu os marcadores de boot e persistência esperados.
 
-## Concluído nesta atualização
+## VM-004D
 
-- Roadmap e arquitetura reposicionados para viabilidade GPU antes da escolha da base.
-- Critérios distinguem GPU simultânea de passthrough exclusivo e de acesso remoto.
-- Instruções AGENTS, changelog, este estado e verificação automática de continuidade adicionados.
-- Referências históricas preservadas e prioridades alinhadas.
+Detalhes: `docs/VM_EXECUTION_AUTHORITY.md` e `docs/ARQUITETURA.md`.
 
-## Verificação e limitações
+- Novo módulo `src/storos_execution_authority.py`.
+- Novo conjunto de testes `tests/test_execution_authority.py`.
+- `Containerfile` inclui o módulo e smoke deny-only.
+- Nenhuma ação de VM é executada por esta etapa.
 
-- Links relativos Markdown e coerência documental verificados localmente.
-- Verificador exercitado com mudança válida e com ausência de changelog, que deve falhar.
-- Consultar o resultado real de Actions no PR; o check de continuidade não certifica hardware ou sistema.
-- Nenhum teste físico, benchmark, build de distribuição ou alteração no servidor foi executado.
-- Nenhuma credencial/acesso ao host StorOS está configurada aqui. RTX 3080 Ti/RX 550 são placas citadas, não homologadas.
-- Não há proteção de branch confirmada para tornar o check obrigatório ao merge.
+## Verificação local
+
+- **13/13** testes específicos passaram.
+- **102/102** testes da suíte integral passaram.
+- Verificador de continuidade passou no commit candidato local.
+- `git diff --check` não encontrou erros.
+
+## Limitações
+
+- Recursos de execução permanecem fora deste lote.
+- CPU/RAM dinâmicas e GPU compartilhada continuam pendentes de etapas posteriores.
+- QEMU/TCG de CI não substitui teste físico.
 
 ## Próxima tarefa concreta
 
-1. Conferir PR/head e eventual nova orientação/aprovação de Danilo; não assumir aprovação por causa deste arquivo.
-2. Quando autorizada a Fase 0, começar por STOR-009: matriz de suporte GPU/driver/guest/hipervisor/licença com fontes oficiais por versão/modelo.
-3. Separar resultados documentados de resultados testados. Identificar equipamento disponível e propor laboratório descartável antes de modificar hosts.
-4. Comparar bases em STOR-010 e preparar protocolo de duas VMs em STOR-011. Não escolher MOS automaticamente nem repetir a arquitetura NAS da revisão 1.
-5. Encerrar a pesquisa com relatório go/no-go, alternativas/custos e estimativas revistas; atualizar changelog e estado.
+Publicar o lote sobre `ca168a5c...`, confirmar o diff base→candidato e obter Project continuity, Host agent, Development image e Bootable media verdes no head exato.
 
-## Para uma nova IA
+## Continuidade
 
-Leia AGENTS.md primeiro. O README de main pode conter só a inicialização enquanto o PR está aberto; use a branch de trabalho acima. A memória do chat pode chamar este projeto de plugin Unraid, mas isso não descreve o StorOS: o Guardian era um projeto MOS separado e é somente referência técnica. Consulte o Git antes de refazer trabalho ou anunciar progresso.
+- Obedecer `AGENTS.md`.
+- `CHANGELOG.md` permanece somente aditivo.
+- Toda publicação altera `CHANGELOG.md` e `PROJECT_STATE.md` no mesmo lote.
+- **Não mesclar o PR #2 sem instrução explícita.**

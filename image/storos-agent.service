@@ -1,0 +1,34 @@
+[Unit]
+Description=StorOS read-only host and VM observer
+Wants=virtqemud.socket
+After=network.target virtqemud.socket
+
+[Service]
+Type=simple
+StateDirectory=storos
+StateDirectoryMode=0750
+ExecStartPre=/usr/bin/storosctl boot-record
+ExecStart=/usr/bin/storosctl daemon
+ExecStartPost=/usr/bin/storosctl boot-marker
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+RuntimeDirectory=storos
+RuntimeDirectoryMode=0750
+UMask=0027
+User=root
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+PrivateTmp=yes
+ReadWritePaths=/run/storos /var/lib/storos
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

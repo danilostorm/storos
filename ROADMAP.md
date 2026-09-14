@@ -1,6 +1,6 @@
 # Roadmap StorOS — revisão 2
 
-**11/09/2026.** Responsável pelo produto: Danilo. Estado: planejamento. Substitui a revisão 1 centrada em NAS/MOS, preservada no histórico Git.
+**11/09/2026.** Responsável pelo produto: Danilo. Estado: revisão 2 aprovada; pesquisa da Fase 0 em andamento. Substitui a revisão 1 centrada em NAS/MOS, preservada no histórico Git.
 
 ## Direção confirmada
 
@@ -10,7 +10,7 @@ Compartilhar RAM significa redistribuir memória física disponível entre guest
 
 ## GPU antes da escolha do sistema
 
-A Fase 0 verifica combinações de GPU, driver, hipervisor e guest. Não existe arquitetura escolhida nem promessa de suporte à RTX 3080 Ti/RX 550.
+A Fase 0 verifica combinações de GPU, driver, hipervisor e guest. Fedora/uCore HCI é a base de desenvolvimento autorizada; não há promessa de suporte à RTX 3080 Ti/RX 550. Veja [decisão](docs/BASE_FEDORA.md).
 
 Candidatos a comparar: MOS/Devuan, Debian/Linux com KVM/libvirt, Proxmox e alternativa Windows/Hyper-V para estudo de viabilidade. Essa lista não afirma suporte ao hardware do usuário. Uma alternativa proprietária não será apresentada como distribuição totalmente aberta nem adotada sem decisão explícita.
 
@@ -37,11 +37,13 @@ Streaming ou computação não comprovam, isoladamente, adequação a dois deskt
 
 ## Fases propostas
 
-Todas as fases de implementação estão pendentes. As estimativas da revisão 1 foram retiradas: a GPU pode mudar arquitetura, equipe e esforço.
+Entrega do sistema: [mídia de boot pronta](docs/BOOT_MEDIA.md), com configuração pelo navegador. Não usar “ISO instalável” como requisito de conclusão. A imagem OCI de desenvolvimento ainda precisa ser empacotada e testada para esse fluxo.
+
+A composição da imagem de desenvolvimento foi iniciada na Fase 0; as entregas funcionais seguintes continuam pendentes. As estimativas da revisão 1 foram retiradas: a GPU pode mudar arquitetura, equipe e esforço.
 
 | Fase | Prioridade | Entrega | Dependência / saída |
 | --- | --- | --- | --- |
-| 0 — Viabilidade | P0 | GPU simultânea, laboratório CPU/RAM, comparação de bases/licenças | Aprovação para executar pesquisa/testes; decisão de plataforma |
+| 0 — Viabilidade | P0 | GPU simultânea, laboratório CPU/RAM, comparação de bases/licenças | Pesquisa autorizada e iniciada; laboratório e decisão de plataforma pendentes |
 | 1 — Compute mínimo | P0 | VMs, estado persistente, tarefas, autenticação e painel | Base escolhida e reconstruível |
 | 2 — CPU/RAM automáticas | P0 | Mínimos/máximos, prioridades, admissão e reserva do host | Fase 1; métricas confiáveis |
 | 3 — GPU compartilhada | P0 | Integrar a combinação validada para várias VMs | Prova física na 0; gestão nas 1–2 |
@@ -55,6 +57,8 @@ Pesquisa CPU/RAM pode acompanhar a investigação GPU. Isso não autoriza desenv
 
 ### Fase 0 — Viabilidade e escolha
 
+Progresso: [triagem documental](docs/FASE0_GPU.md) iniciada e [protocolo de laboratório](docs/FASE0_LAB.md) preparado. Sem testes físicos; fase ainda aberta.
+
 - Inventariar equipamento disponível e montar guests/discos descartáveis.
 - Investigar primeiro as placas do Danilo; suporte a outro modelo não comprova suporte à placa dele.
 - Levantar documentação oficial e testar combinações acessíveis. Ausência de equipamento não é resultado negativo.
@@ -66,6 +70,8 @@ Pesquisa CPU/RAM pode acompanhar a investigação GPU. Isso não autoriza desenv
 Aceite: matriz com evidências, instruções reproduzíveis, decisão arquitetural e go/no-go de Danilo. MOS é candidato, não requisito.
 
 ### Fase 1 — Compute mínimo
+
+Primeiro incremento iniciado: [agente de inventário e descoberta](docs/AGENT.md), em paralelo às validações pendentes da Fase 0. CLI e coleta local implementadas; criação/alteração de VMs, autenticação web e políticas persistentes continuam pendentes.
 
 Entregar criar/iniciar/parar/importar VMs, descoberta por UUID, API tipada, workers sem shell arbitrário, configuração transacional, tarefas com progresso, autenticação/permissões e auditoria. Preparar backup de configuração desde o início.
 
@@ -126,4 +132,4 @@ STOR-001–008 permanecem no histórico da revisão 1 e precisam ser reclassific
 
 Toda atualização publicada mantém [CHANGELOG.md](CHANGELOG.md) e [PROJECT_STATE.md](PROJECT_STATE.md), conforme [AGENTS.md](AGENTS.md). Registrar fatos, testes, falhas, bloqueios e próxima tarefa. Pesquisa não equivale a implementação.
 
-Danilo autorizou esta revisão e a regra de continuidade. Execução da Fase 0 e alterações de servidor seguem [APROVACAO.md](docs/APROVACAO.md).
+Danilo aprovou esta revisão e o início da Fase 0 com “Ta aprovado.” em 11/09/2026. Escopo e limites de execução seguem [APROVACAO.md](docs/APROVACAO.md).

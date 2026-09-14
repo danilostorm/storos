@@ -1,0 +1,257 @@
+name: Bootable media
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase0/gpu-feasibility]
+    paths:
+      - Containerfile
+      - bin/**
+      - image/**
+      - scripts/**
+      - src/**
+      - tests/**
+      - .github/workflows/boot-media.yml
+  pull_request:
+    paths:
+      - Containerfile
+      - bin/**
+      - image/**
+      - scripts/**
+      - src/**
+      - tests/**
+      - .github/workflows/boot-media.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: boot-media-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qcow2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install image and VM tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman qemu-utils ovmf
+
+      - name: Start ephemeral local registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/storos-registry"
+          docker run --detach --rm --name storos-registry --publish 5000:5000 --volume "$RUNNER_TEMP/storos-registry:/var/lib/registry" registry:2
+
+      - name: Prepare build variables
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "STOROS_IMAGE=localhost:5000/storos-ci:boot-${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "BIB_CHOWN=$(id -u):$(id -g)" >> "$GITHUB_ENV"
+          echo "QCOW2=$GITHUB_WORKSPACE/output/qcow2/disk.qcow2" >> "$GITHUB_ENV"
+
+      - name: Build and stage bootc image
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_ref=$(sed -n 's/^ARG BASE_IMAGE=//p' Containerfile)
+          test -n "$base_ref"
+          docker pull "$base_ref"
+          docker build --file Containerfile --build-arg "BASE_IMAGE=$base_ref" --build-arg "STOROS_REVISION=$GITHUB_SHA" --tag "$STOROS_IMAGE" .
+          docker run --rm --network none "$STOROS_IMAGE" bootc container lint
+          docker run --rm --network none --entrypoint bash "$STOROS_IMAGE" /usr/libexec/storos/check-image.sh
+          docker run --rm --network none --entrypoint /usr/sbin/qemu-system-x86_64 "$STOROS_IMAGE" --version
+          docker push "$STOROS_IMAGE"
+
+      - name: Prepare rootful Podman storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /var/lib/containers/storage
+          sudo mkdir -p /etc/containers
+          cat <<'EOF' | sudo tee /etc/containers/storage.conf >/dev/null
+          [storage]
+          driver = "overlay"
+          runroot = "/run/containers/storage"
+          graphroot = "/var/lib/containers/storage"
+          EOF
+          sudo podman pull quay.io/centos-bootc/bootc-image-builder:latest
+          sudo podman pull --tls-verify=false "$STOROS_IMAGE"
+
+      - name: Build StorOS QCOW2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          sudo podman run --rm --privileged \
+            --security-opt label=type:unconfined_t \
+            --volume /var/lib/containers/storage:/var/lib/containers/storage \
+            --volume "$GITHUB_WORKSPACE/output:/output" \
+            --volume "$GITHUB_WORKSPACE/image/bootc-image-builder.toml:/config.toml:ro" \
+            quay.io/centos-bootc/bootc-image-builder:latest \
+            --output /output --chown "$BIB_CHOWN" --rootfs xfs --type qcow2 "$STOROS_IMAGE"
+
+      - name: Inspect QCOW2
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$QCOW2"
+          qemu-img info "$QCOW2"
+          sha256sum "$QCOW2" | tee storos-qcow2.sha256
+
+      - name: Boot same QCOW2 twice and prove panel persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          firmware_code=""
+          firmware_vars=""
+          for pair in \
+            "/usr/share/OVMF/OVMF_CODE_4M.fd:/usr/share/OVMF/OVMF_VARS_4M.fd" \
+            "/usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd"; do
+            code=${pair%%:*}
+            vars=${pair#*:}
+            if [[ -r "$code" && -r "$vars" ]]; then
+              firmware_code="$code"
+              firmware_vars="$vars"
+              break
+            fi
+          done
+          test -n "$firmware_code"
+          test -n "$firmware_vars"
+
+          : > boot-first.log
+          : > boot-second.log
+          finalize_logs() {
+            cat boot-first.log boot-second.log > boot-console.log || true
+          }
+          trap finalize_logs EXIT
+
+          boot_guest() {
+            local boot=$1
+            local max_wait=$2
+            local log="boot-${boot}.log"
+            local vars_copy="$RUNNER_TEMP/storos-OVMF_VARS-${boot}.fd"
+            local container_name="storos-qemu-${GITHUB_RUN_ID}-${boot}"
+            cp --dereference "$firmware_vars" "$vars_copy"
+            chmod u+w "$vars_copy"
+
+            # The Ubuntu runner QEMU 8.2.2 reproduced a pre-StorOS systemd
+            # generator failure under TCG. Run the QEMU shipped in the built
+            # StorOS image instead so the boot probe uses the hypervisor binary
+            # we actually package. This remains a correctness probe, not a
+            # performance benchmark, and does not assume nested KVM.
+            docker run --rm --name "$container_name" --network none \
+              --volume "$QCOW2:/vm/disk.qcow2" \
+              --volume "$firmware_code:/vm/OVMF_CODE.fd:ro" \
+              --volume "$vars_copy:/vm/OVMF_VARS.fd" \
+              --entrypoint /usr/sbin/qemu-system-x86_64 "$STOROS_IMAGE" \
+                -machine q35,accel=tcg -cpu max -smp 2 -m 2048 \
+                -drive 'if=pflash,format=raw,unit=0,readonly=on,file=/vm/OVMF_CODE.fd' \
+                -drive 'if=pflash,format=raw,unit=1,file=/vm/OVMF_VARS.fd' \
+                -drive 'file=/vm/disk.qcow2,format=qcow2,if=virtio' \
+                -display none -monitor none -serial stdio -no-reboot > "$log" 2>&1 &
+            local qemu_pid=$!
+            local deadline=$((SECONDS + max_wait))
+            local ready=0
+            local web_ready=0
+            local agent_ready=0
+            local guest_fatal=0
+
+            stop_guest() {
+              docker stop --time 2 "$container_name" >/dev/null 2>&1 || true
+              wait "$qemu_pid" 2>/dev/null || true
+            }
+
+            while kill -0 "$qemu_pid" 2>/dev/null; do
+              if grep -q 'STOROS_WEB_READY auth=ok ' "$log"; then
+                web_ready=1
+              fi
+              if grep -q 'STOROS_AGENT_READY snapshot=written ' "$log"; then
+                agent_ready=1
+              fi
+              if [[ "$web_ready" -eq 1 && "$agent_ready" -eq 1 ]]; then
+                ready=1
+                break
+              fi
+              if grep -q 'Failed to fork off sandboxing environment for executing generators: Protocol error' "$log" && \
+                 grep -q 'Failed to start up manager\.' "$log"; then
+                guest_fatal=1
+                break
+              fi
+              if (( SECONDS >= deadline )); then
+                break
+              fi
+              sleep 2
+            done
+
+            if [[ "$ready" -ne 1 ]]; then
+              echo "StorOS web+agent readiness markers not both reached during ${boot} boot within ${max_wait}s (web=${web_ready}, agent=${agent_ready}, guest_fatal=${guest_fatal})" >&2
+              if [[ "$guest_fatal" -eq 1 ]]; then
+                echo 'Guest systemd failed before StorOS services; CI will not classify this as an agent/web timeout.' >&2
+              fi
+              stop_guest
+              tail -n 250 "$log" || true
+              return 1
+            fi
+
+            sleep 2
+            stop_guest
+          }
+
+          # TCG first boot applies more one-time system work than subsequent boots.
+          boot_guest first 420
+          boot_guest second 300
+          finalize_logs
+          trap - EXIT
+
+          grep -q 'STOROS_BOOT_STATE boot_count=1 ' boot-first.log
+          grep -q 'STOROS_AGENT_READY snapshot=written boot_count=1' boot-first.log
+          grep -q 'STOROS_WEB_READY auth=ok config_generation=1 ' boot-first.log
+          grep -q 'STOROS_BOOT_STATE boot_count=2 ' boot-second.log
+          grep -q 'STOROS_AGENT_READY snapshot=written boot_count=2' boot-second.log
+          grep -q 'STOROS_WEB_READY auth=ok config_generation=1 ' boot-second.log
+
+          first_config=$(grep -oE 'config_sha256=[0-9a-f]{64}' boot-first.log | tail -n1 | cut -d= -f2)
+          second_config=$(grep -oE 'config_sha256=[0-9a-f]{64}' boot-second.log | tail -n1 | cut -d= -f2)
+          first_token=$(grep -oE 'token_sha256=[0-9a-f]{64}' boot-first.log | tail -n1 | cut -d= -f2)
+          second_token=$(grep -oE 'token_sha256=[0-9a-f]{64}' boot-second.log | tail -n1 | cut -d= -f2)
+          test -n "$first_config"
+          test -n "$first_token"
+          [[ "$first_config" == "$second_config" ]]
+          [[ "$first_token" == "$second_token" ]]
+
+          printf '%s\n' 'STOROS_BOOT_OK: both boots reached the StorOS agent and authenticated web panel' | tee boot-proof.txt
+          printf '%s\n' 'STOROS_PERSISTENCE_OK: boot_count advanced from 1 to 2 on the same QCOW2' | tee persistence-proof.txt
+          printf '%s\n' 'STOROS_WEB_PERSISTENCE_OK: config and admin token fingerprints survived reboot and authenticated /api/config' | tee web-persistence-proof.txt
+
+      - name: Upload boot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storos-boot-evidence
+          path: |
+            storos-qcow2.sha256
+            boot-console.log
+            boot-first.log
+            boot-second.log
+            boot-proof.txt
+            persistence-proof.txt
+            web-persistence-proof.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload bootable StorOS QCOW2
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storos-qcow2
+          path: output/qcow2/disk.qcow2
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7

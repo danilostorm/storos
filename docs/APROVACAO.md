@@ -21,6 +21,16 @@ Esta revisão documental foi autorizada. Isso não comprova viabilidade nem auto
 | Prazo | Reestimar após viabilidade; estimativa antiga retirada |
 | Produção | Fora dos testes iniciais; laboratório descartável |
 
-O [PR #1](https://github.com/danilostorm/storos/pull/1) permanece para revisão. A resposta **“Aprovo a revisão 2 e o início da Fase 0”** registra autorização de execução. Registrar futuras aprovações no estado do projeto; não inferir homologação pela existência dos documentos.
+## Aprovação registrada em 11/09/2026
+
+Danilo respondeu **“Ta aprovado.”** à revisão 2. Essa aprovação autoriza integrar o roadmap e iniciar a Fase 0, sem exigir outra frase específica.
+
+O [PR #1](https://github.com/danilostorm/storos/pull/1) foi mesclado em main no commit `3746474390e96175278ea39bd9b8bf1982d4bb25`. Pesquisa documental e preparação do laboratório começaram. Base final, go/no-go e homologação dependem das evidências da Fase 0.
+
+Não foram autorizadas migração de produção, alterações de firmware/drivers ou modificações no servidor atual. O laboratório físico ainda precisa ser identificado. Documentação não comprova funcionamento do hardware.
 
 Documentos: [roadmap](../ROADMAP.md), [arquitetura](ARQUITETURA.md), [referências](REFERENCIAS.md), [estado](../PROJECT_STATE.md), [changelog](../CHANGELOG.md).
+
+## Base de desenvolvimento autorizada
+
+Em 11/09/2026, Danilo respondeu **“Fecho pode começar”** à proposta Fedora/uCore. Autorizados protótipo da imagem, código e CI; decisão técnica detalhada em [BASE_FEDORA.md](BASE_FEDORA.md). Isso não autoriza instalar no servidor atual nem homologa GPU.
