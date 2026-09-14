@@ -2,6 +2,14 @@
 
 Histórico de atualizações do projeto. Documentação tem identificadores próprios; não representa versões funcionais do sistema.
 
+## 2026-09-13 — VM-004D
+
+- **Mudou:** adicionada a nova camada local de decisão do VM-004D, com testes e documentação correspondentes.
+- **Verificação local:** **13/13** testes específicos e **102/102** testes integrais passaram.
+- **Limites:** esta etapa não realiza mudanças reais em VMs.
+- **Validação:** fechamento depende dos quatro gates remotos no head publicado.
+- **Referência:** PR #2, base `ca168a5c63a2be9925b7468a18599167ecb7c508`.
+
 ## 2026-09-12 — VM-004C — Admission simulada deny-only
 
 - **Base fechada:** VM-004B foi validado remotamente no head `27d233d1f6f115928219e5974cbfe0ac898ea13a`: Project continuity `34730616504`, Host agent `34730616508` (**81/81 testes**), Development image `34730616538` e Bootable media `34730616503` ficaram verdes.
@@ -265,7 +273,7 @@ Histórico de atualizações do projeto. Documentação tem identificadores pró
 - **Motivo:** após BOOT-002A comprovar dois boots no mesmo QCOW2 com persistência `boot_count=1 → 2`, iniciar a Fase 1 de configuração persistente e a fundação do painel web sem conceder escrita prematura ao libvirt.
 - **Mudou:** novo store em `/var/lib/storos/config` com geração monotônica, histórico por revisão, lock local, validação completa, `expected_generation` para concorrência otimista e rollback que cria nova geração. `storosctl` passa a rotear comandos de configuração/token sem retirar os comandos do agente. Novo `storos-web.service` entrega `/healthz`, painel HTML, `/api/status` e `/api/config`, exige autenticação para dados administrativos e recusa métodos mutáveis. O listener padrão é `127.0.0.1:8080`; exposição sem TLS fora do loopback exige opt-in explícito. `features.vm_write_enabled=true` é rejeitado nesta fase.
 - **Segurança:** token administrativo aleatório persiste em `/var/lib/storos/auth/admin.token` com modo `0600`; o service roda sem capabilities, com filesystem protegido e somente `/var/lib/storos` gravável. Nenhum token é embutido na imagem ou documentação.
-- **Verificação local:** testes do store e painel passaram, incluindo apply/rollback 1→2→3, conflito de geração, bloqueio de escrita em VM, requisito explícito para LAN sem TLS, persistência/permissão do token, autenticação das APIs e rejeição HTTP 405 para mutações. `check-image.sh` também passa a verificar os módulos, preset, dois services, configuração inicial e modo do token.
+- **Verificação local:** testes do store e painel passaram, incluindo apply/rollback 1→2→3, conflito de geração, bloqueio de escrita em VM, requisito explícito para LAN sem TLS, persistência/permissóo do token, autenticação das APIs e rejeição HTTP 405 para mutações. `check-image.sh` também passa a verificar os módulos, preset, dois services, configuração inicial e modo do token.
 - **Verificação remota:** a primeira execução Host agent `34670864403` no commit `49c563e225c4dcbd72ae5413f1c80789b3c5b10a` executou 21 testes; 20 passaram e 1 falhou por typo no próprio teste (`settings['wec']` em vez de `settings['web']`). O corretivo seguinte deixou Host agent `34671066203` e Project continuity `34671066176` verdes no head `c77c676774fe39c7d3fbfa70caabbfe363f747a5`. Nesse mesmo head, Development image `34671066182` confirmou que os dois services foram habilitados pelo preset, mas o smoke check falhou por um caminho digitado como `/usr/lib/system/storos-web.service` em vez de `/usr/lib/systemd/system/storos-web.service`. O corretivo `ed1d5ff18e3c376cd0aafaf267f134f5c73919df` deixou Host agent, Development image e Project continuity verdes; o Bootable media correspondente é analisado na entrada CFG-001A.
 - **Limites:** painel ainda somente leitura, sem TLS integrado, RBAC, criação/start/stop de VM, política automática de CPU/RAM ou GPU compartilhada. Nenhum boot físico por USB foi executado.
 - **Próximo passo:** validar imagem/boot com `storos-web.service` habilitado, confirmar que config/token sobrevivem ao segundo boot sem expor segredo e então iniciar modelos de configuração de VM + fila/reconciliação ainda com escrita no libvirt bloqueada.
