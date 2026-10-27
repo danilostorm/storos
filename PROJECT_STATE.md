@@ -40,3 +40,10 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 - Todos os seis modelos Compose passaram `docker compose config --quiet`, os testes unitários locais passaram e respostas HTTP do backend validaram os novos endpoints.
 - OCI uCore v0.3 com Docker Engine/Compose presentes e habilitados por systemd. **QCOW2/RAW v0.3 ainda não são considerados homologados até boot/HTTP/Docker/GUI no laboratório.**
 - Próximo ensaio de notebook via balenaEtcher exige imagem sem chave de laboratório, checksum, teste RAW em QEMU e checklist `docs/USB_NOTEBOOK_TEST.md`.
+
+### Validação da imagem v0.3.0 GUI
+- QCOW2 gerado e verificado com `qemu-img check`; boot UEFI na VM `StorOS-BootTest-v030` em `192.168.122.70`.
+- LightDM, Firefox kiosk, Docker, containerd e painel do StorOS ativos; `docker compose version` confirma Compose 5.6.0.
+- Tela VNC capturada. HTTP 200 em `/`, `/apps.js`, `/api/apps/catalog`, `/api/apps/engine`, `/api/apps/hub`, `/api/apps/compose`, `/api/billing/model`, `/api/billing/estimate`.
+- Gateway HTTPS LAN autenticado redirecionado via SSH para a nova VM; acesso sem senha HTTP 401 e POST 405.
+- Screenshot revelou bug de unidade da memória e zram tratado como disco físico. Fonte corrigida após o build; requer nova imagem. A versão v0.3.0 ainda não está homologada para notebook.

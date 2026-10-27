@@ -4,8 +4,8 @@ function formatBytes(value) {
   if (!Number.isFinite(Number(value)) || Number(value) < 0) return "—";
   const n = Number(value);
   if (n === 0) return "0 B";
-  const units = ["B", "KiB", "GiB", "TiB", "PiB"];
-  const idx = Math.min(4, Math.max(0, Math.floor(Math.log(n) / Math.log(1024))));
+  const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+  const idx = Math.min(5, Math.max(0, Math.floor(Math.log(n) / Math.log(1024))));
   return (n / (1024 ** idx)).toFixed(idx ? 1 : 0) + " " + units[idx];
 }
 function showText(id, value) { el(id).textContent = value == null ? "—" : String(value); }
@@ -42,7 +42,7 @@ function renderSystem(status) {
 }
 function renderDisks(result) {
   const target = el("disk-list");
-  const disks = Array.isArray(result.devices) ? result.devices.filter(d => d.type === "disk") : [];
+  const disks = Array.isArray(result.devices) ? result.devices.filter(d => d.type === "disk" && !/^zram/.test(d.name || "")) : [];
   showText("disk-count", disks.length + " discos");
   if (!result.available) return unavailable(target, result.reason);
   if (!disks.length) return unavailable(target, "Nenhum dispositivo visível.");

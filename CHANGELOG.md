@@ -34,3 +34,8 @@
 - Nova seção de custos com perfil CPU/plataforma/RAM/GPU, tarifa de energia, horas e rateio do plano de internet.
 - Imagem GUI estendida para inicialização do Docker Engine/Compose incluído no uCore, sujeita a teste de boot em VM.
 - Dados do ZIEL, credenciais e histórico operacional não foram copiados para o StorOS.
+
+## Correção de interface após ensaio v0.3.0
+- Corrigido formatador de capacidade binária (a versão v0.3.0 exibia MiB/GiB deslocados por uma unidade na GUI, sem afetar valores do backend).
+- Inventário de discos físicos deixa de apresentar zram como disco físico.
+- A imagem v0.3.0 do laboratório ainda possui o bug visual; a correção entrará na próxima imagem compilada.
