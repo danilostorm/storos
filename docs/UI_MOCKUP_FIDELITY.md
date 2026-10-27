@@ -28,3 +28,6 @@ Referência: captura do usuário de 1536 × 1024 pixels, 27/10/2026, com sidebar
 - Prévia web de laboratório: https://192.168.30.10:18444/ — hospedada como processo temporário na VM StorOS-BootTest-v030, sem reconstrução de imagem nem nova VM.
 - Ainda não há equivalência visual garantida pixel por pixel em todas as resoluções e estados de dados; o mockup é referência de design. Precisa revisão visual do usuário.
 - Preview HTTPS não é persistente após reboot do host. A imagem USB v0.3.1 gravável anteriormente NÃO contém esse novo layout; nova build bootc/RAW deve ser feita após aceitação visual e testes.
+
+## Variante USB com layout atualizado
+O Containerfile.ui-v04 deriva da base USB Preview v0.3.1 que já mascara SSH e não injeta administrador. Só acrescenta os arquivos HTML/CSS/JS, imagem de banner e observabilidade atual. O script installer/build-ui-v04.sh recompila a imagem RAW em VM Fedora; **não** grava pendrives nem atualiza a imagem antiga automaticamente.

@@ -1,0 +1,8 @@
+# StorOS v0.4 UI Mockup Preview, derived from the SSH-disabled USB preview.
+# Intended for desktop boot testing only; no privileged web controls.
+FROM localhost/storos:usb-preview
+LABEL org.opencontainers.image.title="StorOS Mockup Preview"
+LABEL org.opencontainers.image.version="0.4.0-ui-preview"
+COPY backend/ /usr/lib/storos/backend/
+COPY web/ /usr/lib/storos/web/
+RUN chmod -R a+rX /usr/lib/storos && ostree container commit
