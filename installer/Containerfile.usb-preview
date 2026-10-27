@@ -1,0 +1,16 @@
+# StorOS v0.3.1 USB notebook preview — safe local GUI, NO built-in SSH user/key.
+# This is a test image, not a production NAS release.
+# Requires local OCI image localhost/storos:v0.3.0 from installer/Containerfile.gui.
+FROM localhost/storos:v0.3.0
+LABEL org.opencontainers.image.title="StorOS USB Preview"
+LABEL org.opencontainers.image.version="0.3.1-usb-preview"
+LABEL org.opencontainers.image.description="UEFI local graphical demo; no remote SSH or privileged web API"
+# Bring in corrected formatting and physical device identification from current Git.
+COPY web/ /usr/lib/storos/web/
+COPY backend/ /usr/lib/storos/backend/
+# Mask SSH server even if inherited from uCore, including socket activation.
+# Do not expose unauthenticated dashboard: localhost-only remains in parent service.
+RUN chmod -R a+rX /usr/lib/storos \
+ && ln -sfn /dev/null /usr/lib/systemd/system/sshd.service \
+ && if test -f /usr/lib/systemd/system/sshd.socket; then ln -sfn /dev/null /usr/lib/systemd/system/sshd.socket; fi \
+ && ostree container commit

@@ -25,3 +25,18 @@
 - Garantir integridade, persistência, atualização/rollback e teste de recuperação.
 
 O balenaEtcher grava a imagem inteira; não é necessário particionar manualmente o USB. Sua compatibilidade de firmware/hardware físico só pode ser afirmada após o teste real.
+
+## StorOS v0.3.1 USB Preview (sem acesso SSH remoto)
+Há uma build de teste separada, feita pela VM Fedora a partir de `installer/Containerfile.usb-preview` e `installer/build-usb-preview.sh`. Essa variante:
+- mantém a GUI local, Docker Compose e os módulos de catálogo e custos;
+- inclui correção das unidades da interface e do filtro de zram;
+- **não injeta usuário, senha ou chave SSH pelo blueprint**;
+- mascara o serviço de SSH, impedindo login remoto por padrão;
+- não fornece ainda assistente de criação de administrador, gerenciamento completo de discos ou instalação de apps com um clique.
+
+O nome planejado do RAW é `StorOS-v0.3.1-USB-Preview.raw`. A imagem de laboratório `StorOS-v0.3.0-USB-LAB.raw.zst` contém autorização SSH específica dos testes e **não deve ser gravada no notebook**.
+
+### Testes de aceitação para esta variante
+Após compilar, confirme checksum, tabela GPT/EFI, boot UEFI do RAW por uma VM isolada, LightDM/Firefox, API local, Compose e ausência de porta SSH aberta. O único formato apropriado para gravar diretamente pelo Etcher é a imagem de disco RAW/IMG (não QCOW2).
+
+Esta versão é uma **prova de conceito do boot e da interface**, não um sistema NAS com instalação persistente homologada. As funções de armazenamento, volumes de aplicativos, backup e updates ainda não são seguras para produção.

@@ -39,3 +39,9 @@
 - Corrigido formatador de capacidade binária (a versão v0.3.0 exibia MiB/GiB deslocados por uma unidade na GUI, sem afetar valores do backend).
 - Inventário de discos físicos deixa de apresentar zram como disco físico.
 - A imagem v0.3.0 do laboratório ainda possui o bug visual; a correção entrará na próxima imagem compilada.
+
+## v0.3.1 USB Preview — segurança inicial e testes RAW
+- Adicionado build sem personalização de usuário/chave de laboratório e com SSH mascarado, exclusivo para teste em notebook pelo USB.
+- Testador QEMU de imagens RAW usa disco overlay QCOW2, rede NAT e VNC somente loopback, preservando o arquivo original.
+- Imagem RAW v0.3.0 de laboratório validada com GPT/EFI e boot UEFI em VM separada, Docker/Compose, painel e módulos de apps/custos HTTP 200.
+- A v0.3.1 precisa passar em teste de boot próprio antes de ser recomendada para gravação física.
