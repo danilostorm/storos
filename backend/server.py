@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import urlsplit, parse_qs
 import apps
 import billing
+import observability
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
@@ -76,11 +77,19 @@ def disk_status():
         return {"available": False, "reason": "Invalid lsblk response", "devices": []}
 
 def container_status():
-    out = run_readonly(["docker", "ps", "--format", "{{.Names}}\t{{.Status}}"])
+    # Actual live Docker metadata only. Docker may deny this read-only observation.
+    out = run_readonly(["docker", "ps", "--no-trunc", "--format", "{{json .}}"], timeout=5)
     if not out["available"]:
         return out
-    return {"available": True, "items": [{"name": a, "status": b} for a, _, b in
-            (line.partition("\t") for line in out["lines"]) if a]}
+    items = []
+    for line in out["lines"][:100]:
+        try:
+            meta = json.loads(line)
+        except ValueError:
+            continue
+        items.append({"name": meta.get("Names"), "image": meta.get("Image"),
+                      "status": meta.get("Status"), "cpu_percent": None, "memory": None})
+    return {"available": True, "items": items}
 
 def vm_status():
     out = run_readonly(["virsh", "-c", "qemu:///system", "list", "--all", "--name"])
@@ -91,7 +100,8 @@ def vm_status():
 API = {"/api/status": system_status, "/api/disks": disk_status,
        "/api/containers": container_status, "/api/vms": vm_status,
        "/api/apps/catalog": apps.catalog, "/api/apps/engine": apps.engine,
-       "/api/billing/model": billing.configured_model}
+       "/api/billing/model": billing.configured_model,
+       "/api/overview": observability.live_overview}
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):

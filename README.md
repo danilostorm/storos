@@ -61,3 +61,8 @@ Este código sucede o planejamento de virtualização do StorOS iniciado em sete
 
 ### Próxima etapa: pendrive no notebook
 O protocolo de homologação e gravação via balenaEtcher está em [docs/USB_NOTEBOOK_TEST.md](docs/USB_NOTEBOOK_TEST.md). **Não usar uma imagem de laboratório que inclui chaves SSH pré-configuradas como release pública.**
+
+## Interface renovada inspirada no mockup do projeto
+A prévia web de desenvolvimento em `https://192.168.30.10:18444/` usa a VM de testes `StorOS-BootTest-v030`, com os mesmos dados reais do uCore e autenticação do gateway local. Não é a interface incorporada ao USB v0.3.1 já compilado: será incorporada em build posterior, quando testada visualmente. Funcionalidades sem integração exibem vazio/indisponível e não simulam VMs, Docker, RAID, custos ou tarefas. Consulte [fidelidade e dados reais](docs/UI_MOCKUP_FIDELITY.md) e [engenharia reversa estrutural](docs/REVERSE_ENGINEERING_PROGRESS.md).
+
+Durante os ensaios, cinco VMs antigas foram desligadas normalmente, preservando os arquivos das imagens. O AEROCOOL manteve somente o BuildLab, a v030 utilizada pelo painel e a USB Preview mais recente em execução. Sem exclusão de discos.

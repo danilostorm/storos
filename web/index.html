@@ -1,106 +1,65 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>StorOS — Controle do seu servidor</title>
-  <link rel="stylesheet" href="/style.css">
-  <script src="/app.js" defer></script>
-  <script src="/apps.js" defer></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><title>StorOS — Seu servidor. Seu controle.</title>
+<link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script><script src="/apps.js" defer></script>
 </head>
 <body>
-<div class="app-shell">
-  <aside class="sidebar">
-    <a class="logo" href="/" aria-label="StorOS início"><span class="logo-mark">S</span><span>stor<span class="logo-accent">OS</span><small>Laboratório v0.3</small></span></a>
-    <div class="menu-heading">WORKSPACE</div>
-    <nav aria-label="Navegação">
-      <a class="nav-item active" href="#overview"><span>◈</span> Visão geral</a>
-      <a class="nav-item" href="#storage"><span>▥</span> Armazenamento</a>
-      <a class="nav-item" href="#compute"><span>▣</span> Virtualização</a>
-      <a class="nav-item" href="#apps"><span>◫</span> Containers</a>
-      <a class="nav-item" href="#catalog"><span>◇</span> Loja de apps</a>
-      <a class="nav-item" href="#billing"><span>▤</span> Custos</a>
-    </nav>
-    <div class="sidebar-bottom">
-      <div class="readonly"><span class="green-dot"></span> Modo somente leitura</div>
-      <p>Protótipo independente. Nenhuma operação em discos ou serviços está habilitada.</p>
-    </div>
-  </aside>
-  <main class="content" id="overview">
-    <header class="topbar">
-      <div class="crumbs">StorOS <span>/</span> Painel do servidor</div>
-      <div class="right-tools"><span id="checked-time">Aguardando leitura</span><button id="reload" type="button">↻ <span>Atualizar</span></button></div>
-    </header>
-    <div class="dashboard">
-      <div class="eyebrow"><span class="eyebrow-line"></span> PLATAFORMA DE ARMAZENAMENTO E COMPUTAÇÃO</div>
-      <div class="intro">
-        <div><h1>Seu servidor. <em>Seu controle.</em></h1><p>Uma visão clara dos recursos, do armazenamento e das aplicações.</p></div>
-        <span class="prototype">● Protótipo v0.3</span>
-      </div>
-      <div id="error" class="error" hidden role="alert"></div>
-      <section class="kpi-grid" aria-label="Indicadores">
-        <article class="metric"><div class="metric-label"><span class="mini-icon">▧</span> HOST</div><div class="big" id="host">—</div><div class="sub" id="host-os">Consultando sistema</div></article>
-        <article class="metric"><div class="metric-label"><span class="mini-icon">◴</span> MEMÓRIA</div><div class="big" id="memory">—</div><div class="bar-track"><div class="bar-fill" id="memory-bar"></div></div><div class="sub" id="memory-sub">RAM utilizada</div></article>
-        <article class="metric"><div class="metric-label"><span class="mini-icon">◫</span> CONTAINERS</div><div class="big" id="container-count">—</div><div class="sub" id="container-sub">Aguardando leitura</div></article>
-        <article class="metric"><div class="metric-label"><span class="mini-icon">▣</span> VIRTUALIZAÇÃO</div><div class="big" id="vm-count">—</div><div class="sub" id="vm-sub">Máquinas virtuais detectadas</div></article>
-      </section>
-      <div class="sections">
-        <section class="panel" id="storage">
-          <div class="panel-header"><div><span class="section-kicker">STORAGE</span><h2>Dispositivos físicos</h2></div><span class="panel-meta" id="disk-count">—</span></div>
-          <div class="table-head"><span>DISPOSITIVO</span><span>CAPACIDADE</span><span>TIPO / SISTEMA</span></div>
-          <div id="disk-list" class="table-body"><div class="placeholder">Lendo os dispositivos...</div></div>
-          <div class="panel-footer">Inventário de leitura · Não gerencia, formata ou monta discos</div>
-        </section>
-        <section class="panel" id="compute">
-          <div class="panel-header"><div><span class="section-kicker">COMPUTE</span><h2>Máquinas virtuais</h2></div><span class="panel-meta" id="compute-count">—</span></div>
-          <div id="vm-list" class="entities"><div class="placeholder">Lendo virtualização...</div></div>
-          <div class="panel-footer">Integração inicial com libvirt · Somente leitura</div>
-        </section>
-        <section class="panel wide" id="apps">
-          <div class="panel-header"><div><span class="section-kicker">APPLICATIONS</span><h2>Containers em execução</h2></div><span class="panel-meta" id="apps-count">—</span></div>
-          <div id="apps-list" class="app-grid"><div class="placeholder">Lendo aplicações...</div></div>
-        </section>
-        <section class="panel wide" id="catalog">
-          <div class="panel-header"><div><span class="section-kicker">APP CENTER</span><h2>Loja de aplicativos e Docker Hub</h2></div><span class="panel-meta">Prévia · leitura</span></div>
-          <div class="store-intro">Catálogo de exemplos com arquivos Docker Compose editáveis. Imagens de terceiros não auditadas e instalações via painel ainda desativadas.</div>
-          <div id="engine-info" class="store-notice">Lendo motor Docker e Compose...</div>
-          <h3 class="store-subheading">Aplicativos em destaque</h3>
-          <div id="catalog-list" class="market-grid"><div class="placeholder">Lendo catálogo...</div></div>
-          <div class="hub-section">
-            <h3 class="store-subheading">Pesquisar imagens no Docker Hub</h3>
-            <form id="hub-form" class="hub-search">
-              <label for="hub-query">Nome ou palavra-chave da imagem</label>
-              <div class="hub-query-row"><input id="hub-query" required minlength="2" maxlength="45" placeholder="Ex.: nextcloud, nginx, jellyfin"><button class="store-action" type="submit">Pesquisar</button></div>
-            </form>
-            <div id="hub-results" class="hub-results"></div>
-          </div>
-          <div class="compose-zone">
-            <div class="compose-header"><h3 id="compose-title">Prévia do Compose</h3><button class="store-action" type="button" id="compose-copy">Copiar Compose</button></div>
-            <textarea id="compose-preview" readonly spellcheck="false" rows="8" placeholder="Escolha um app para exibir seu arquivo compose.yaml."></textarea>
-            <div id="compose-helper" class="store-caption">Somente prévia: revise imagem, rede, portas, volumes e credenciais antes de qualquer instalação.</div>
-          </div>
-        </section>
-        <section class="panel wide" id="billing">
-          <div class="panel-header"><div><span class="section-kicker">TOWER ACCOUNTING</span><h2>Estimativa de custos por VM ou container</h2></div><span class="panel-meta">BRL · Laboratório</span></div>
-          <p class="store-intro">Modelo reaproveitado do seu Tower Command Center: CPU e placa-mãe por vCPU, RAM proporcional, GPU dedicada e rateio da internet pelos GB utilizados. Informe valores reais para calcular. Esta prévia não coleta histórico automaticamente.</p>
-          <form id="billing-form">
-            <div id="billing-fields" class="billing-fields"></div>
-            <div class="billing-actions"><button class="store-action" type="submit">Calcular custo</button><button class="store-action muted" type="button" id="billing-example">Carregar exemplo Tower</button></div>
-          </form>
-          <div id="billing-state" class="store-notice">Carregando modelo...</div>
-          <div class="billing-results">
-            <div class="billing-total"><span>Custo total estimado</span><strong id="billing-total">—</strong><small id="billing-power">Preencha os dados para calcular</small></div>
-            <div><span>Energia</span><strong id="billing-energy-cost">—</strong></div>
-            <div><span>Internet</span><strong id="billing-internet-cost">—</strong></div>
-            <div><span>Tempo ativo</span><strong id="billing-uptime-cost">—</strong></div>
-          </div>
-          <p class="store-caption store-footnote">Não é faturamento real nem leitura de wattímetro. Os preços começam em zero e devem ser configurados. Histórico mensal por serviço e edição persistente dos planos serão acrescentados com o coletor de métricas.</p>
-        </section>
-      </div>
-      <footer>StorOS · Projeto de código próprio · Ambiente experimental · <span id="uptime">Uptime —</span></footer>
-    </div>
-  </main>
+<div class="shell">
+<aside class="sidebar" aria-label="Menu lateral">
+ <a href="#overview" class="brand" data-target="overview"><span class="brand-logo">S</span><span class="brand-type"><strong>StorOS</strong><small>v0.3 · Preview</small></span></a>
+ <nav class="side-menu" aria-label="Principal">
+  <a class="nav-link selected" href="#overview" data-target="overview"><i data-icon="house"></i>Visão geral</a>
+  <div class="nav-parent"><a class="nav-link" href="#storage" data-target="storage"><i data-icon="hard-drive"></i>Armazenamento <span class="chevron">⌄</span></a><div class="subnav"><a href="#shares" data-target="shares"><i data-icon="folder"></i>Compartilhamentos</a><a href="#users" data-target="users"><i data-icon="users"></i>Usuários</a></div></div>
+  <div class="nav-parent"><a class="nav-link" href="#containers" data-target="containers"><i data-icon="box"></i>Docker <span class="chevron">⌄</span></a><div class="subnav"><a href="#containers" data-target="containers"><i data-icon="container"></i>Containers</a><a href="#compose" data-target="compose"><i data-icon="layers"></i>Compose</a><a href="#images" data-target="images"><i data-icon="image"></i>Imagens</a><a href="#docker-network" data-target="docker-network"><i data-icon="network"></i>Rede</a><a href="#volumes" data-target="volumes"><i data-icon="database"></i>Volumes</a><a href="#logs" data-target="logs"><i data-icon="file"></i>Logs</a></div></div>
+  <div class="nav-parent"><a class="nav-link" href="#catalog" data-target="catalog"><i data-icon="grid"></i>Aplicativos <span class="chevron">⌄</span></a><div class="subnav"><a href="#catalog" data-target="catalog"><i data-icon="package"></i>Loja de apps</a><a href="#installed" data-target="installed"><i data-icon="grid"></i>Instalados</a><a href="#updates" data-target="updates"><i data-icon="refresh"></i>Atualizações</a></div></div>
+  <div class="nav-parent"><a class="nav-link" href="#vms" data-target="vms"><i data-icon="monitor"></i>Máquinas virtuais <span class="chevron">⌄</span></a><div class="subnav"><a href="#vms" data-target="vms"><i data-icon="monitor"></i>VMs</a><a href="#isos" data-target="isos"><i data-icon="file"></i>ISOs</a><a href="#vm-networks" data-target="vm-networks"><i data-icon="network"></i>Redes</a><a href="#templates" data-target="templates"><i data-icon="grid"></i>Modelos</a></div></div>
+  <div class="nav-parent"><a class="nav-link" href="#network" data-target="network"><i data-icon="network"></i>Rede <span class="chevron">⌄</span></a></div>
+  <div class="nav-parent"><a class="nav-link" href="#system" data-target="system"><i data-icon="settings"></i>Sistema <span class="chevron">⌄</span></a><div class="subnav"><a href="#settings" data-target="settings"><i data-icon="settings"></i>Configurações</a><a href="#notifications" data-target="notifications"><i data-icon="bell"></i>Notificações</a><a href="#tasks" data-target="tasks"><i data-icon="clipboard"></i>Tarefas</a><a href="#backup" data-target="backup"><i data-icon="clock"></i>Backup</a><a href="#monitoring" data-target="monitoring"><i data-icon="activity"></i>Monitoramento</a></div></div>
+  <a class="nav-link nav-costs" href="#billing" data-target="billing"><i data-icon="copy"></i>Custos</a>
+ </nav>
+ <div class="side-foot"><span class="live-dot"></span> Prévia somente leitura</div>
+</aside>
+<div class="main-area">
+ <header class="topbar">
+  <form class="top-search" id="global-search-form"><i data-icon="search"></i><input id="global-search" type="search" aria-label="Pesquisar recursos" placeholder="Pesquisar..." autocomplete="off" maxlength="50"><kbd>Ctrl + K</kbd></form>
+  <div class="top-actions"><button class="icon-button" title="Notificações indisponíveis" data-target="notifications" aria-label="Notificações"><i data-icon="bell"></i></button><button class="icon-button" id="theme-toggle" title="Alternar contraste" aria-label="Alternar contraste"><i data-icon="moon"></i></button><button class="icon-button" data-target="terminal" title="Terminal não habilitado" aria-label="Terminal"><i data-icon="terminal"></i></button><button class="user-pill" id="identity-button" title="Não há administrador autenticado"><i data-icon="user"></i><span>Local</span><span>⌄</span></button></div>
+ </header>
+ <main id="main" class="main-content">
+  <div id="page-overview" class="page active-page">
+   <section class="hero card"><div class="hero-copy"><p class="hero-hello">Olá!</p><h1>Seu servidor. <span>Seu controle.</span></h1><p>Gerencie seus dados, containers, máquinas virtuais e aplicativos em um só lugar.</p></div><div class="hero-photo" aria-hidden="true"></div><div class="hero-details"><div class="hero-app"><span class="brand-logo small">S</span><div><b>StorOS</b><small>Plataforma de armazenamento e computação</small></div><span class="version">v0.3 (beta)</span></div><div class="hero-stats"><div><span>Host</span><b id="hero-host">—</b></div><div><span>Uptime</span><b id="hero-uptime">—</b></div></div></div></section>
+   <section class="stat-grid" aria-label="Indicadores reais">
+    <article class="stat card"><div class="stat-head"><span class="stat-symbol"><i data-icon="cpu"></i></span><span>CPU</span></div><div class="stat-value" id="cpu-value">—</div><div class="stat-note" id="cpu-detail">Leitura pendente</div><div class="tinyline" id="cpu-mini"></div></article>
+    <article class="stat card"><div class="stat-head"><span class="stat-symbol"><i data-icon="memory"></i></span><span>Memória</span></div><div class="stat-value" id="memory-value">—</div><div class="meter"><span id="memory-meter"></span></div><div class="stat-note" id="memory-detail">—</div></article>
+    <article class="stat card"><div class="stat-head"><span class="stat-symbol"><i data-icon="hard-drive"></i></span><span>Armazenamento</span></div><div class="stat-value" id="storage-value">—</div><div class="meter"><span id="storage-meter"></span></div><div class="stat-note" id="storage-detail">Sistema de arquivos raiz</div></article>
+    <article class="stat card"><div class="stat-head"><span class="stat-symbol blue"><i data-icon="box"></i></span><span>Containers</span></div><div class="stat-value" id="containers-value">—</div><div class="stat-note" id="containers-detail">Integração indisponível</div></article>
+    <article class="stat card"><div class="stat-head"><span class="stat-symbol blue"><i data-icon="monitor"></i></span><span>Máquinas virtuais</span></div><div class="stat-value" id="vms-value">—</div><div class="stat-note" id="vms-detail">Integração indisponível</div></article>
+    <article class="stat card"><div class="stat-head"><span class="stat-symbol"><i data-icon="grid"></i></span><span>Aplicativos</span></div><div class="stat-value" id="apps-value">—</div><div class="stat-note" id="apps-detail">Instalados não identificados</div></article>
+   </section>
+   <section class="duo duo-primary">
+    <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon"><i data-icon="layers"></i></span><strong>Armazenamento</strong></div><button class="outline-button" data-target="storage">Gerenciar discos</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>DISPOSITIVO</th><th>CAPACIDADE</th><th>USO</th><th>SISTEMA</th><th>STATUS</th></tr></thead><tbody id="overview-disks"><tr><td colspan="5" class="empty-cell">Aguardando dados reais</td></tr></tbody></table></div></article>
+    <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon blue"><i data-icon="box"></i></span><strong>Dockers / Containers</strong></div><button class="outline-button" data-target="containers">Gerenciar</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>NOME</th><th>IMAGEM</th><th>STATUS</th><th>USO CPU</th><th>USO MEM</th></tr></thead><tbody id="overview-containers"><tr><td colspan="5" class="empty-cell">Aguardando Docker</td></tr></tbody></table></div></article>
+   </section>
+   <section class="duo duo-middle">
+    <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon blue"><i data-icon="monitor"></i></span><strong>Máquinas virtuais</strong></div><button class="outline-button muted" title="Criação de VMs indisponível" disabled>Nova VM</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>NOME</th><th>SISTEMA</th><th>STATUS</th><th>USO CPU</th><th>USO MEM</th></tr></thead><tbody id="overview-vms"><tr><td colspan="5" class="empty-cell">Integração libvirt indisponível</td></tr></tbody></table></div></article>
+    <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon blue"><i data-icon="network"></i></span><strong>Rede</strong></div><button class="outline-button" data-target="network">Configurar</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>INTERFACE</th><th>ENDEREÇO IP</th><th>VELOCIDADE</th><th>STATUS</th></tr></thead><tbody id="overview-networks"><tr><td colspan="4" class="empty-cell">Leitura de rede pendente</td></tr></tbody></table></div></article>
+   </section>
+   <section class="duo duo-market">
+    <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon"><i data-icon="grid"></i></span><div><strong>Loja de aplicativos</strong><small>Explore aplicativos disponíveis. Instalação pelo painel ainda desativada.</small></div></div><button class="outline-button" data-target="catalog">Ver todos</button></div><div class="catalog-toolbar"><input id="overview-app-filter" type="search" placeholder="⌕  Pesquisar aplicativos..." aria-label="Filtrar aplicativos"><div class="category-chips"><button data-category="Todos" class="chip active">Todos</button><button data-category="Monitoramento" class="chip">Monitoramento</button><button data-category="Mídia" class="chip">Mídia</button><button data-category="Web" class="chip">Web</button><button data-category="Desenvolvimento" class="chip">Dev</button></div></div><div id="overview-catalog" class="app-cards"><div class="empty-card">Carregando catálogo...</div></div></article>
+    <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon"><i data-icon="file"></i></span><div><strong>Docker Compose</strong><small>Projetos e stacks detectados nesta instância.</small></div></div><button class="outline-button" data-target="compose">Projetos</button></div><div class="stack-tabs"><span class="stack-active">Projetos</span><span>Arquivos</span></div><div id="overview-stacks" class="stack-list"><div class="empty-card">Sem dados do Docker Compose</div></div></article>
+   </section>
+   <section class="trio">
+    <article class="card compact"><div class="compact-title"><span><i data-icon="activity"></i> Monitoramento</span><span class="subtle">CPU real</span></div><div class="chart-labels"><span>100%</span><span>50%</span><span>0%</span></div><svg id="cpu-chart" class="cpu-chart" viewBox="0 0 360 63" preserveAspectRatio="none" role="img" aria-label="Histórico observado de CPU"><path id="cpu-chart-path" d="" fill="none" stroke="#55e6ba" stroke-width="2"/></svg><div class="chart-footer" id="cpu-chart-caption">Coletando amostras reais...</div></article>
+    <article class="card compact"><div class="compact-title"><span><i data-icon="wallet"></i> Custos do servidor</span><button class="mini-link" data-target="billing">Este mês</button></div><div class="cost-figure" id="overview-cost">—</div><div class="stat-note">Sem tarifa ou histórico configurado</div><div class="cost-meter"></div><button class="text-link" data-target="billing">Abrir simulador de custos</button></article>
+    <article class="card compact"><div class="compact-title"><span><i data-icon="clock"></i> Tarefas em segundo plano</span><button class="mini-link" data-target="tasks">Ver todas</button></div><div class="empty-work">Nenhum coletor de tarefas integrado</div><div class="stat-note">Não são exibidos progressos fictícios</div></article>
+   </section>
+  </div>
+  <section class="page other-page" id="page-catalog"><div class="page-heading"><small>APLICATIVOS</small><h1>Loja de aplicativos</h1><p>Catálogo de exemplos, pesquisa no Docker Hub e prévias de projetos Compose. Instalação pela interface não habilitada.</p></div><article class="card full-panel"><div class="card-heading"><strong>Motor Docker</strong></div><div id="engine-info" class="store-notice">Consultando Engine...</div><div id="catalog-list" class="market-grid"></div><div class="hub-section"><h2>Pesquisar Docker Hub</h2><form id="hub-form" class="hub-search"><label for="hub-query">Nome da imagem</label><div class="hub-query-row"><input id="hub-query" placeholder="Ex.: nginx, jellyfin" minlength="2" maxlength="45" required><button type="submit" class="outline-button">Pesquisar</button></div></form><div id="hub-results" class="hub-results"></div></div><div class="compose-zone"><div class="compose-header"><h2 id="compose-title">Prévia do Compose</h2><button id="compose-copy" type="button" class="outline-button">Copiar</button></div><textarea id="compose-preview" rows="8" readonly placeholder="Selecione um aplicativo..."></textarea><div id="compose-helper" class="store-caption"></div></div></article></section>
+  <section class="page other-page" id="page-billing"><div class="page-heading"><small>GESTÃO</small><h1>Custos do servidor</h1><p>Simulador inspirado em seu Tower Command Center. Insira medições e tarifas reais; dados não são inventados nem gravados nesta prévia.</p></div><article class="card full-panel"><div class="card-heading"><strong>Estimativa de energia e internet</strong></div><form id="billing-form"><div id="billing-fields" class="billing-fields"></div><div class="billing-actions"><button type="submit" class="outline-button">Calcular custo</button><button type="button" id="billing-example" class="outline-button muted">Exemplo demonstrativo</button></div></form><div id="billing-state" class="store-notice"></div><div class="billing-results"><div><span>Total estimado</span><strong id="billing-total">—</strong><small id="billing-power">—</small></div><div><span>Energia</span><strong id="billing-energy-cost">—</strong></div><div><span>Internet</span><strong id="billing-internet-cost">—</strong></div><div><span>Tempo ativo</span><strong id="billing-uptime-cost">—</strong></div></div></article></section>
+  <section class="page other-page" id="page-detail"><div class="page-heading"><small id="detail-kicker">STOROS</small><h1 id="detail-title">Recurso</h1><p id="detail-description">Somente dados reais desta instância.</p></div><article class="card full-panel"><div id="detail-content" class="details-content"><p>Sem informações disponíveis.</p></div></article></section>
+ </main>
+</div>
 </div>
 </body>
 </html>

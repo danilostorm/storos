@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit, urlencode, parse_qs
 
-ALLOWED = frozenset({"/", "/index.html", "/app.js", "/apps.js", "/style.css", "/api/status", "/api/disks", "/api/containers", "/api/vms", "/api/apps/catalog", "/api/apps/engine", "/api/apps/compose", "/api/apps/hub", "/api/billing/model", "/api/billing/estimate"})
+ALLOWED = frozenset({"/", "/index.html", "/app.js", "/apps.js", "/style.css", "/hero.webp", "/api/status", "/api/disks", "/api/containers", "/api/vms", "/api/apps/catalog", "/api/apps/engine", "/api/apps/compose", "/api/apps/hub", "/api/billing/model", "/api/billing/estimate", "/api/overview"})
 LAN = ipaddress.ip_network("192.168.30.0/24")
 
 class Gateway(BaseHTTPRequestHandler):
@@ -123,7 +123,7 @@ def main():
     parser.add_argument("--cert", type=Path, required=True)
     parser.add_argument("--key", type=Path, required=True)
     args = parser.parse_args()
-    if args.bind != "192.168.30.10" or args.port != 18443:
+    if args.bind != "192.168.30.10" or args.port not in (18443, 18444):
         parser.error("Refusing unsafe binding; laboratory gateway restricted to AEROCOOL LAN IP and port")
     if args.credentials.stat().st_mode & 0o077:
         parser.error("Credential file must not be accessible to group/others")

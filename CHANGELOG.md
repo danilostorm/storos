@@ -46,3 +46,11 @@
 - Imagem RAW v0.3.0 de laboratório validada com GPT/EFI e boot UEFI em VM separada, Docker/Compose, painel e módulos de apps/custos HTTP 200.
 - A v0.3.1 precisa passar em teste de boot próprio antes de ser recomendada para gravação física.
 - **Homologação limitada v0.3.1**: boot RAW UEFI em VM isolada, GUI renderizada, SHA256 do `.img` igual ao RAW do builder, portas 22/80/8765 não expostas na rede da VM. Publicada a rotina de teste por VNC/guest agent não privilegiado.
+
+## 2026-10-27 — Reformulação visual fiel ao mockup (preview web)
+- Sidebar, topo, hero, KPIs e cartões remodelados seguindo a captura original enviada pelo usuário; nenhuma métrica da captura é reproduzida como dado operacional.
+- Leituras reais via /api/overview (CPU, disco e rede) e APIs anteriores; ações administrativas continuam bloqueadas.
+- Corrigido falso 100% de ocupação do overlay raiz em sistemas ostree, usando o volume persistente /var quando aplicável.
+- Prévia HTTPS separada na porta 18444 com autenticação, usando a VM v0.3 já existente. Versão 18443 e imagem USB v0.3.1 permanecem sem alterações.
+- Cinco VMs antigas StorOS foram desligadas normalmente; discos e definições permanecem intactos.
+- Iniciado estudo estático documentado do boot Unraid 7.3.4 a partir do menu de Syslinux, com script independente e sem executar componentes proprietários. Ghidra ainda pendente.
