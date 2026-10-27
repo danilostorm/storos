@@ -1,56 +1,33 @@
-# Arquitetura — revisão 2
+# Arquitetura e roadmap do StorOS
 
-**Base ainda não escolhida.** A proposta de adotar MOS/Devuan por padrão foi substituída pelo foco em virtualização e compartilhamento de hardware.
+## Princípios
+- Universal Blue uCore baseado em Fedora CoreOS, com base imutável, boot via USB e serviços isolados.
+- Dados têm prioridade absoluta: funções destrutivas desligadas por padrão e confirmação dupla no futuro.
+- Observabilidade primeiro, gestão autenticada depois, automação apenas após testes.
+- Código próprio e tecnologias abertas; não reaproveitar código fechado do Unraid.
 
-## Escolha por capacidade
+## Módulos
+1. **storos-ui:** dashboard de saúde, capacidade, VMs, apps, backups e alertas.
+2. **storos-api:** configuração declarativa versionada, RBAC, auditoria, OpenAPI, controle de tarefas.
+3. **storos-agent:** execução de tarefas privilegiadas via allowlist/polkit e validação de discos por WWN/UUID.
+4. **storos-storage:** Btrfs, XFS, pools ZFS opcionais, snapshots, scrubs, SMART; mergerfs/SnapRAID opcional e identificado como paridade não em tempo real.
+5. **storos-compute:** libvirt/KVM, bridge de rede, GPU passthrough somente com validação.
+6. **storos-apps:** Podman, Compose via ferramenta compatível, catálogo auditado e backups consistentes.
+7. **storos-installer:** imagem RAW inicializável via bootc/osbuild após protótipo de VM; rollback e partição do sistema separada.
 
-Avaliar GPU simultânea comprovada, controle CPU/RAM, guests Linux/Windows, isolamento, manutenção, licenciamento, build e custo. Registrar decisão e evidências antes da implementação.
+## Roadmap
+- **0.1 – Feito inicialmente:** projeto independente, APIs locais somente de leitura, interface.
+- **0.2 – Próximo:** empacotamento na VM Fedora Server, autenticação, leitura de discos via udev/SMART, eventos e logs.
+- **0.3:** pools criados apenas em arquivos de loop/disk images de laboratório; testes de falhas.
+- **0.4:** gestão de containers e VMs dentro da VM, permissões e auditoria.
+- **0.5:** instalador de teste, atualizações transacionais/rollback, backups e benchmarks.
+- **1.0:** somente após testes de restauração, quedas de energia, SMART e migração com consentimento.
 
-MOS/Devuan, Linux/KVM, Proxmox e alternativa Windows/Hyper-V são candidatos de avaliação, não afirmações de suporte ao hardware do usuário. Se a escolha mudar a proposta de distribuição aberta, exigir decisão explícita.
+## Comparação honesta
+Unraid tem paridade em tempo real em array de discos independentes; SnapRAID não é equivalente. ZFS/Btrfs RAID também usam outro modelo de proteção/capacidade. O diferencial do StorOS deverá ser UX, automação segura, API documentada, telemetria e integração. O desempenho e robustez terão de ser medidos, não pressupostos.
 
-## Componentes propostos
-
-```mermaid
-flowchart TD
-    UI["Painel de VMs"] --> API["API: permissões e validação"]
-    API --> DB["Configuração e auditoria persistentes"]
-    API --> JOBS["Tarefas e reconciliação"]
-    POLICY["Guardian: políticas e métricas"] --> JOBS
-    JOBS --> COMPUTE["Adaptador do hipervisor escolhido"]
-    JOBS --> GPU["Adaptador GPU validado por hardware"]
-    JOBS --> BACKUP["Backup e recuperação"]
-    COMPUTE --> VMS["VMs isoladas"]
-    GPU --> VMS
-```
-
-Adaptadores usam contratos tipados. Uma autoridade coordena operações por VM/dispositivo; não colocar dois controladores disputando o mesmo recurso.
-
-Estado distingue intenção, gravação e aplicação observada. Gravação exige releitura; aplicação exige verificação no hipervisor. Tarefas têm ID, timeout e recuperação. Restauração verifica identidade da execução e alterações externas.
-
-## Contrato de recursos
-
-| Recurso | Configuração | Estado observado |
-| --- | --- | --- |
-| CPU | vCPUs, prioridade, capacidade máxima e afinidade opcional | Uso, quota efetiva e disponibilidade do host |
-| RAM | Mínimo/inicial/máximo, reserva e margem do guest | Atribuição, disponibilidade e suporte das métricas |
-| GPU | Placa/unidade virtual, perfil suportado e prioridade quando disponível | VMs usuárias, driver, VRAM e métricas realmente expostas |
-
-Não inventar percentuais GPU/VRAM configuráveis se o mecanismo não permitir. Compartilhamento simultâneo pode depender de perfis fixos e não implica redistribuição dinâmica de todos os recursos da placa.
-
-## Fluxo central
-
-Criar VM → quantidade de CPU → faixa de RAM → GPU compartilhada compatível → acesso local/remoto → revisar reserva → salvar/criar.
-
-Exemplo ilustrativo: duas VMs com 8 vCPUs e RAM 4/8/16 GiB cada. A capacidade CPU é distribuída por prioridade. A memória inicial precisa caber no orçamento do host; crescimento depende de capacidade confirmada. GPU só oferece combinações verificadas. Não é recomendação para qualquer máquina.
-
-Mostrar limite configurado/aplicado, uso e motivo da última ação. Pausar mantém ajustes; restaurar verifica conflitos e capacidade. Editor não apaga configurações avançadas silenciosamente.
-
-## Segurança e laboratório
-
-Autenticação, papéis, tokens com escopo, logs sem segredos e API sem shell arbitrário. Atualizações com origem/assinatura e recuperação de configuração. Backups informam consistência. Falha GPU mantém um caminho administrativo independente daquela placa.
-
-Usar guests/discos descartáveis. Virtualização aninhada ajuda no contrato/API, mas não certifica GPU. Testes físicos por modelo, firmware, driver, guest e hipervisor. RTX 3080 Ti/RX 550 não estão homologadas. Não alterar produção ou firmware sem autorização específica.
-
-Duas pessoas usam VMs separadas e entrada/áudio independentes; streaming não comprova GPU compartilhada. NAS/apps/cluster ficam fora do caminho crítico.
-
-A organização do código será definida após a base. Hoje há documentação e verificação de continuidade documental, sem sistema implementado.
+## Segurança do desenvolvimento
+Servidor AEROCOOL está em produção, com VMs e containers ativos.
+Não alterar array, syslinux, boot USB, /etc, libvirt das VMs, nem Docker em execução.
+Executar ferramentas de análise em VM dedicada com diretório compartilhado somente de leitura.
+Criar testes com discos virtuais, sem acesso a block devices reais.

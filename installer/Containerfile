@@ -1,0 +1,18 @@
+# StorOS USB boot prototype. Build only in an isolated Fedora virtual machine.
+# Base can later be pinned by image digest for reproducible releases.
+FROM ghcr.io/ublue-os/ucore-minimal:stable
+
+LABEL org.opencontainers.image.title="StorOS"
+LABEL org.opencontainers.image.description="Experimental independently developed USB-bootable NAS OS"
+LABEL org.opencontainers.image.version="0.1.1"
+
+# Applications installed on the immutable system image, not the host Unraid.
+COPY backend/ /usr/lib/storos/backend/
+COPY web/ /usr/lib/storos/web/
+COPY installer/storos-dashboard.service /usr/lib/systemd/system/storos-dashboard.service
+
+# The dashboard binds ONLY to loopback pending authentication/RBAC.
+RUN chmod -R a+rX /usr/lib/storos \
+ && install -d -m 0755 /usr/lib/systemd/system/multi-user.target.wants \
+ && ln -sfn ../storos-dashboard.service /usr/lib/systemd/system/multi-user.target.wants/storos-dashboard.service \
+ && ostree container commit

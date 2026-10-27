@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+if [[ "${EUID}" -ne 0 ]]; then
+    echo 'Use: sudo storos-gui-mode {enable|disable|status}' >&2
+    exit 2
+fi
+case "${1:-}" in
+    enable)
+        test -x /usr/libexec/storos-gui-session || { echo 'GUI not installed in this image'; exit 3; }
+        install -Dm0644 /usr/share/storos/gui/lightdm.conf /etc/lightdm/lightdm.conf.d/60-storos-gui.conf
+        systemctl enable lightdm.service
+        systemctl set-default graphical.target
+        echo 'StorOS local GUI mode enabled for next boot'
+        ;;
+    disable)
+        rm -f /etc/lightdm/lightdm.conf.d/60-storos-gui.conf
+        systemctl disable lightdm.service || true
+        systemctl set-default multi-user.target
+        echo 'StorOS headless mode enabled for next boot'
+        ;;
+    status)
+        systemctl get-default
+        systemctl is-enabled lightdm.service || true
+        ;;
+    *)
+        echo 'Use: sudo storos-gui-mode {enable|disable|status}' >&2
+        exit 2
+        ;;
+esac

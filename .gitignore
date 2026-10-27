@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+*.log
+*.tmp
+.env
+lab-images/
+analysis-evidence/
+
+/output/
+
+/lab/

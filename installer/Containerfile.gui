@@ -1,0 +1,15 @@
+# Optional local graphical kiosk image for StorOS VM/USB tests.
+# Requires locally built localhost/storos:v0.1.1.
+FROM localhost/storos:v0.1.1
+LABEL org.opencontainers.image.version="0.2.0-gui-preview"
+# Root filesystem is immutable at runtime. Layer required packages at image BUILD time.
+RUN rpm-ostree install -y lightdm lightdm-gtk openbox firefox xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-drv-libinput xorg-x11-drv-qxl mesa-dri-drivers dbus-x11 liberation-fonts
+COPY gui/storos-lightdm.conf /usr/share/storos/gui/lightdm.conf
+COPY gui/storos-gui.desktop /usr/share/xsessions/storos-gui.desktop
+COPY gui/storos-gui-session /usr/libexec/storos-gui-session
+COPY gui/storos-gui-mode /usr/bin/storos-gui-mode
+COPY gui/storos-gui.sysusers /usr/lib/sysusers.d/storos-gui.conf
+COPY gui/storos-gui.tmpfiles /usr/lib/tmpfiles.d/storos-gui.conf
+RUN chmod 0755 /usr/libexec/storos-gui-session /usr/bin/storos-gui-mode \
+ && chmod 0644 /usr/share/storos/gui/lightdm.conf /usr/share/xsessions/storos-gui.desktop /usr/lib/sysusers.d/storos-gui.conf /usr/lib/tmpfiles.d/storos-gui.conf \
+ && ostree container commit

@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=StorOS Local GUI
+Comment=Display local read-only management dashboard
+Type=Application
+Exec=/usr/libexec/storos-gui-session
+DesktopNames=StorOS

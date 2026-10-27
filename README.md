@@ -1,31 +1,49 @@
 # StorOS
 
-**Virtualização com CPU, RAM e GPU compartilhadas entre máquinas virtuais.**
+**Status:** versão 0.1, laboratório. Alternativa NAS e virtualização construída de forma independente sobre o Fedora Server.
 
-Projeto em planejamento para várias VMs usarem o hardware do mesmo servidor simultaneamente. NAS, Docker e catálogo de apps são complementares. A base está aberta: MOS não é obrigatório.
+## Objetivo
 
-**Estado: roadmap revisão 2, de 11/09/2026.** A mudança de foco e as regras de continuidade foram solicitadas por Danilo. Não existe ISO, sistema implementado ou GPU homologada.
+Desenvolver um sistema de armazenamento e gerenciamento de servidores mais simples, confiável e observável, com painel único para discos, pools, containers, VMs, redes, backups e alertas.
 
-## Para continuar o projeto
+A primeira entrega atual é um **protótipo funcional de painel e API SOMENTE LEITURA**. **O requisito principal do produto é ser um sistema operacional independente e inicializável pelo pendrive.** O builder inicial de RAW/QCOW2 está preparado, mas ainda não compilou uma imagem testada e não gerencia discos.
 
-1. Leia [AGENTS.md](AGENTS.md): regras para pessoas e assistentes.
-2. Leia [PROJECT_STATE.md](PROJECT_STATE.md): onde paramos, decisões e próxima tarefa.
-3. Consulte [CHANGELOG.md](CHANGELOG.md): histórico das atualizações.
-4. Revise [ROADMAP.md](ROADMAP.md) e [aprovações](docs/APROVACAO.md).
+## Desenvolvimento no AEROCOOL
 
-Outros documentos: [arquitetura](docs/ARQUITETURA.md), [referências](docs/REFERENCIAS.md) e [PR #1](https://github.com/danilostorm/storos/pull/1).
+- Código: `/mnt/user/rea/StorOS`
+- O Unraid atual não foi modificado.
+- Não montamos/desmontamos discos, não formatamos nem reiniciamos serviços.
+- Interface de pré-visualização (iniciada manualmente): `python3 backend/server.py --port 8765`
+- Acesso somente pelo próprio host, ou túnel SSH: `ssh -L 8765:127.0.0.1:8765 root@192.168.30.10`; abra `http://127.0.0.1:8765` no computador.
+- Testes: `python3 -m unittest discover -s tests -v`
+- Nenhuma API modifica o sistema; o protótipo usa apenas `/proc`, `lsblk`, `docker ps` e `virsh list`.
 
-## Prioridades
+## Arquitetura planejada
 
-| Prioridade | Entrega pretendida |
-| --- | --- |
-| P0 | Validar GPU simultânea entre VMs e escolher hardware/base compatíveis |
-| P0 | Distribuir CPU e RAM disponível por demanda, prioridade e reserva do host |
-| P0 | Criar e administrar VMs pelo painel, com estado aplicado verificável |
-| P0 | Isolamento, backup e recuperação |
-| P1 | Múltiplos usuários/postos simultâneos |
-| P2 | NAS, Docker, apps e, posteriormente, multisservidor/cluster |
+- **Sistema-base:** Universal Blue uCore baseado em Fedora CoreOS, como conceito adotado no Unraid 8; NÃO Fedora 8.
+- **Painel:** aplicação web própria, interface responsiva.
+- **Backend de produção:** API autenticada e agentes com privilégios mínimos; a API atual é apenas demonstração.
+- **Storage:** Btrfs/XFS inicialmente, ZFS opcional quando testado e suportado; alternativa de discos heterogêneos com mergerfs + SnapRAID, cujo parity é agendado (não equivalente ao tempo real do Unraid).
+- **Virtualização:** libvirt/KVM.
+- **Containers:** Podman e interface compatível com OCI; Docker opcional.
+- **Rede:** NetworkManager, WireGuard, SMB, NFS.
+- **Backups:** snapshots, cópias verificadas e recuperação testada.
 
-Passthrough exclusivo é uma opção auxiliar, não a entrega do requisito de GPU compartilhada. RTX 3080 Ti/RX 550 citadas por Danilo são candidatas a investigação, sem suporte comprovado.
+## Regras importantes
 
-Toda atualização publicada deve atualizar changelog e estado do projeto, com mudanças, verificações, pendências e próximos passos.
+1. Trabalhar em VMs e discos virtuais descartáveis antes de qualquer hardware real.
+2. Nunca migrar ou montar automaticamente discos do Unraid.
+3. REA e Ghidra podem fornecer evidência de comportamento/interoperabilidade. Não copiar componentes proprietários ou mexer em GUID/licenças.
+4. Não expor a API experimental à internet nem iniciar como serviço em produção.
+5. Não prometer proteção de dados sem testes de restauração, falha de disco e corrupção.
+
+Veja [Requisitos de boot USB](docs/REQUISITOS.md), [Compilação de RAW/QCOW2](installer/README.md), [Arquitetura](docs/ARQUITETURA.md) e [Pesquisa REA/Ghidra](docs/ENGENHARIA_REVERSA.md).
+
+
+## Modo gráfico local (GUI) — experimental
+Assim como o modo GUI do Unraid, o StorOS terá uma opção **local** para exibir seu painel via navegador no monitor ou console VNC da VM, sem abrir sua API na rede. A implementação experimental está em [docs/GUI_MODE.md](docs/GUI_MODE.md) e [installer/Containerfile.gui](installer/Containerfile.gui). Ela usa LightDM, Xorg, Openbox e Firefox em modo kiosk, com uma conta sem privilégios. O modo padrão continua headless. A imagem **headless v0.1.1** já passou nos testes UEFI/HTTP; não confundir com homologação da versão GUI.
+
+## Repositório e histórico
+Este código sucede o planejamento de virtualização do StorOS iniciado em setembro de 2026. A branch `archive/antes-storos-usb-2026-10-27` mantém integralmente o estado anterior. A intenção de gerenciamento de VMs e compartilhamento de recursos permanece no [roadmap](ROADMAP.md), mas ainda não foi implementada.
+
+⚠ **Somente laboratório**: ainda não é alternativa segura ao Unraid em produção. Nenhuma operação de gerenciamento ou formatação de disco físico está habilitada.

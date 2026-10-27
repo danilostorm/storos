@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>StorOS — Controle do seu servidor</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="logo" href="/" aria-label="StorOS início"><span class="logo-mark">S</span><span>stor<span class="logo-accent">OS</span><small>Laboratório v0.1</small></span></a>
+    <div class="menu-heading">WORKSPACE</div>
+    <nav aria-label="Navegação">
+      <a class="nav-item active" href="#overview"><span>◈</span> Visão geral</a>
+      <a class="nav-item" href="#storage"><span>▥</span> Armazenamento</a>
+      <a class="nav-item" href="#compute"><span>▣</span> Virtualização</a>
+      <a class="nav-item" href="#apps"><span>◫</span> Aplicativos</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="readonly"><span class="green-dot"></span> Modo somente leitura</div>
+      <p>Protótipo independente. Nenhuma operação em discos ou serviços está habilitada.</p>
+    </div>
+  </aside>
+  <main class="content" id="overview">
+    <header class="topbar">
+      <div class="crumbs">StorOS <span>/</span> Painel do servidor</div>
+      <div class="right-tools"><span id="checked-time">Aguardando leitura</span><button id="reload" type="button">↻ <span>Atualizar</span></button></div>
+    </header>
+    <div class="dashboard">
+      <div class="eyebrow"><span class="eyebrow-line"></span> PLATAFORMA DE ARMAZENAMENTO E COMPUTAÇÃO</div>
+      <div class="intro">
+        <div><h1>Seu servidor. <em>Seu controle.</em></h1><p>Uma visão clara dos recursos, do armazenamento e das aplicações.</p></div>
+        <span class="prototype">● Protótipo v0.1</span>
+      </div>
+      <div id="error" class="error" hidden role="alert"></div>
+      <section class="kpi-grid" aria-label="Indicadores">
+        <article class="metric"><div class="metric-label"><span class="mini-icon">▧</span> HOST</div><div class="big" id="host">—</div><div class="sub" id="host-os">Consultando sistema</div></article>
+        <article class="metric"><div class="metric-label"><span class="mini-icon">◴</span> MEMÓRIA</div><div class="big" id="memory">—</div><div class="bar-track"><div class="bar-fill" id="memory-bar"></div></div><div class="sub" id="memory-sub">RAM utilizada</div></article>
+        <article class="metric"><div class="metric-label"><span class="mini-icon">◫</span> CONTAINERS</div><div class="big" id="container-count">—</div><div class="sub" id="container-sub">Aguardando leitura</div></article>
+        <article class="metric"><div class="metric-label"><span class="mini-icon">▣</span> VIRTUALIZAÇÃO</div><div class="big" id="vm-count">—</div><div class="sub" id="vm-sub">Máquinas virtuais detectadas</div></article>
+      </section>
+      <div class="sections">
+        <section class="panel" id="storage">
+          <div class="panel-header"><div><span class="section-kicker">STORAGE</span><h2>Dispositivos físicos</h2></div><span class="panel-meta" id="disk-count">—</span></div>
+          <div class="table-head"><span>DISPOSITIVO</span><span>CAPACIDADE</span><span>TIPO / SISTEMA</span></div>
+          <div id="disk-list" class="table-body"><div class="placeholder">Lendo os dispositivos...</div></div>
+          <div class="panel-footer">Inventário de leitura · Não gerencia, formata ou monta discos</div>
+        </section>
+        <section class="panel" id="compute">
+          <div class="panel-header"><div><span class="section-kicker">COMPUTE</span><h2>Máquinas virtuais</h2></div><span class="panel-meta" id="compute-count">—</span></div>
+          <div id="vm-list" class="entities"><div class="placeholder">Lendo virtualização...</div></div>
+          <div class="panel-footer">Integração inicial com libvirt · Somente leitura</div>
+        </section>
+        <section class="panel wide" id="apps">
+          <div class="panel-header"><div><span class="section-kicker">APPLICATIONS</span><h2>Containers em execução</h2></div><span class="panel-meta" id="apps-count">—</span></div>
+          <div id="apps-list" class="app-grid"><div class="placeholder">Lendo aplicações...</div></div>
+        </section>
+      </div>
+      <footer>StorOS · Projeto de código próprio · Ambiente experimental · <span id="uptime">Uptime —</span></footer>
+    </div>
+  </main>
+</div>
+</body>
+</html>
