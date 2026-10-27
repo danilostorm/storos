@@ -47,3 +47,10 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 - Tela VNC capturada. HTTP 200 em `/`, `/apps.js`, `/api/apps/catalog`, `/api/apps/engine`, `/api/apps/hub`, `/api/apps/compose`, `/api/billing/model`, `/api/billing/estimate`.
 - Gateway HTTPS LAN autenticado redirecionado via SSH para a nova VM; acesso sem senha HTTP 401 e POST 405.
 - Screenshot revelou bug de unidade da memória e zram tratado como disco físico. Fonte corrigida após o build; requer nova imagem. A versão v0.3.0 ainda não está homologada para notebook.
+
+### 2026-10-27 — versão USB Preview v0.3.1 testada
+- `StorOS-v0.3.1-USB-Preview.img`: imagem RAW de 10 GiB em `/mnt/user/rea/StorOS/output/`, checksum SHA256 igual ao da origem Fedora, GPT/EFI confirmado.
+- VM isolada `StorOS-BootTest-RAW-Preview031` iniciou por overlay QCOW2 da imagem RAW e exibiu o StorOS no console VNC, incluindo correção de unidades/zram.
+- QEMU guest agent respondeu, porta SSH 22 e portas HTTP 80/8765 não estão acessíveis na LAN da VM. SSH está mascarado na imagem OCI e nenhum blueprint de usuário/chave é utilizado nesta versão.
+- `tools/verify-usb-vm.sh` implementa teste externo não privilegiado da VM e salva captura. Não foi necessário enfraquecer SELinux.
+- **Status de release**: preview para boot/GUI de notebook; não é NAS para produção nem possui instalação de apps com um clique, controle de discos, conta de administrador configurável ou suporte validado de Wi-Fi/Secure Boot.

@@ -40,3 +40,16 @@ O nome planejado do RAW é `StorOS-v0.3.1-USB-Preview.raw`. A imagem de laborat�
 Após compilar, confirme checksum, tabela GPT/EFI, boot UEFI do RAW por uma VM isolada, LightDM/Firefox, API local, Compose e ausência de porta SSH aberta. O único formato apropriado para gravar diretamente pelo Etcher é a imagem de disco RAW/IMG (não QCOW2).
 
 Esta versão é uma **prova de conceito do boot e da interface**, não um sistema NAS com instalação persistente homologada. As funções de armazenamento, volumes de aplicativos, backup e updates ainda não são seguras para produção.
+
+## Resultado verificado em 27/10/2026 — v0.3.1
+- `StorOS-v0.3.1-USB-Preview.img` produzido com 10 GiB e tabela GPT incluindo ESP/UEFI, checksum SHA256 correspondente ao RAW da VM Fedora.
+- Imagem bootada **diretamente como base RAW**, usando somente overlay QCOW2, na VM isolada `StorOS-BootTest-RAW-Preview031` (UEFI, sem disco físico repassado).
+- GUI LightDM + Firefox renderizando o painel StorOS na tela VNC; a formatação de memória em GiB e o filtro de zram estão corrigidos.
+- QEMU guest agent conectado. Rede NAT: nenhuma conexão TCP nas portas 22, 80 e 8765; o backend HTTP permanece em loopback.
+- Como o agente do QEMU está confinado pelo SELinux, comandos administrativos executados através dele podem retornar acesso negado. Não enfraquecer SELinux para burlar essa restrição. Validamos a imagem e a conectividade a partir do host e a GUI pelo VNC.
+- Docker e Compose estão presentes na camada OCI da imagem e foram validados na v0.3.0; **ainda não houve ensaio de instalação de apps por UI na v0.3.1**.
+
+Arquivo final no Unraid: `/mnt/user/rea/StorOS/output/StorOS-v0.3.1-USB-Preview.img`.
+SHA256: `e1050333df2f3d421e9858be41973188b71ddc165e32f19441587ff05850fce4`.
+
+Primeiro teste físico: gravar no **pendrive vazio** (mínimo 16 GB), selecionar USB pelo menu UEFI, deixar disco interno desligado/desconectado quando possível e validar painel na tela. O sistema ainda não conta com onboarding administrativo, auto-configuração de Wi-Fi, tolerância a falhas ou controle completo de volumes. Não usá-lo como substituto de Unraid.

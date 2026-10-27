@@ -6,7 +6,7 @@ ROOT=/mnt/user/rea/StorOS
 RAW="${1:?RAW path required}"
 VM="${2:?VM name required}"
 WS="${3:?WebSocket port required}"
-case "$RAW" in "$ROOT"/lab/*.raw|"$ROOT"/output/*.raw) ;; *) echo 'RAW must be in StorOS lab or output' >&2; exit 2;; esac
+case "$RAW" in "$ROOT"/lab/*.raw|"$ROOT"/output/*.raw|"$ROOT"/output/*.img) ;; *) echo 'RAW must be in StorOS lab or output' >&2; exit 2;; esac
 [[ "$VM" =~ ^StorOS-BootTest-RAW-[A-Za-z0-9-]{1,35}$ ]] || { echo 'Unsafe VM name'; exit 2; }
 [[ "$WS" =~ ^[0-9]{4,5}$ ]] && (( WS >= 5700 && WS <= 5799 )) || { echo 'WebSocket must be 5700-5799'; exit 2; }
 test -f "$RAW" && test ! -L "$RAW" || { echo 'Missing or symlink RAW'; exit 2; }

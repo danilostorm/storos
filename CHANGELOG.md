@@ -45,3 +45,4 @@
 - Testador QEMU de imagens RAW usa disco overlay QCOW2, rede NAT e VNC somente loopback, preservando o arquivo original.
 - Imagem RAW v0.3.0 de laboratório validada com GPT/EFI e boot UEFI em VM separada, Docker/Compose, painel e módulos de apps/custos HTTP 200.
 - A v0.3.1 precisa passar em teste de boot próprio antes de ser recomendada para gravação física.
+- **Homologação limitada v0.3.1**: boot RAW UEFI em VM isolada, GUI renderizada, SHA256 do `.img` igual ao RAW do builder, portas 22/80/8765 não expostas na rede da VM. Publicada a rotina de teste por VNC/guest agent não privilegiado.
