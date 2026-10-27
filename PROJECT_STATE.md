@@ -27,3 +27,8 @@ Desenvolvimento primário no AEROCOOL: `/mnt/user/rea/StorOS`. VM Fedora de comp
 4. Planejar virtualização compartilhada CPU/RAM/GPU como trilha separada da infraestrutura NAS.
 
 O planejamento original de setembro permanece acessível no GitHub em `archive/antes-storos-usb-2026-10-27`.
+
+## Acesso LAN / noVNC no laboratório
+- A VM `StorOS-BootTest-GUI-Default` usa VNC 5917 e WebSocket 5717, ambos em loopback host; a porta WebSocket foi adicionada ao XML do libvirt, corrigindo o motivo do “Failed to connect to server” no noVNC.
+- A VM segue em NAT `192.168.122.200`. O dashboard na VM ainda é `127.0.0.1:8765`. Para LAN, usa gateway experimental autenticado em `https://192.168.30.10:18443/` com túnel SSH.
+- Não funciona após reboot do host sem reiniciar os serviços temporários. Certificado TLS autoassinado, credenciais no laboratório fora do controle de versão.

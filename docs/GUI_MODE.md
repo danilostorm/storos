@@ -19,3 +19,10 @@ A segunda build `StorOS-gui-default.qcow2` foi verificada pelo QEMU, inicializad
 **Como testar no AEROCOOL:** painel Unraid > VMs > `StorOS-BootTest-GUI-Default` > VNC Remote. Não é necessário usar `storos-gui-mode enable` nesta build, pois já inicia em modo gráfico.
 
 **Nota:** ainda não é release para pendrive físico; imagens GUI do laboratório foram construídas com chave pública SSH de teste.
+
+## Correção noVNC e acesso HTTPS no laboratório
+O noVNC do Unraid utiliza `/wsproxy/<websocket-port>/`, portanto a VM precisa de atributo `websocket` além de `port`. A VM `StorOS-BootTest-GUI-Default` foi configurada para WebSocket `5717`, VNC `5917`, ambos limitados ao loopback `127.0.0.1` do AEROCOOL. A VM de laboratório foi desligada graciosamente e reiniciada. O handshake QEMU em 5717 retornou HTTP 101, e o Unraid encaminha essa porta somente mediante a sessão autenticada do painel. O script `tools/test-boot-gui.sh` agora inclui a mesma configuração.
+
+A API StorOS continua atendendo **apenas em `127.0.0.1:8765` dentro da VM** e ainda é read-only, sem autenticação própria. Para testes na LAN, criou-se o gateway `tools/lan_gateway.py`, acessível em `https://192.168.30.10:18443/`, protegido por senha e certificado TLS autoassinado (30 dias). O gateway aceita apenas GET/HEAD numa lista fechada de recursos, somente da LAN `192.168.30.0/24`. Encaminha as requisições por túnel SSH de `127.0.0.1:18766` no host até `127.0.0.1:8765` dentro da VM.
+
+O serviço HTTPS e o túnel são **temporários e não são iniciados automaticamente após reboot do Unraid**. O certificado, a senha e a chave SSH permanecem na pasta `lab/` ignorada pelo Git, sem publicação externa. Não expor o painel sem autenticação fora da LAN nem usá-lo em produção; o certificado autoassinado requer confirmação no navegador.

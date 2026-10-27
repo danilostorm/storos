@@ -50,7 +50,7 @@ cat > "$XML" <<EOF
     </interface>
     <serial type='pty'/><console type='pty'/>
     <channel type='unix'><target type='virtio' name='org.qemu.guest_agent.0'/></channel>
-    <graphics type='vnc' port='-1' autoport='yes' listen='127.0.0.1'/>
+    <graphics type='vnc' port='-1' autoport='yes' websocket='5717' listen='127.0.0.1'/>
     <video><model type='virtio'/></video>
   </devices>
 </domain>

@@ -47,3 +47,8 @@ Assim como o modo GUI do Unraid, o StorOS terá uma opção **local** para exibi
 Este código sucede o planejamento de virtualização do StorOS iniciado em setembro de 2026. A branch `archive/antes-storos-usb-2026-10-27` mantém integralmente o estado anterior. A intenção de gerenciamento de VMs e compartilhamento de recursos permanece no [roadmap](ROADMAP.md), mas ainda não foi implementada.
 
 ⚠ **Somente laboratório**: ainda não é alternativa segura ao Unraid em produção. Nenhuma operação de gerenciamento ou formatação de disco físico está habilitada.
+
+
+## Console noVNC e painel HTTPS do laboratório
+- noVNC: Unraid → VMs → `StorOS-BootTest-GUI-Default` → VNC Remote. O script agora configura WebSocket 5717 no QEMU, limitado ao loopback do AEROCOOL e acessível via proxy do Unraid com sessão autenticada.
+- Painel web externo de testes: `https://192.168.30.10:18443/` com autenticação local no gateway `tools/lan_gateway.py`. Certificado autoassinado. A VM não expõe sua API diretamente pela LAN. Não é um acesso de produção.

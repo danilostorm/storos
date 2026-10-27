@@ -22,3 +22,8 @@
 - `storos-dashboard.service` ativo; GET `/` e GET `/api/status` retornaram HTTP 200. Verificação de processo mostrou Firefox executado pela conta sem privilégios `storos-gui`.
 - Captura de evidência somente no laboratório do AEROCOOL em `/mnt/user/rea/StorOS/lab/storos-gui-default-screen3.png`; não publicar screenshots internas nem chaves de laboratório.
 - **Não comprovado:** USB físico com GUI, BIOS legado, boot selector, atualizações/rollback e recursos de NAS/VM.
+
+## 2026-10-27 — Console noVNC e HTTPS LAN
+- Corrigida VM de teste com atributo libvirt `websocket=5717`; restringido acesso às portas VNC/WebSocket em loopback; handshake HTTP 101 verificado.
+- Criado gateway HTTPS LAN autenticado no AEROCOOL, com túnel SSH, recursos permitidos somente de leitura e credenciais fora do Git.
+- Gateway testado: sem senha HTTP 401; senha incorreta HTTP 401; senha correta HTTP 200; API status HTTP 200; recurso desconhecido 404; POST 405.
