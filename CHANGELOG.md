@@ -27,3 +27,10 @@
 - Corrigida VM de teste com atributo libvirt `websocket=5717`; restringido acesso às portas VNC/WebSocket em loopback; handshake HTTP 101 verificado.
 - Criado gateway HTTPS LAN autenticado no AEROCOOL, com túnel SSH, recursos permitidos somente de leitura e credenciais fora do Git.
 - Gateway testado: sem senha HTTP 401; senha incorreta HTTP 401; senha correta HTTP 200; API status HTTP 200; recurso desconhecido 404; POST 405.
+
+## 2026-10-27 — v0.3 App Center + custos do Tower (em laboratório)
+- Integração de módulo de estimativa de energia, internet e tempo ativo inspirado diretamente no código do Tower Command Center, de autoria do usuário (ZIEL).
+- Catálogo local, pesquisa de imagens via Docker Hub HTTPS, prévia de Docker Compose para seis apps. Sem instalação privilegiada pelo painel.
+- Nova seção de custos com perfil CPU/plataforma/RAM/GPU, tarifa de energia, horas e rateio do plano de internet.
+- Imagem GUI estendida para inicialização do Docker Engine/Compose incluído no uCore, sujeita a teste de boot em VM.
+- Dados do ZIEL, credenciais e histórico operacional não foram copiados para o StorOS.

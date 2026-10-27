@@ -8,7 +8,9 @@ import socket
 import subprocess
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs
+import apps
+import billing
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
@@ -87,7 +89,9 @@ def vm_status():
     return {"available": True, "items": [{"name": line, "status": "listed"} for line in out["lines"] if line.strip()]}
 
 API = {"/api/status": system_status, "/api/disks": disk_status,
-       "/api/containers": container_status, "/api/vms": vm_status}
+       "/api/containers": container_status, "/api/vms": vm_status,
+       "/api/apps/catalog": apps.catalog, "/api/apps/engine": apps.engine,
+       "/api/billing/model": billing.configured_model}
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -95,13 +99,31 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
-        if path in API:
+        if path in API or path in ("/api/apps/compose", "/api/apps/hub", "/api/billing/estimate"):
+            status = 200
             try:
-                content = json.dumps(API[path](), ensure_ascii=False).encode("utf-8")
-                self.send_response(200)
+                if path == "/api/apps/compose":
+                    args = parse_qs(urlsplit(self.path).query)
+                    data = apps.compose_preview(args.get("slug", [""])[0])
+                elif path == "/api/billing/estimate":
+                    required = ("cpu_watts", "board_watts", "ram_watts", "threads", "host_ram_gib",
+                                "vcpus", "ram_gib", "gpu_watts", "hours", "electricity_kwh",
+                                "uptime_hour", "plan_price", "total_cycle_gb", "item_cycle_gb")
+                    params = parse_qs(urlsplit(self.path).query)
+                    if set(params) != set(required) or any(len(v) != 1 for v in params.values()):
+                        raise ValueError("Informe os 14 campos de cálculo")
+                    data = billing.estimated_item(**{name: params[name][0] for name in required})
+                elif path == "/api/apps/hub":
+                    args = parse_qs(urlsplit(self.path).query)
+                    data = apps.hub_search(args.get("q", [""])[0])
+                else:
+                    data = API[path]()
+            except ValueError as exc:
+                status, data = 400, {"error": str(exc)[:120]}
             except Exception:
-                content = b'{"error":"Observation unavailable"}'
-                self.send_response(503)
+                status, data = 503, {"error": "Serviço externo ou módulo indisponível"}
+            content = json.dumps(data, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")

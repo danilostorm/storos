@@ -6,3 +6,47 @@
 .sections{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;margin-top:22px}.panel{min-width:0;overflow:hidden}.panel.wide{grid-column:1/-1}.panel-header{padding:24px 25px 19px;display:flex;justify-content:space-between;align-items:center;gap:10px}.section-kicker{font-size:10px;letter-spacing:1.7px;font-weight:800;color:#5fb69f}.panel h2{font-size:18px;margin:8px 0 0;font-weight:700;letter-spacing:-.3px}.panel-meta{font-size:11px;color:#94a5b5;background:#202d3b;border:1px solid #2d3d4e;padding:6px 9px;border-radius:8px;white-space:nowrap}.table-head{background:#17232f;display:grid;grid-template-columns:1.1fr 1fr 1.1fr;gap:12px;padding:14px 25px;color:#76899b;font-size:9px;letter-spacing:1px;font-weight:800}.table-row{display:grid;grid-template-columns:1.1fr 1fr 1.1fr;gap:12px;padding:15px 25px;border-top:1px solid #23313f;align-items:center;font-size:12px;color:#aab8c8}.dev-name{font-weight:700;color:#e1e9f3}.fs{color:#81d7c4}.panel-footer{border-top:1px solid #26313e;padding:14px 25px;color:#6d8193;font-size:10px}.entities{padding:0 22px 14px;max-height:310px;overflow:auto}.entity{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid #25313f;padding:11px 5px;font-size:12px}.entity:last-child{border:0}.entity-name{color:#d7e1ec;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.entity-status{color:#78cdb9;font-size:10px;white-space:nowrap}.app-grid{padding:0 24px 22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-height:400px;overflow:auto}.app-tile{border:1px solid #293e4a;background:#15232e;padding:13px 15px;border-radius:9px;min-width:0;display:flex;gap:12px;align-items:center}.app-symbol{border-radius:9px;background:#274a4e;color:#90e5ce;font-size:19px;font-weight:700;width:35px;height:35px;display:grid;place-items:center;flex:none}.app-info{min-width:0}.app-title{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.app-status{font-size:10px;color:#83c8b5;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.placeholder{color:#7e92a5;font-size:12px;padding:22px}footer{color:#637387;font-size:11px;padding:29px 2px 0;display:flex;justify-content:space-between;gap:10px}
 @media(max-width:1150px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.sections{grid-template-columns:1fr}.panel.wide{grid-column:auto}.app-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.app-shell{display:block}.sidebar{width:100%;height:auto;position:static;display:block;padding:14px}.sidebar .logo{margin:0 0 15px}.sidebar nav{flex-direction:row;overflow-x:auto}.nav-item{white-space:nowrap;font-size:11px;padding:9px}.menu-heading,.sidebar-bottom{display:none}.content{width:100%}.topbar{padding:0 18px;height:60px}.right-tools>span{display:none}.dashboard{padding:35px 17px 26px}.intro{display:block}.prototype{display:inline-block;margin-top:18px}.metric{padding:17px;min-height:135px}.kpi-grid{gap:9px}.metric-label{font-size:9px}.big{font-size:23px}.app-grid{grid-template-columns:1fr}.panel-header{padding:20px 15px}.table-row,.table-head{padding:13px 15px;font-size:11px;gap:8px}.table-head{font-size:8px}}
+
+
+/* StorOS App Center and Tower accounting — responsive read-only MVP */
+.store-intro{margin:0 24px 15px;color:#8fa6b9;font-size:12px;line-height:1.65}
+.store-notice{margin:12px 24px;padding:12px 14px;font-size:12px;color:#a1dcca;background:#132a2d;border:1px solid #2e534f;border-radius:9px}
+.store-notice-error{color:#ffd7cf;background:#352326;border-color:#69454a}
+.store-subheading{font-size:14px;font-weight:700;margin:21px 24px 12px}
+.market-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;padding:0 24px 20px}
+.market-card{min-width:0;background:#101c29;border:1px solid #2a3b4a;border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.market-card h3{font-size:15px;letter-spacing:-.25px;margin:0;color:#eef7ff}
+.market-card p{margin:0;color:#99a7ba;font-size:11px;line-height:1.55;min-height:34px}
+.market-symbol{display:grid;place-items:center;width:39px;height:39px;color:#83edc9;background:#17423b;font-size:20px;font-weight:800;border-radius:10px}
+.market-tag{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:#72d4b9}
+.market-image{max-width:100%;font-size:10px;color:#93a8c0;word-break:break-all}
+.market-actions{margin-top:auto;padding-top:9px;width:100%}
+.store-action{padding:10px 14px;border-radius:8px;border:1px solid #317566;color:#c9fff0;background:#185144;font-weight:700;font-size:11px;cursor:pointer}
+.store-action:hover{background:#226f59}.store-action.muted{background:#203042;border-color:#334b60;color:#d7e4f4}
+.hub-section,.compose-zone{padding:4px 24px 18px;border-top:1px solid #243441}
+.hub-section .store-subheading{margin-left:0;margin-right:0}
+.hub-search>label{font-size:11px;color:#a5b5c3;display:block;margin-bottom:8px}
+.hub-query-row{display:flex;gap:8px}.hub-query-row input,.billing-field input{border:1px solid #34495c;border-radius:8px;padding:11px;color:#edf8ff;background:#0b1623;min-width:0}
+.hub-query-row input{flex:1;font:inherit;font-size:12px}
+.hub-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:15px}
+.hub-item{border:1px solid #284051;border-radius:9px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.hub-item strong{font-size:12px;word-break:break-word}
+.hub-item p{color:#90a2b7;font-size:11px;line-height:1.5;margin:5px 0 0;max-width:500px}
+.hub-link{font-size:11px;color:#79dfc4;white-space:nowrap}
+.compose-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.compose-header h3{font-size:14px}
+#compose-preview{display:block;width:100%;box-sizing:border-box;resize:vertical;background:#09131e;color:#bcebcf;border:1px solid #2e4e52;border-radius:10px;padding:15px;font:12px/1.6 ui-monospace,Consolas,monospace}
+.store-caption{font-size:11px;line-height:1.55;color:#8197ab;margin-top:12px}
+.billing-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;padding:0 24px}
+.billing-field{font-size:11px;color:#adc1cf;display:flex;flex-direction:column;gap:7px}
+.billing-field input{width:100%;font:inherit;font-size:13px;min-width:0}
+.billing-actions{display:flex;gap:10px;padding:18px 24px 5px;flex-wrap:wrap}
+.billing-results{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;padding:0 24px 24px}
+.billing-results>div{border:1px solid #274451;background:#10222e;border-radius:11px;padding:16px;min-width:0}
+.billing-results span{display:block;font-size:11px;color:#9eb0bd}
+.billing-results strong{display:block;font-size:23px;color:#f2fafc;margin-top:11px;overflow-wrap:anywhere}
+.billing-results small{display:block;color:#72ccb8;font-size:10px;margin-top:8px;line-height:1.5}
+.billing-results .billing-total{border-color:#3d756d;background:#12342f}
+.store-footnote{padding:0 24px 12px}
+@media(max-width:1150px){.market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.billing-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.billing-results{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.market-grid,.hub-results,.billing-fields,.billing-results{grid-template-columns:1fr}.hub-item{align-items:flex-start;flex-direction:column}.hub-query-row{flex-wrap:wrap}.hub-query-row input{flex-basis:100%}}

@@ -52,3 +52,9 @@ Este código sucede o planejamento de virtualização do StorOS iniciado em sete
 ## Console noVNC e painel HTTPS do laboratório
 - noVNC: Unraid → VMs → `StorOS-BootTest-GUI-Default` → VNC Remote. O script agora configura WebSocket 5717 no QEMU, limitado ao loopback do AEROCOOL e acessível via proxy do Unraid com sessão autenticada.
 - Painel web externo de testes: `https://192.168.30.10:18443/` com autenticação local no gateway `tools/lan_gateway.py`. Certificado autoassinado. A VM não expõe sua API diretamente pela LAN. Não é um acesso de produção.
+
+## Novos módulos em v0.3 (em desenvolvimento)
+- **Loja de Apps:** catálogo local, busca pública no Docker Hub e modelos de Docker Compose. O painel ainda não instala aplicativos por motivos de segurança.
+- **Custos:** simulador com o modelo de rateio do seu Tower Command Center (ZIEL), incluindo CPU, RAM, GPU dedicada, eletricidade, hora ativa e internet proporcional aos GB. Sem coleta automática/histórico até o próximo módulo.
+- **Docker/Compose:** componentes já vêm na base uCore. Imagem GUI v0.3 habilita o daemon Docker para avaliação na VM separada.
+- Especificação detalhada em [App Center e custos](docs/APP_CENTER_AND_COSTS.md).

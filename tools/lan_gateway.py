@@ -12,9 +12,9 @@ import ipaddress
 import ssl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode, parse_qs
 
-ALLOWED = frozenset({"/", "/index.html", "/app.js", "/style.css", "/api/status", "/api/disks", "/api/containers", "/api/vms"})
+ALLOWED = frozenset({"/", "/index.html", "/app.js", "/apps.js", "/style.css", "/api/status", "/api/disks", "/api/containers", "/api/vms", "/api/apps/catalog", "/api/apps/engine", "/api/apps/compose", "/api/apps/hub", "/api/billing/model", "/api/billing/estimate"})
 LAN = ipaddress.ip_network("192.168.30.0/24")
 
 class Gateway(BaseHTTPRequestHandler):
@@ -55,15 +55,36 @@ class Gateway(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
-        target = urlsplit(self.path).path
+        parts = urlsplit(self.path)
+        target = parts.path
         if target not in ALLOWED:
             self.send_error(404, "Unsupported read-only resource")
             return
+        # Only allow tiny, canonical query strings for the two search/preview APIs.
+        if parts.query:
+            if target not in ("/api/apps/hub", "/api/apps/compose", "/api/billing/estimate") or len(parts.query) > 480:
+                self.send_error(400, "Unsupported query")
+                return
+            args = parse_qs(parts.query, keep_blank_values=False)
+            if target == "/api/billing/estimate":
+                names = {"cpu_watts", "board_watts", "ram_watts", "threads", "host_ram_gib",
+                         "vcpus", "ram_gib", "gpu_watts", "hours", "electricity_kwh",
+                         "uptime_hour", "plan_price", "total_cycle_gb", "item_cycle_gb"}
+                if set(args) != names or any(len(v) != 1 or len(v[0]) > 16 for v in args.values()):
+                    self.send_error(400, "Invalid estimate query")
+                    return
+                target += "?" + urlencode({k: args[k][0] for k in sorted(names)})
+            else:
+                arg_name = "q" if target == "/api/apps/hub" else "slug"
+                if set(args) != {arg_name} or len(args[arg_name]) != 1:
+                    self.send_error(400, "Invalid query")
+                    return
+                target += "?" + urlencode({arg_name: args[arg_name][0]})
         upstream = http.client.HTTPConnection("127.0.0.1", self.server.upstream_port, timeout=10)
         try:
             upstream.request("HEAD" if head else "GET", target, headers={"Host": "localhost", "Connection": "close"})
             response = upstream.getresponse()
-            if response.status not in (200, 304):
+            if response.status not in (200, 304, 400, 503):
                 self.send_error(502, "StorOS responded unexpectedly")
                 return
             body = b"" if head else response.read(4 * 1024 * 1024 + 1)

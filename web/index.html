@@ -7,17 +7,20 @@
   <title>StorOS — Controle do seu servidor</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
+  <script src="/apps.js" defer></script>
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar">
-    <a class="logo" href="/" aria-label="StorOS início"><span class="logo-mark">S</span><span>stor<span class="logo-accent">OS</span><small>Laboratório v0.1</small></span></a>
+    <a class="logo" href="/" aria-label="StorOS início"><span class="logo-mark">S</span><span>stor<span class="logo-accent">OS</span><small>Laboratório v0.3</small></span></a>
     <div class="menu-heading">WORKSPACE</div>
     <nav aria-label="Navegação">
       <a class="nav-item active" href="#overview"><span>◈</span> Visão geral</a>
       <a class="nav-item" href="#storage"><span>▥</span> Armazenamento</a>
       <a class="nav-item" href="#compute"><span>▣</span> Virtualização</a>
-      <a class="nav-item" href="#apps"><span>◫</span> Aplicativos</a>
+      <a class="nav-item" href="#apps"><span>◫</span> Containers</a>
+      <a class="nav-item" href="#catalog"><span>◇</span> Loja de apps</a>
+      <a class="nav-item" href="#billing"><span>▤</span> Custos</a>
     </nav>
     <div class="sidebar-bottom">
       <div class="readonly"><span class="green-dot"></span> Modo somente leitura</div>
@@ -33,7 +36,7 @@
       <div class="eyebrow"><span class="eyebrow-line"></span> PLATAFORMA DE ARMAZENAMENTO E COMPUTAÇÃO</div>
       <div class="intro">
         <div><h1>Seu servidor. <em>Seu controle.</em></h1><p>Uma visão clara dos recursos, do armazenamento e das aplicações.</p></div>
-        <span class="prototype">● Protótipo v0.1</span>
+        <span class="prototype">● Protótipo v0.3</span>
       </div>
       <div id="error" class="error" hidden role="alert"></div>
       <section class="kpi-grid" aria-label="Indicadores">
@@ -57,6 +60,42 @@
         <section class="panel wide" id="apps">
           <div class="panel-header"><div><span class="section-kicker">APPLICATIONS</span><h2>Containers em execução</h2></div><span class="panel-meta" id="apps-count">—</span></div>
           <div id="apps-list" class="app-grid"><div class="placeholder">Lendo aplicações...</div></div>
+        </section>
+        <section class="panel wide" id="catalog">
+          <div class="panel-header"><div><span class="section-kicker">APP CENTER</span><h2>Loja de aplicativos e Docker Hub</h2></div><span class="panel-meta">Prévia · leitura</span></div>
+          <div class="store-intro">Catálogo de exemplos com arquivos Docker Compose editáveis. Imagens de terceiros não auditadas e instalações via painel ainda desativadas.</div>
+          <div id="engine-info" class="store-notice">Lendo motor Docker e Compose...</div>
+          <h3 class="store-subheading">Aplicativos em destaque</h3>
+          <div id="catalog-list" class="market-grid"><div class="placeholder">Lendo catálogo...</div></div>
+          <div class="hub-section">
+            <h3 class="store-subheading">Pesquisar imagens no Docker Hub</h3>
+            <form id="hub-form" class="hub-search">
+              <label for="hub-query">Nome ou palavra-chave da imagem</label>
+              <div class="hub-query-row"><input id="hub-query" required minlength="2" maxlength="45" placeholder="Ex.: nextcloud, nginx, jellyfin"><button class="store-action" type="submit">Pesquisar</button></div>
+            </form>
+            <div id="hub-results" class="hub-results"></div>
+          </div>
+          <div class="compose-zone">
+            <div class="compose-header"><h3 id="compose-title">Prévia do Compose</h3><button class="store-action" type="button" id="compose-copy">Copiar Compose</button></div>
+            <textarea id="compose-preview" readonly spellcheck="false" rows="8" placeholder="Escolha um app para exibir seu arquivo compose.yaml."></textarea>
+            <div id="compose-helper" class="store-caption">Somente prévia: revise imagem, rede, portas, volumes e credenciais antes de qualquer instalação.</div>
+          </div>
+        </section>
+        <section class="panel wide" id="billing">
+          <div class="panel-header"><div><span class="section-kicker">TOWER ACCOUNTING</span><h2>Estimativa de custos por VM ou container</h2></div><span class="panel-meta">BRL · Laboratório</span></div>
+          <p class="store-intro">Modelo reaproveitado do seu Tower Command Center: CPU e placa-mãe por vCPU, RAM proporcional, GPU dedicada e rateio da internet pelos GB utilizados. Informe valores reais para calcular. Esta prévia não coleta histórico automaticamente.</p>
+          <form id="billing-form">
+            <div id="billing-fields" class="billing-fields"></div>
+            <div class="billing-actions"><button class="store-action" type="submit">Calcular custo</button><button class="store-action muted" type="button" id="billing-example">Carregar exemplo Tower</button></div>
+          </form>
+          <div id="billing-state" class="store-notice">Carregando modelo...</div>
+          <div class="billing-results">
+            <div class="billing-total"><span>Custo total estimado</span><strong id="billing-total">—</strong><small id="billing-power">Preencha os dados para calcular</small></div>
+            <div><span>Energia</span><strong id="billing-energy-cost">—</strong></div>
+            <div><span>Internet</span><strong id="billing-internet-cost">—</strong></div>
+            <div><span>Tempo ativo</span><strong id="billing-uptime-cost">—</strong></div>
+          </div>
+          <p class="store-caption store-footnote">Não é faturamento real nem leitura de wattímetro. Os preços começam em zero e devem ser configurados. Histórico mensal por serviço e edição persistente dos planos serão acrescentados com o coletor de métricas.</p>
         </section>
       </div>
       <footer>StorOS · Projeto de código próprio · Ambiente experimental · <span id="uptime">Uptime —</span></footer>

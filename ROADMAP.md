@@ -8,3 +8,11 @@
 6. **P2 — Segurança e distribuição**: assinatura da imagem, updates atômicos/rollback, guias de gravação USB, CI, backup/restore, métricas e homologação. Não implementado.
 
 Não se comprometer com desempenho superior ao Unraid antes de benchmark e testes.
+
+## Ideias reaproveitáveis do Tower Command Center (código do usuário)
+- **Custos:** cálculo estimado implantado em v0.3; depois coletor de histórico, editor de tarifas/planos e rateio automático por VM/container.
+- **Observabilidade:** gráfico de CPU/RAM/temperatura/rede por período, SMART, continuidade de internet/host, eventos com severidade e reconhecimento.
+- **Virtualização:** métricas individuais de rede, RAM, vCPU, energia estimada e tempo ativo, separando serviços indisponíveis de ativos.
+- **Apps:** métricas e notificações individuais, gerência de stacks Compose e integrações OCI.
+- **Administração:** backups verificados, autenticação/RBAC, registro de auditoria e perfis de usuário.
+- **Proteção de dados:** políticas de falha de discos, uso/paridade; hardware real somente após testes de restauração.
