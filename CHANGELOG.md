@@ -15,3 +15,10 @@
 ## 2026-10-27 — GUI local v0.2.1 (experimental)
 - Preparada imagem GUI que escolhe graphical.target na própria imagem, sem executar mudanças remotas sob o SELinux restrito do agente QEMU.
 - Primeira imagem GUI OCI e QCOW2 compiladas; comprovados boot UEFI, SSH, Firefox/Xorg/LightDM instalados e HTTP 200. Sessão gráfica visível ainda em teste, sem homologação.
+
+## 2026-10-27 — Confirmação visual GUI
+- Imagem GUI `StorOS-gui-default.qcow2` construída com OSBuild; `qemu-img check` aprovou.
+- VM `StorOS-BootTest-GUI-Default` iniciou UEFI, recebeu IP interno `192.168.122.200`, `graphical.target`, LightDM, Xorg, Firefox kiosk e painel na tela VNC.
+- `storos-dashboard.service` ativo; GET `/` e GET `/api/status` retornaram HTTP 200. Verificação de processo mostrou Firefox executado pela conta sem privilégios `storos-gui`.
+- Captura de evidência somente no laboratório do AEROCOOL em `/mnt/user/rea/StorOS/lab/storos-gui-default-screen3.png`; não publicar screenshots internas nem chaves de laboratório.
+- **Não comprovado:** USB físico com GUI, BIOS legado, boot selector, atualizações/rollback e recursos de NAS/VM.
