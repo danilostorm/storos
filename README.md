@@ -58,3 +58,6 @@ Este código sucede o planejamento de virtualização do StorOS iniciado em sete
 - **Custos:** simulador com o modelo de rateio do seu Tower Command Center (ZIEL), incluindo CPU, RAM, GPU dedicada, eletricidade, hora ativa e internet proporcional aos GB. Sem coleta automática/histórico até o próximo módulo.
 - **Docker/Compose:** componentes já vêm na base uCore. Imagem GUI v0.3 habilita o daemon Docker para avaliação na VM separada.
 - Especificação detalhada em [App Center e custos](docs/APP_CENTER_AND_COSTS.md).
+
+### Próxima etapa: pendrive no notebook
+O protocolo de homologação e gravação via balenaEtcher está em [docs/USB_NOTEBOOK_TEST.md](docs/USB_NOTEBOOK_TEST.md). **Não usar uma imagem de laboratório que inclui chaves SSH pré-configuradas como release pública.**

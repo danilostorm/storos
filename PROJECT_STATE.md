@@ -32,3 +32,11 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 - A VM `StorOS-BootTest-GUI-Default` usa VNC 5917 e WebSocket 5717, ambos em loopback host; a porta WebSocket foi adicionada ao XML do libvirt, corrigindo o motivo do “Failed to connect to server” no noVNC.
 - A VM segue em NAT `192.168.122.200`. O dashboard na VM ainda é `127.0.0.1:8765`. Para LAN, usa gateway experimental autenticado em `https://192.168.30.10:18443/` com túnel SSH.
 - Não funciona após reboot do host sem reiniciar os serviços temporários. Certificado TLS autoassinado, credenciais no laboratório fora do controle de versão.
+
+## StorOS v0.3 — APP CENTER + custos do Tower (2026-10-27)
+- Código-fonte publicado no GitHub com lógica de custos adaptada do Tower Command Center do próprio usuário (ZIEL); sem copiar credenciais/configuração/consumo real do ZIEL.
+- Backend: `/api/apps/catalog`, `/api/apps/engine`, `/api/apps/compose`, `/api/apps/hub`, `/api/billing/model` e `/api/billing/estimate` (todos em leitura, não iniciam containers nem escrevem configurações).
+- Interface gráfica: loja de seis apps, busca no Docker Hub, prévia de Compose e simulador mensal de energia/internet/hora ativa; ainda sem histórico coletado ou gerenciamento com RBAC.
+- Todos os seis modelos Compose passaram `docker compose config --quiet`, os testes unitários locais passaram e respostas HTTP do backend validaram os novos endpoints.
+- OCI uCore v0.3 com Docker Engine/Compose presentes e habilitados por systemd. **QCOW2/RAW v0.3 ainda não são considerados homologados até boot/HTTP/Docker/GUI no laboratório.**
+- Próximo ensaio de notebook via balenaEtcher exige imagem sem chave de laboratório, checksum, teste RAW em QEMU e checklist `docs/USB_NOTEBOOK_TEST.md`.
