@@ -11,7 +11,7 @@ Desenvolvimento primário no AEROCOOL: `/mnt/user/rea/StorOS`. VM Fedora de comp
 - Discos/VMs de laboratório são isolados dos discos reais; nenhuma gravação em pendrive físico.
 
 ## Em andamento
-- `installer/Containerfile.gui`: protótipo de modo GUI local, com Xorg/LightDM/Openbox/Firefox; precisa build, boot e teste visual na VM.
+- `installer/Containerfile.gui`: OCI GUI compilada com Xorg/LightDM/Openbox/Firefox; primeiro QCOW2 GUI iniciou via UEFI e respondeu HTTP 200, mas ainda não abriu sessão X11 no VNC pois o modo headless era default e QEMU guest agent é confinado por SELinux. Build separado com target graphical.target default está em preparação/validação.
 - Entrega da imagem USB ao usuário; RAW ainda não foi testado em hardware USB físico.
 
 ## Pendências

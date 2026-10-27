@@ -11,3 +11,7 @@
 - Backup do planejamento antigo em branch archive antes da substituição da main autorizada pelo usuário.
 
 **Limitações:** a imagem RAW não foi gravada nem validada num USB físico; a GUI depende de build e teste de sessão gráfica; NAS e virtualização ainda não disponíveis.
+
+## 2026-10-27 — GUI local v0.2.1 (experimental)
+- Preparada imagem GUI que escolhe graphical.target na própria imagem, sem executar mudanças remotas sob o SELinux restrito do agente QEMU.
+- Primeira imagem GUI OCI e QCOW2 compiladas; comprovados boot UEFI, SSH, Firefox/Xorg/LightDM instalados e HTTP 200. Sessão gráfica visível ainda em teste, sem homologação.

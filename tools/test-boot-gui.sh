@@ -2,11 +2,11 @@
 # Boot StorOS in a second, strictly isolated VM. No passthrough or physical disks.
 set -Eeuo pipefail
 ROOT=/mnt/user/rea/StorOS
-NAME=StorOS-BootTest-GUI
-SOURCE="$ROOT/output/StorOS-gui-preview.qcow2"
-OVERLAY="$ROOT/lab/storos-boot-test-gui-overlay.qcow2"
-VARS="$ROOT/lab/storos-boot-test-gui-vars.fd"
-XML="$ROOT/lab/storos-boot-test-gui.xml"
+NAME=StorOS-BootTest-GUI-Default
+SOURCE="$ROOT/output/StorOS-gui-default.qcow2"
+OVERLAY="$ROOT/lab/storos-boot-test-gui-default-overlay.qcow2"
+VARS="$ROOT/lab/storos-boot-test-gui-default-vars.fd"
+XML="$ROOT/lab/storos-boot-test-gui-default.xml"
 test -f "$SOURCE" || { echo "Missing completed QCOW2 image: $SOURCE" >&2; exit 2; }
 if virsh dominfo "$NAME" >/dev/null 2>&1; then
   echo "Refusing: test VM already exists; inspect before changing it" >&2
