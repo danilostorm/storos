@@ -1,0 +1,69 @@
+{
+  "array": {
+    "present": true,
+    "file": "dynamix/ArrayDevices.page",
+    "size_bytes": 2101,
+    "sha256": "d1b9f6ea01723bfda72e350d4c0b08b70a42167576047d2610d0f6718901451c",
+    "symbols_detected": [
+      "main_filter",
+      "array_devices",
+      "disk_status",
+      "fsState"
+    ]
+  },
+  "pools": {
+    "present": true,
+    "file": "dynamix/CacheDevices.page",
+    "size_bytes": 26284,
+    "sha256": "891a2e08afbde86e92ff50a47ffe3785bd32efbd62d9770ce3d53a2a181e53b2",
+    "symbols_detected": [
+      "cache_filter",
+      "disk_status",
+      "fsState"
+    ]
+  },
+  "boot": {
+    "present": true,
+    "file": "dynamix/BootDevice.page",
+    "size_bytes": 1231,
+    "sha256": "916eccafed6c0013156ad3384a2b4ff728df7a66b74b9e2d377d234a48aed312",
+    "symbols_detected": [
+      "disk_status",
+      "fsState",
+      "flash"
+    ]
+  },
+  "operations": {
+    "present": true,
+    "file": "dynamix/ArrayOperation.page",
+    "size_bytes": 51904,
+    "sha256": "1a2bbdccb4458b400f7de451902096e1190e3c3f7ff1b6d168bac713dc12a897",
+    "symbols_detected": [
+      "cache_filter",
+      "array_devices",
+      "fsState",
+      "parity",
+      "mount",
+      "disk_load"
+    ]
+  },
+  "disks": {
+    "present": true,
+    "file": "dynamix/DiskList.page",
+    "size_bytes": 1734,
+    "sha256": "ed7e4cfcbda8afc28c115ae0e3ff7faabdb866b61fcca7fa1f6fba86ed1226f8",
+    "symbols_detected": [
+      "fsState"
+    ]
+  },
+  "unassigned": {
+    "present": true,
+    "file": "unassigned.devices/UnassignedDevices.page",
+    "size_bytes": 71472,
+    "sha256": "fddd3c00e4fa56cec8d07e300d35bfa3a04d7b49d7b61a11469c5b250284ae38",
+    "symbols_detected": [
+      "flash",
+      "mount"
+    ]
+  }
+}

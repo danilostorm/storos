@@ -77,3 +77,12 @@
 - Teste pela VM existente: disco VirtIO 10 GiB, quatro partições, nenhuma share efetiva; SMART físico não exposto.
 - HTTPS autenticado, POST bloqueado, nenhuma VM ou disco alterado.
 - Imagem USB v0.4 anterior não inclui esta etapa.
+
+## 2026-10-28 — Main/Discos e módulos do sistema inspirados no Unraid
+- Adicionada navegação explícita Armazenamento > Discos, com Main organizada em Array, Pools, Boot, Outros Dispositivos e Operações.
+- Identificação do disco de boot por montagens reais. Array/pools inexistentes não são simulados, e discos extras nunca são presumidos como livres ou formatáveis.
+- Leituras de velocidade média por disco em sysfs de Linux; só exibidas depois de duas coletas válidas. Contadores de erros sem fonte confiável aparecem vazios.
+- API /api/modules e páginas de consulta reais para usuários, imagens, redes e volumes Docker, redes libvirt e serviços do sistema.
+- Funcionalidades administrativas ainda não implementadas têm aviso explícito, sem botões falsamente operacionais.
+- Estudo estático reproduzível do código PHP/Page da Main e plugin Unassigned Devices presente no AEROCOOL. Nada de código proprietário foi incorporado ao StorOS.
+- Mantida a política HTTP de somente leitura, API no loopback, gateway HTTPS autenticado. A atualização é web; RAW USB v0.4 anterior não foi recompilado.

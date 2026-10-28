@@ -11,12 +11,15 @@ import re
 import shutil
 import subprocess
 import time
+import threading
 from pathlib import Path
 
 from observability import mount_usage, _command
 
 _CACHE_SECONDS = 75
 _cache = (0.0, None)
+_io_samples = {}
+_inventory_lock = threading.Lock()
 _DISK_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
 
@@ -47,6 +50,33 @@ def _partition(raw):
         "usage": mount_usage(mounts[0]) if mounts else None,
         "read_only": raw.get("ro") is True,
     }
+
+
+def _disk_io(name):
+    """Average read/write bytes per second since prior successful inventory.
+
+    Linux sysfs counters express sectors in fixed 512-byte units. No first
+    sample rate is fabricated; null is returned until a second observation.
+    """
+    if not _DISK_NAME.fullmatch(name):
+        return {"reads_bps": None, "writes_bps": None, "errors": None}
+    try:
+        vals = [int(v) for v in Path("/sys/class/block/" + name + "/stat").read_text().split()]
+        if len(vals) < 7:
+            raise ValueError("short block stats")
+        now = time.monotonic()
+        current = (now, vals[2] * 512, vals[6] * 512)
+        previous = _io_samples.get(name)
+        _io_samples[name] = current
+        if previous is not None and now > previous[0]:
+            diff = (current[1] - previous[1], current[2] - previous[2])
+            if min(diff) >= 0:
+                return {"reads_bps": round(diff[0] / (now - previous[0])),
+                        "writes_bps": round(diff[1] / (now - previous[0])),
+                        "errors": None}
+    except (OSError, ValueError):
+        pass
+    return {"reads_bps": None, "writes_bps": None, "errors": None}
 
 
 def _smart(name, model, transport):
@@ -144,9 +174,24 @@ def _collect():
             "read_only": entry.get("ro") is True,
             "partitions": partitions,
             "smart": _smart(name, model, transport),
+            "io": _disk_io(name),
         })
+    # Only boot devices can be inferred from mounts. StorOS array/pool metadata
+    # does not exist yet; never mislabel every other disk as 'unassigned'.
+    boot = [d["name"] for d in disks if any(
+        mp in ("/boot", "/boot/efi", "/sysroot", "/var")
+        for part in d["partitions"] for mp in part["mountpoints"]
+    )]
+    extra = [d["name"] for d in disks if d["name"] not in boot]
     return {
         "available": True, "reason": None, "disks": disks[:64],
+        "sections": {
+            "array": {"configured": False, "items": [], "reason": "Array StorOS ainda não configurado"},
+            "pools": {"configured": False, "items": [], "reason": "Pools StorOS ainda não configurados"},
+            "boot": {"configured": bool(boot), "items": boot},
+            "other": {"configured": True, "items": extra,
+                      "reason": "Dispositivos detectados sem classificação; não são automaticamente discos livres"},
+        },
         "shares": {"smb": _smb_shares(), "nfs": _nfs_shares()},
         "scope": "Sistema StorOS local (não é inventário do Unraid hospedeiro)",
         "read_only": True,
@@ -155,9 +200,10 @@ def _collect():
 
 def inventory():
     global _cache
-    now = time.monotonic()
-    if _cache[1] is not None and now - _cache[0] < _CACHE_SECONDS:
-        return _cache[1]
-    result = _collect()
-    _cache = (time.monotonic(), result)
-    return result
+    with _inventory_lock:
+        now = time.monotonic()
+        if _cache[1] is not None and now - _cache[0] < _CACHE_SECONDS:
+            return _cache[1]
+        result = _collect()
+        _cache = (time.monotonic(), result)
+        return result

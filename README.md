@@ -77,3 +77,10 @@ O recurso está disponível na prévia web do AEROCOOL, porta **18444**. Ainda p
 
 ### Armazenamento — etapa 2 na prévia web
 O painel em https://192.168.30.10:18444/#storage inclui inventário real do StorOS convidado, com partições, montagens, ocupação e SMART quando disponível. Em #shares, mostra configurações SMB/NFS detectadas. Nenhuma destas páginas controla os discos Unraid do hospedeiro ou executa alterações. Detalhes e limites: docs/STORAGE_STAGE_2.md. A imagem USB v0.4 anterior ainda não inclui este módulo.
+
+### Main / Discos e inventário de módulos
+A página de Discos tem seções distintas para array, pools, boot, outros dispositivos e operações, como observado na organização da aba Main do Unraid. Informações vêm exclusivamente da instância StorOS, e não dos discos do host AEROCOOL. Na VM de teste, a classificação identifica apenas vda (boot) e deixa array/pools como não configurados. Não significa que paridade ou pools funcionem.
+
+As páginas de Usuários, Imagens Docker, Redes Docker, Volumes Docker, Redes libvirt, Sistema e Monitoramento receberam consultas reais somente leitura quando permitidas. Recursos administrativos ausentes mostram limites explícitos.
+
+Consulte docs/FEATURE_STATUS_2026_10.md para a matriz de funções e docs/UNRAID_MAIN_REVERSE_ENGINEERING.md para evidências da análise estrutural do Unraid. Não se trata de paridade funcional completa nem de um NAS homologado. A imagem USB antiga não inclui esta atualização.

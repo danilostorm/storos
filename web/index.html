@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><title>StorOS — Seu servidor. Seu controle.</title>
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/navigation.css"><link rel="stylesheet" href="/storage.css"><script src="/app.js" defer></script><script src="/apps.js" defer></script><script src="/navigation.js" defer></script><script src="/storage.js" defer></script>
-</head>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/navigation.css"><link rel="stylesheet" href="/storage.css"><link rel="stylesheet" href="/modules.css">
+<script src="/storage.js" defer></script><script src="/modules.js" defer></script><script src="/app.js" defer></script><script src="/apps.js" defer></script><script src="/navigation.js" defer></script></head>
 <body>
 <div class="shell">
 <aside class="sidebar" aria-label="Menu lateral">
  <a href="#overview" class="brand" data-target="overview"><span class="brand-logo">S</span><span class="brand-type"><strong>StorOS</strong><small>v0.4 · Preview</small></span></a>
  <nav class="side-menu" aria-label="Principal">
   <a class="nav-link selected" href="#overview" data-target="overview"><i data-icon="house"></i>Visão geral</a>
-  <div class="nav-parent"><a class="nav-link" href="#storage" data-target="storage"><i data-icon="hard-drive"></i>Armazenamento <span class="chevron">⌄</span></a><div class="subnav"><a href="#shares" data-target="shares"><i data-icon="folder"></i>Compartilhamentos</a><a href="#users" data-target="users"><i data-icon="users"></i>Usuários</a></div></div>
+  <div class="nav-parent"><a class="nav-link" href="#storage" data-target="storage"><i data-icon="hard-drive"></i>Armazenamento <span class="chevron">⌄</span></a><div class="subnav"><a href="#storage" data-target="storage"><i data-icon="hard-drive"></i>Discos</a><a href="#shares" data-target="shares"><i data-icon="folder"></i>Compartilhamentos</a><a href="#users" data-target="users"><i data-icon="users"></i>Usuários</a></div></div>
   <div class="nav-parent"><a class="nav-link" href="#containers" data-target="containers"><i data-icon="box"></i>Docker <span class="chevron">⌄</span></a><div class="subnav"><a href="#containers" data-target="containers"><i data-icon="container"></i>Containers</a><a href="#compose" data-target="compose"><i data-icon="layers"></i>Compose</a><a href="#images" data-target="images"><i data-icon="image"></i>Imagens</a><a href="#docker-network" data-target="docker-network"><i data-icon="network"></i>Rede</a><a href="#volumes" data-target="volumes"><i data-icon="database"></i>Volumes</a><a href="#logs" data-target="logs"><i data-icon="file"></i>Logs</a></div></div>
   <div class="nav-parent"><a class="nav-link" href="#catalog" data-target="catalog"><i data-icon="grid"></i>Aplicativos <span class="chevron">⌄</span></a><div class="subnav"><a href="#catalog" data-target="catalog"><i data-icon="package"></i>Loja de apps</a><a href="#installed" data-target="installed"><i data-icon="grid"></i>Instalados</a><a href="#updates" data-target="updates"><i data-icon="refresh"></i>Atualizações</a></div></div>
   <div class="nav-parent"><a class="nav-link" href="#vms" data-target="vms"><i data-icon="monitor"></i>Máquinas virtuais <span class="chevron">⌄</span></a><div class="subnav"><a href="#vms" data-target="vms"><i data-icon="monitor"></i>VMs</a><a href="#isos" data-target="isos"><i data-icon="file"></i>ISOs</a><a href="#vm-networks" data-target="vm-networks"><i data-icon="network"></i>Redes</a><a href="#templates" data-target="templates"><i data-icon="grid"></i>Modelos</a></div></div>

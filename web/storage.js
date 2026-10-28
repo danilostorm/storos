@@ -62,7 +62,46 @@
     addKV(summary, "Partições/volumes detectados", disks.reduce((n, d) => n + (d.partitions || []).length, 0));
     addKV(summary, "Administração de discos", "Desativada nesta prévia");
     container.append(summary);
+    const sections = report.sections || {};
+    const byName = Object.fromEntries(disks.map(d => [d.name, d]));
+    for (const [id, title] of [
+      ["array", "Dispositivos do Array"],
+      ["pools", "Dispositivos dos Pools"],
+      ["boot", "Dispositivo de Boot"],
+      ["other", "Outros Dispositivos Detectados"]
+    ]) {
+      const group = sections[id] || {configured:false,items:[],reason:"Classificação indisponível"};
+      const section = el("section", "storage-group");
+      const top = el("div", "storage-group-top");
+      top.append(el("h2", "", title),
+        el("span", "storage-group-state", group.configured ? (group.items || []).length + " dispositivo(s)" : "Não configurado"));
+      section.append(top);
+      const names = (group.items || []).filter(n => byName[n]);
+      if (names.length) {
+        section.append(table(["DISPOSITIVO", "IDENTIFICAÇÃO", "CAPACIDADE", "LEITURA", "GRAVAÇÃO", "ERROS", "SISTEMA", "USO", "SMART"], names.map(n => {
+          const disk = byName[n];
+          const fs = [...new Set((disk.partitions || []).map(p => p.filesystem).filter(Boolean))].join(", ");
+          const measured = (disk.partitions || []).find(p => p.usage && p.usage.percent != null);
+          return [disk.name, disk.model || disk.transport || null, human(disk.size_bytes),
+                  disk.io && disk.io.reads_bps != null ? human(disk.io.reads_bps) + "/s" : null,
+                  disk.io && disk.io.writes_bps != null ? human(disk.io.writes_bps) + "/s" : null,
+                  disk.io && disk.io.errors != null ? disk.io.errors : null,
+                  fs || null, measured ? measured.usage.percent + "%" : null,
+                  disk.smart && disk.smart.available ? disk.smart.health : null];
+        })));
+      } else {
+        notification(section, group.reason || (id === "boot" ? "Dispositivo de inicialização não identificado" : "Nenhum dispositivo configurado"));
+      }
+      container.append(section);
+    }
+    const actions = el("section", "storage-group");
+    const actionTitle = el("div", "storage-group-top");
+    actionTitle.append(el("h2", "", "Operações do Array"), el("span", "storage-group-state", "Desativadas"));
+    actions.append(actionTitle);
+    notification(actions, "Start, Stop, Check, Spin Up/Down, Move, Reboot e Shutdown serão habilitados apenas após autenticação administrativa, array real e testes de segurança.");
+    container.append(actions);
     if (!disks.length) return notification(container, "Nenhum dispositivo de bloco detectado nesta instância.");
+    container.append(el("h2", "storage-partitions-title", "Detalhes de Discos e Partições"));
     for (const disk of disks) {
       const card = el("section", "storage-disk");
       const header = el("div", "storage-disk-header");

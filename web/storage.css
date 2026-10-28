@@ -28,3 +28,12 @@
   .storage-disk { padding:12px 9px; }
   .storage-size { font-size:16px; }
 }
+
+/* Unraid Main-inspired group structure; no simulated array or parity controls. */
+.storage-group{background:#0c1f2b;border:1px solid #2a4755;border-radius:10px;margin-bottom:13px;overflow:hidden}
+.storage-group-top{background:#152e3c;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:12px 15px}
+.storage-group-top h2{font-size:16px;margin:0;color:#e8f4fb}
+.storage-group-state{font-size:12px;color:#8fb6c8}
+.storage-group .storage-scroll{margin:0 12px 12px}
+.storage-group .storage-info{padding:2px 15px 9px}
+.storage-partitions-title{font-size:17px;margin:20px 0 14px}

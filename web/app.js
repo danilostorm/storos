@@ -77,6 +77,7 @@ function renderDetail(view){
  const box=$('detail-content');box.replaceChildren();const all=latest;
  if(view==='storage' && typeof window.renderStorageDetails==='function'){window.renderStorageDetails(box,latest.storage);return}
  if(view==='shares' && typeof window.renderSharesDetails==='function'){window.renderSharesDetails(box,latest.storage);return}
+ if(typeof window.renderModuleDetails==='function' && window.renderModuleDetails(view,box,latest))return;
  let items=[];
  if(view==='storage')items=all.overview?.storage?.items?.map(x=>(x.name||'—')+' · '+bytes(x.size_bytes)+' · '+(x.filesystem||'—'))||[];
  if(view==='network')items=all.overview?.network?.interfaces?.map(x=>(x.name||'—')+' · '+(x.ip||'Sem IPv4')+' · '+(x.speed_mbps?x.speed_mbps+' Mbps':'—'))||[];
@@ -88,6 +89,6 @@ function renderDetail(view){
  box.append(node('p','','Comandos de criação, exclusão, administração e instalação permanecem desativados nesta prévia.'));
 }
 async function getJSON(path){const control=new AbortController();const timer=setTimeout(()=>control.abort(),7500);try{const response=await fetch(path,{cache:'no-store',signal:control.signal});if(!response.ok)throw Error('HTTP '+response.status);return await response.json()}finally{clearTimeout(timer)}}
-async function refresh(){const paths=[['storage','/api/storage'],['status','/api/status'],['overview','/api/overview'],['disks','/api/disks'],['containers','/api/containers'],['vms','/api/vms'],['catalog','/api/apps/catalog']];const res=await Promise.allSettled(paths.map(x=>getJSON(x[1])));res.forEach((item,i)=>{latest[paths[i][0]]=item.status==='fulfilled'?item.value:null});if(latest.status)renderSystem(latest.status,latest.overview);if(latest.overview){renderStorage(latest.overview.storage);renderNetworks(latest.overview.network);renderStacks(latest.overview.compose)}else{emptyRow($('overview-disks'),5,'Dados indisponíveis');emptyRow($('overview-networks'),4,'Dados indisponíveis')}
+async function refresh(){const paths=[['modules','/api/modules'],['storage','/api/storage'],['status','/api/status'],['overview','/api/overview'],['disks','/api/disks'],['containers','/api/containers'],['vms','/api/vms'],['catalog','/api/apps/catalog']];const res=await Promise.allSettled(paths.map(x=>getJSON(x[1])));res.forEach((item,i)=>{latest[paths[i][0]]=item.status==='fulfilled'?item.value:null});if(latest.status)renderSystem(latest.status,latest.overview);if(latest.overview){renderStorage(latest.overview.storage);renderNetworks(latest.overview.network);renderStacks(latest.overview.compose)}else{emptyRow($('overview-disks'),5,'Dados indisponíveis');emptyRow($('overview-networks'),4,'Dados indisponíveis')}
  renderContainers(latest.containers);renderVMs(latest.vms);if(latest.catalog&&Array.isArray(latest.catalog.items)){catalogue=latest.catalog.items;renderCatalogPreview()}if(!['overview','catalog','billing'].includes(currentView))renderDetail(currentView)}
 applyIcons();bindNav();refresh();setInterval(()=>{if(!document.hidden)refresh()},15000);
