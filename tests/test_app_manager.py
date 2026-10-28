@@ -74,7 +74,8 @@ class AppManagerTests(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(content.stat().st_mode),0o600)
         self.assertEqual(json.loads(content.read_text())["name"],"storos-nginx")
         self.assertEqual(self.manager.list_installed()[0]["state"], "deployed")
-        self.assertTrue(self.manager.list_installed()[0]["running"])
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            self.assertTrue(self.manager.list_installed()[0]["running"])
         with self.assertRaises(app_manager.AppActionError):
             self.manager.install("nginx",accepted["sha256"])
 

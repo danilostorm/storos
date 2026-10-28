@@ -65,3 +65,8 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 - Script v0.5 endurecido: checagem Fedora/VM, lock para concorrência, staging isolado, validação GPT/BIOS/EFI/root e checksum antes de publicar caminho final.
 - Um resultado `.structure-ok` comprovará somente estrutura do RAW, não inicialização, drivers, persistência, instalação física ou segurança de produção.
 - 115 testes locais e `bash -n` aprovados; imagem v0.5 ainda não gerada. A última imagem com boot GUI validado em QEMU permanece v0.4.
+
+## 2026-10-28 — Validação cruzada no Fedora BuildLab
+- O BuildLab Fedora 44 iniciou em VM isolada e o código atualizado foi sincronizado sem substituir imagens de saída existentes.
+- Corrigido teste unitário sensível à presença de Docker na máquina hospedeira. 115 testes passaram dentro do Fedora BuildLab após correção.
+- Essa evidência valida somente o código e o harness de testes; não certifica boot USB ou instalação real de containers.

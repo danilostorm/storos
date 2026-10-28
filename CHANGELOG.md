@@ -134,3 +134,7 @@
 - Os arquivos de relatório e marcador `.structure-ok` são publicados apenas após validação de estrutura; o marcador **não** significa boot homologado nem autoriza gravação em pendrive de produção.
 - Em falha, a área temporária é preservada para diagnóstico. A fonte e a imagem v0.4 não foram alteradas por essa preparação.
 - Script passou por `bash -n` e 115 testes no AEROCOOL; **o build Fedora da v0.5 não foi executado nesta etapa**.
+
+## 2026-10-28 — Teste de runtime independente do Docker no builder
+- O teste de consulta de estado do aplicativo mantém o mock de disponibilidade do Docker também na asserção de inventário, evitando depender de Docker instalado no Fedora BuildLab (que usa Podman).
+- A lógica de produção não foi alterada. Os 115 testes passaram na VM Fedora e no AEROCOOL; testes de Compose são simulados.
