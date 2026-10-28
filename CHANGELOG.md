@@ -1,5 +1,15 @@
 # Changelog StorOS
 
+## 2026-10-28 — USB v0.5 criada e com GUI validada em UEFI + Legacy no QEMU
+- Na VM isolada Fedora 44 BuildLab, compilada `localhost/storos:ui-v05` com base SSH mascarada. O OSBuild gerou o RAW v0.5 de 10 GiB (10.737.418.240 bytes), quatro partições GPT e finalizou com `STOROS_V05_RAW_STRUCTURE_VERIFIED`.
+- Verificados GPT/BIOS Boot/EFI/raiz e SHA-256 integral no Fedora e no AEROCOOL, após transferência esparsa: `de2ac025105f9b82e9fed350ba7664c9b46a3c19d905186cf93bbce59270d004`.
+- UEFI/OVMF: a VM `StorOS-BootTest-RAW-v050` inicializou o Linux, respondeu ao guest agent, obteve IPv4 e exibiu a GUI v0.5 em VNC; teste externo confirmou portas 22/80/8765 inacessíveis.
+- Legacy/SeaBIOS: a VM `StorOS-BootTest-RAW-v050-BIOS` inicializou o Linux, respondeu ao guest agent e exibiu a GUI v0.5 em VNC, sem placa de rede.
+- Ambas usaram overlays QCOW2, não gravaram o RAW original ou dispositivos físicos. BuildLab e VMs de teste foram desligadas; v0.4 continua preservada.
+- 115 testes passaram dentro da VM Fedora (fonte para a imagem), e 116 na `main` do AEROCOOL após integração da ferramenta de teste BIOS.
+- **Somente homologação virtual**: sem teste em pendrive/notebook, persistência/rollback, app Docker instalado, gestão de array/paridade/pools, backup/restore, compartilhamentos ou VMs de produção. Consulte `docs/USB_V05_BUILD_STATUS.md`.
+
+
 ## 2026-10-27 — Build USB e laboratório Fedora
 - Criado protótipo read-only do painel/API com arquivos integrados à imagem bootc uCore.
 - Laboratório Fedora 44 isolado no AEROCOOL, com ferramentas podman, rpm-ostree e image-builder.

@@ -45,9 +45,12 @@ class USBV05ReleaseTests(unittest.TestCase):
 
     def test_documentation_does_not_misstate_release(self):
         content = (ROOT/"docs/USB_V05_BUILD_STATUS.md").read_text()
-        self.assertIn("No v0.5 RAW/IMG", content)
-        self.assertIn("Legacy", content)
-        self.assertIn("UEFI", content)
+        self.assertIn("Boot UEFI/OVMF", content)
+        self.assertIn("Boot BIOS Legacy/SeaBIOS", content)
+        self.assertIn("USB físico ainda não validado", content)
+        self.assertIn("STOROS_V05_RAW_STRUCTURE_VERIFIED", content)
+        self.assertIn("SHA-256", content)
+        self.assertNotIn("No v0.5 RAW/IMG", content)
 
 if __name__ == "__main__":
     unittest.main()

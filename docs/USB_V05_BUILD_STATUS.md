@@ -1,55 +1,69 @@
-# StorOS v0.5 USB preview: status and safe verification
+# StorOS v0.5 USB Preview — estado verificado em 28/10/2026
 
-## Actual status
+## Situação atual: imagem gerada e aprovada em QEMU (não homologada em hardware)
 
-- Sources from StorOS main assembled with the latest navigation, storage, Main disk grouping, module inventories and local XML-to-Compose importer.
-- Existing Fedora 44 BuildLab started; source archive copied into its home directory.
-- All 61 tests passed on the AEROCOOL and in the Fedora BuildLab before the build attempt.
-- Installer files: installer/Containerfile.ui-v05 and installer/build-ui-v05.sh.
-- Executing the remote image build was blocked by the connected tool's security controls. **No v0.5 RAW/IMG has been built, transferred or boot-tested yet.**
-- Graceful shutdown was requested for BuildLab after the tests. The prior v0.4 IMG and all registered VM disk images were preserved.
+A etapa anteriormente bloqueada de compilação foi executada com sucesso na VM isolada **StorOS-BuildLab**, Fedora 44, pelo `installer/build-ui-v05.sh`. O build terminou com código zero e a confirmação `STOROS_V05_RAW_STRUCTURE_VERIFIED`.
 
-## Legacy BIOS: verified observations
+| Verificação | Evidência confirmada |
+| --- | --- |
+| Imagem OCI `localhost/storos:ui-v05` | Construída e validada pelo script; base com sshd mascarado |
+| RAW completo | 10 GiB lógicos (10.737.418.240 bytes), cerca de 4,3 GiB ocupados |
+| GPT | 4 partições, incluindo BIOS Boot, EFI System, /boot e raiz Linux |
+| SHA-256 no Fedora e no AEROCOOL | Valores idênticos; check do arquivo inteiro em ambos |
+| Boot UEFI/OVMF | Kernel Linux, QEMU guest agent e GUI Firefox/StorOS v0.5 verificados |
+| Boot BIOS Legacy/SeaBIOS | GRUB, kernel, QEMU guest agent e GUI Firefox/StorOS v0.5 verificados |
+| Acesso LAN da VM UEFI | Portas 22, 80 e 8765 não acessíveis; conforme o perfil de preview |
+| Rede da VM BIOS | Nenhuma interface de rede anexada |
+| Boot em pendrive/notebook físico | **Não testado** |
+| Gestão NAS, paridade, recuperação | **Não homologadas nem habilitadas para produção** |
 
-QEMU/SeaBIOS used disposable QCOW2 overlays on the v0.4 USB IMG:
-- Legacy firmware found the bootloader, started the Linux kernel and early systemd with 768 MiB RAM in the first test.
-- A second test with 3 GiB RAM and 2 vCPU reached the StorOS graphical Firefox kiosk. The dashboard rendered real CPU, memory and storage values. The test used a temporary overlay and isolated QEMU with no network or physical disks.
-- The same v0.4 IMG previously reached the GUI under UEFI/OVMF. Therefore both QEMU firmware modes have reached the GUI on v0.4.
-- A real notebook failing to list the USB may be BIOS/USB hardware compatibility, not necessarily a missing Legacy stage.
+### Arquivos de evidência no AEROCOOL
 
-## Safe next build action for an approved operator
+- Imagem: `/mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.raw`
+- Checksum: `/mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.raw.sha256`
+- Relatório de integridade após transferência: `/mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.raw.host-check.json`
+- Screenshot UEFI: `/mnt/user/rea/StorOS/lab/StorOS-BootTest-RAW-v050-verified.png`
+- Screenshot BIOS: `/mnt/user/rea/StorOS/lab/v050-bios-fourth.png`
+- SHA-256 integral: `de2ac025105f9b82e9fed350ba7664c9b46a3c19d905186cf93bbce59270d004`
 
-Run only inside the existing Fedora StorOS-BuildLab VM:
+Os screenshots são apenas evidências internas do laboratório; não são publicados no Git. A imagem v0.4 em `output/StorOS-v0.4-USB-Preview.img` foi preservada.
 
-    cd ~/StorOS
-    bash installer/build-ui-v05.sh
+### Testes executados
 
-The build checks VM/Fedora, runs tests, verifies SSH-disabled base and produces a RAW at ~/StorOS/output/ui-v05/StorOS-v0.5-USB-Preview.raw without overwriting an existing output. It does not write physical drives.
+- Na BuildLab, os 115 testes disponíveis na revisão de código sincronizada passaram antes do build. A correção do teste Docker/Podman consta da PR #5.
+- Na `main` posterior, **116 testes** passaram no AEROCOOL, incluindo o novo verificador estático SeaBIOS da PR #6.
+- O build do bootc/OSBuild gerou o RAW, executou a checagem `sfdisk`, gravou o SHA-256 e retornou código 0.
+- O transporte esparso via SSH/rsync foi seguido de verificação integral de SHA-256/GPT pelo AEROCOOL. Não houve gravação em dispositivos físicos.
+- A VM `StorOS-BootTest-RAW-v050` (OVMF) usou overlay QCOW2. O QEMU guest agent respondeu, DHCP atribuiu IPv4 e a GUI v0.5 foi vista no VNC. `tools/verify-usb-vm.sh` passou.
+- A VM `StorOS-BootTest-RAW-v050-BIOS` (SeaBIOS) usou overlay QCOW2 diferente, sem NIC. O QEMU guest agent respondeu e a mesma GUI v0.5 foi vista no VNC.
+- BuildLab, VM UEFI e VM BIOS foram desligadas normalmente após os testes. Discos do Unraid e o RAW original não foram alterados.
 
-After building, transfer the RAW to AEROCOOL as a sparse IMG, check SHA-256/size/GPT, and test the same IMG in SeaBIOS and OVMF with 2-4 GiB RAM. Confirm GUI and local API, masked SSH, and network restrictions. Only then distribute the IMG for balenaEtcher and a physical notebook test.
+## Reproduzir validações sem mexer em disco físico
 
-## Limits
+O script de build **não deve ser reexecutado sobre o destino atual**: recusa sobreposição do RAW. Para repetir os ensaios de boot, use as VMs já cadastradas ou crie novas VMs **com nomes inéditos**, overlays exclusivos e apenas o arquivo RAW regular abaixo. As VMs já criadas recusam redefinição pelos scripts de segurança.
 
-Array/parity, writable pools, SMB/NFS administration, native authentication/RBAC, one-click Docker install and VM management are still incomplete. The v0.5 version number is a development preview label, not a production release. Its new image still needs both tests after building; the v0.4 result does not automatically certify v0.5.
+```bash
+# Apenas dentro do laboratório AEROCOOL, se ainda não existir a VM solicitada
+bash tools/test-boot-raw.sh \
+  /mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.raw \
+  StorOS-BootTest-RAW-v051 5731
 
-## Lab cleanup and resource use
+bash tools/test-boot-raw-bios.sh \
+  /mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.raw \
+  StorOS-BootTest-RAW-v051-BIOS
+```
 
-- After the Legacy GUI confirmation, both disposable BIOS QCOW2 overlays were removed (approximately 100 MiB allocated).
-- Original v0.4 RAW IMG and all registered VM disks were preserved.
-- BuildLab was shut down normally after the 61-test initial build-source check.
-- A further 64 tests in the source tree pass with the v0.5 release-status tests added.
-- No version 0.5 image artifact is present in AEROCOOL output; no claim of completing the blocked build.
+O teste SeaBIOS **não tem rede**; para UEFI, a VM NAT expõe apenas o tráfego necessário ao laboratório. Inspecione a tela VNC e o agente QEMU: iniciar uma VM não significa que a GUI foi validada.
 
-## Checagem adicional do script de build (28/10/2026)
+## Limites e próximo marco
 
-O `installer/build-ui-v05.sh` agora exige ferramentas de checagem, usa `flock`, gera a saída numa pasta temporária e só move o RAW para `output/ui-v05/StorOS-v0.5-USB-Preview.raw` depois de validar GPT/BIOS/EFI/root e calcular SHA-256. No diretório final, `.raw.sha256` usa caminho relativo e `.raw.structure.json` documenta o resultado; `.raw.structure-ok` indica **somente validação estrutural**.
+**USB físico ainda não validado.** Falta testar o pendrive descartável e o notebook (detecção BIOS/UEFI, Wi-Fi, Secure Boot, drivers, reinícios e persistência), além de credenciais configuráveis, atualizações/rollback, recuperação e política de distribuição. Não divulgar a v0.5 como release final ou NAS confiável.
 
-Se a compilação falhar, os arquivos temporários permanecem para diagnóstico e não há marcador final. Não renomeie artefatos parciais nem ignore o validador. A compilação ainda **não foi executada**; verificações de boot SeaBIOS/OVMF, GUI, serviços, persistência e notebook real continuam obrigatórias antes de divulgação.
+A loja ainda tem catálogo parcial; os testes de instalação Compose usam simulação e o botão Install web permanece indisponível. Array e paridade, pools ZFS/Btrfs reais, gestão SMB/NFS/usuários, VMs, backup e recuperação também exigem implementação e ensaios. **Nenhum container foi realmente instalado nessa etapa.**
 
-## Roteiro de teste SeaBIOS (quando existir RAW v0.5)
+## Histórico das etapas anteriores
 
-Após gerar, transferir e checar SHA-256 no AEROCOOL, usar exclusivamente um arquivo RAW regular não simbólico em `/mnt/user/rea/StorOS/output`:
-
-    bash tools/test-boot-raw-bios.sh /mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.raw StorOS-BootTest-RAW-v050-BIOS
-
-A VM usa SeaBIOS, disco QCOW2 overlay, VNC apenas em loopback e nenhuma interface de rede. Inspecionar a GUI no VNC e o agente QEMU; iniciar QEMU **não significa** que houve boot ou GUI. Para UEFI, usar `tools/test-boot-raw.sh` com nome de VM distinto. Não anexar a imagem a disco físico.
+- A tentativa anterior de build da v0.5 tinha sido bloqueada por controles da conexão; esse impedimento foi superado com a compilação documentada acima.
+- A v0.4 já havia chegado à GUI em QEMU/OVMF e SeaBIOS, inclusive em teste Legacy de 3 GiB/2 vCPU.
+- O script v0.5 já exigia Fedora + VM, `flock`, staging, revisão estrutural e checksum; o RAW é publicado apenas após essas verificações. O marcador `.structure-ok` **não** certifica boot.
+- A v0.5 é uma prévia técnica; não confundir os resultados QEMU com compatibilidade USB física ou confiabilidade de armazenamento de produção.

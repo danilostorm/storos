@@ -1,4 +1,16 @@
-# Estado do StorOS — 27/10/2026
+# Estado do StorOS — atualizado em 28/10/2026
+
+## Estado mais recente — v0.5 USB Preview (QEMU/VM apenas)
+- A VM Fedora 44 `StorOS-BuildLab` compilou a OCI `localhost/storos:ui-v05` e o RAW v0.5 de 10 GiB; `installer/build-ui-v05.sh` concluiu com código 0 e `STOROS_V05_RAW_STRUCTURE_VERIFIED`.
+- O RAW foi transferido em modo esparso ao AEROCOOL e sua integridade foi revalidada integralmente por SHA-256 e GPT/BIOS/EFI/root: `de2ac025105f9b82e9fed350ba7664c9b46a3c19d905186cf93bbce59270d004`.
+- Arquivo de laboratório: `/mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.raw`. A v0.4 permanece preservada.
+- `StorOS-BootTest-RAW-v050`, em UEFI/OVMF com overlay QCOW2, alcançou a GUI v0.5 (captura VNC examinada), respondeu ao agente QEMU, obteve IPv4 e não expôs as portas 22, 80 e 8765 ao teste de rede NAT.
+- `StorOS-BootTest-RAW-v050-BIOS`, em SeaBIOS, overlay QCOW2 separado, sem NIC, alcançou a GUI v0.5 (captura VNC examinada) e respondeu ao agente QEMU.
+- As três VMs (BuildLab, teste UEFI e teste SeaBIOS) foram desligadas normalmente após os ensaios. Nenhuma mídia USB real, disco/array de produção ou contêiner do host foi alterado.
+- Testes: 115 aprovados dentro da VM Fedora antes do build; 116 aprovados na `main` do AEROCOOL após a adição do teste SeaBIOS. Docker de implantação ainda simulado.
+- **Limites:** USB físico/notebook, persistência, Secure Boot, recuperação/rollback, paridade, pools, SMB/NFS, VMs e instalação real de apps continuam sem homologação. O painel permanece somente leitura, com instalação web bloqueada.
+- Relatório consolidado: `docs/USB_V05_BUILD_STATUS.md`. As seções históricas abaixo relatam etapas anteriores e não anulam este estado atual.
+
 
 ## Local
 Desenvolvimento primário no AEROCOOL: `/mnt/user/rea/StorOS`. VM Fedora de compilação `StorOS-BuildLab` em rede NAT; VMs `StorOS-BootTest` e `StorOS-BootTest-011` são descartáveis. O host de produção permanece Unraid.
@@ -64,7 +76,7 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 ## 2026-10-28 — Preflight da imagem USB v0.5
 - Script v0.5 endurecido: checagem Fedora/VM, lock para concorrência, staging isolado, validação GPT/BIOS/EFI/root e checksum antes de publicar caminho final.
 - Um resultado `.structure-ok` comprovará somente estrutura do RAW, não inicialização, drivers, persistência, instalação física ou segurança de produção.
-- 115 testes locais e `bash -n` aprovados; imagem v0.5 ainda não gerada. A última imagem com boot GUI validado em QEMU permanece v0.4.
+- Na etapa de preflight, 115 testes e `bash -n` tinham sido aprovados, mas a imagem v0.5 ainda não havia sido gerada. Situação superada pela validação UEFI/BIOS registrada no início deste arquivo.
 
 ## 2026-10-28 — Validação cruzada no Fedora BuildLab
 - O BuildLab Fedora 44 iniciou em VM isolada e o código atualizado foi sincronizado sem substituir imagens de saída existentes.
