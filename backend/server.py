@@ -12,6 +12,7 @@ from urllib.parse import urlsplit, parse_qs
 import apps
 import billing
 import observability
+import storage
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
@@ -101,7 +102,8 @@ API = {"/api/status": system_status, "/api/disks": disk_status,
        "/api/containers": container_status, "/api/vms": vm_status,
        "/api/apps/catalog": apps.catalog, "/api/apps/engine": apps.engine,
        "/api/billing/model": billing.configured_model,
-       "/api/overview": observability.live_overview}
+       "/api/overview": observability.live_overview,
+       "/api/storage": storage.inventory}
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):

@@ -69,3 +69,11 @@
 - Nova folha CSS corrige barra de rolagem horizontal de tabelas no Firefox.
 - Prévia HTTPS 18444 atualizada sem criar VM ou reconstruir USB. Imagem v0.4 USB existente permanece inalterada.
 - Interface continua apenas de leitura; páginas não integradas mostram campos vazios, sem fingir que são gerenciadores ativos.
+
+## 2026-10-28 — Etapa 2: inventário real de armazenamento
+- API /api/storage de leitura somente: discos, partições, montagem, uso, SMART disponível e configuração SMB/NFS.
+- Páginas Armazenamento e Compartilhamentos agora apresentam dados reais e explicam limitações.
+- Seções Samba virtuais [homes], [global], [printers] e [print$] excluídas da contagem.
+- Teste pela VM existente: disco VirtIO 10 GiB, quatro partições, nenhuma share efetiva; SMART físico não exposto.
+- HTTPS autenticado, POST bloqueado, nenhuma VM ou disco alterado.
+- Imagem USB v0.4 anterior não inclui esta etapa.

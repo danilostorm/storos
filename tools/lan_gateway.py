@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit, urlencode, parse_qs
 
-ALLOWED = frozenset({"/", "/index.html", "/app.js", "/apps.js", "/style.css", "/navigation.js", "/navigation.css", "/hero.webp", "/api/status", "/api/disks", "/api/containers", "/api/vms", "/api/apps/catalog", "/api/apps/engine", "/api/apps/compose", "/api/apps/hub", "/api/billing/model", "/api/billing/estimate", "/api/overview"})
+ALLOWED = frozenset({"/", "/index.html", "/app.js", "/apps.js", "/style.css", "/navigation.js", "/navigation.css", "/storage.js", "/storage.css", "/hero.webp", "/api/status", "/api/disks", "/api/containers", "/api/vms", "/api/apps/catalog", "/api/apps/engine", "/api/apps/compose", "/api/apps/hub", "/api/billing/model", "/api/billing/estimate", "/api/overview", "/api/storage"})
 LAN = ipaddress.ip_network("192.168.30.0/24")
 
 class Gateway(BaseHTTPRequestHandler):

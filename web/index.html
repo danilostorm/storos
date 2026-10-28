@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><title>StorOS — Seu servidor. Seu controle.</title>
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/navigation.css"><script src="/app.js" defer></script><script src="/apps.js" defer></script><script src="/navigation.js" defer></script>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/navigation.css"><link rel="stylesheet" href="/storage.css"><script src="/app.js" defer></script><script src="/apps.js" defer></script><script src="/navigation.js" defer></script><script src="/storage.js" defer></script>
 </head>
 <body>
 <div class="shell">
@@ -38,7 +38,7 @@
     <article class="stat card"><div class="stat-head"><span class="stat-symbol"><i data-icon="grid"></i></span><span>Aplicativos</span></div><div class="stat-value" id="apps-value">—</div><div class="stat-note" id="apps-detail">Instalados não identificados</div></article>
    </section>
    <section class="duo duo-primary">
-    <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon"><i data-icon="layers"></i></span><strong>Armazenamento</strong></div><button class="outline-button" data-target="storage">Gerenciar discos</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>DISPOSITIVO</th><th>CAPACIDADE</th><th>USO</th><th>SISTEMA</th><th>STATUS</th></tr></thead><tbody id="overview-disks"><tr><td colspan="5" class="empty-cell">Aguardando dados reais</td></tr></tbody></table></div></article>
+    <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon"><i data-icon="layers"></i></span><strong>Armazenamento</strong></div><button class="outline-button" data-target="storage">Ver discos</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>DISPOSITIVO</th><th>CAPACIDADE</th><th>USO</th><th>SISTEMA</th><th>STATUS</th></tr></thead><tbody id="overview-disks"><tr><td colspan="5" class="empty-cell">Aguardando dados reais</td></tr></tbody></table></div></article>
     <article class="card data-panel"><div class="card-heading"><div class="heading-title"><span class="panel-icon blue"><i data-icon="box"></i></span><strong>Dockers / Containers</strong></div><button class="outline-button" data-target="containers">Gerenciar</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>NOME</th><th>IMAGEM</th><th>STATUS</th><th>USO CPU</th><th>USO MEM</th></tr></thead><tbody id="overview-containers"><tr><td colspan="5" class="empty-cell">Aguardando Docker</td></tr></tbody></table></div></article>
    </section>
    <section class="duo duo-middle">

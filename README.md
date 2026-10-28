@@ -74,3 +74,6 @@ A imagem inicializável verificada está em output/StorOS-v0.4-USB-Preview.img n
 A partir da etapa 1 de interface, o menu pode ser recolhido com o botão no canto superior esquerdo, e os grupos da barra lateral podem ser expandidos de forma independente. O controle **A+** no topo aumenta os textos em até dois níveis adicionais, com preferências salvas apenas no navegador. No celular, o botão abre uma gaveta lateral. Veja [o escopo e os testes](docs/NAVIGATION_STAGE_1.md).
 
 O recurso está disponível na prévia web do AEROCOOL, porta **18444**. Ainda precisa entrar em uma nova imagem de instalação USB; a imagem v0.4 já gerada anteriormente não muda.
+
+### Armazenamento — etapa 2 na prévia web
+O painel em https://192.168.30.10:18444/#storage inclui inventário real do StorOS convidado, com partições, montagens, ocupação e SMART quando disponível. Em #shares, mostra configurações SMB/NFS detectadas. Nenhuma destas páginas controla os discos Unraid do hospedeiro ou executa alterações. Detalhes e limites: docs/STORAGE_STAGE_2.md. A imagem USB v0.4 anterior ainda não inclui este módulo.

@@ -1,0 +1,30 @@
+/* Storage Stage 2: per-disk and share observations, no destructive controls */
+.storage-notice { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; margin:2px 0 20px; padding:13px 16px; border:1px solid #22584e; background:#10302b; border-radius:9px; color:#d4f8eb; font-size:14px; }
+.storage-notice span { color:#a8d0c7; font-size:13px; }
+.storage-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+.storage-kv { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.storage-summary .storage-kv { background:#102536; border:1px solid #294354; border-radius:9px; padding:15px; }
+.storage-kv small { font-size:12px; color:#91b4ca; }
+.storage-kv strong { color:#f0f6fc; font-size:15px; font-weight:650; overflow-wrap:anywhere; }
+.storage-disk { border:1px solid #2a4456; border-radius:10px; padding:14px; background:#0d202f; margin:0 0 16px; }
+.storage-disk-header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:15px; }
+.storage-disk-heading h2, .storage-section-heading { font-size:19px; margin:0 0 5px; }
+.storage-disk-heading span { font-size:13px; color:#9ab4c9; }
+.storage-size { font-weight:750; white-space:nowrap; color:#63e5c2; font-size:19px; }
+.storage-meta { display:flex; flex-wrap:wrap; gap:14px 30px; margin:15px 0; }
+.storage-meta .storage-kv { min-width:120px; }
+.storage-hint, .storage-info { font-size:13px; line-height:1.55; color:#9eb5c9; }
+.storage-health-warning { color:#ffc4a0; font-weight:600; }
+.storage-scroll { overflow:auto; max-width:100%; scrollbar-color:#3a5c6b #102536; }
+.storage-table { border-collapse:collapse; min-width:660px; width:100%; font-size:13px; }
+.storage-table th { text-align:left; background:#172c3a; padding:10px; font-size:11px; color:#9ab6c8; letter-spacing:.03em; }
+.storage-table td { border-bottom:1px solid #233b4b; padding:11px 10px; color:#deebf6; overflow-wrap:anywhere; max-width:280px; }
+.storage-table tr:last-child td { border-bottom:0; }
+.storage-table td:first-child { font-weight:650; }
+.storage-empty { color:#a5b9c9; }
+@media(max-width:720px) {
+  .storage-notice { font-size:13px; }
+  .storage-summary { grid-template-columns:1fr; }
+  .storage-disk { padding:12px 9px; }
+  .storage-size { font-size:16px; }
+}
