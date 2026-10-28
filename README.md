@@ -84,3 +84,6 @@ A página de Discos tem seções distintas para array, pools, boot, outros dispo
 As páginas de Usuários, Imagens Docker, Redes Docker, Volumes Docker, Redes libvirt, Sistema e Monitoramento receberam consultas reais somente leitura quando permitidas. Recursos administrativos ausentes mostram limites explícitos.
 
 Consulte docs/FEATURE_STATUS_2026_10.md para a matriz de funções e docs/UNRAID_MAIN_REVERSE_ENGINEERING.md para evidências da análise estrutural do Unraid. Não se trata de paridade funcional completa nem de um NAS homologado. A imagem USB antiga não inclui esta atualização.
+
+### Importar template XML do Unraid (prévia)
+Na Loja de Aplicativos, selecione um arquivo Container XML v2 para converter, somente no navegador, os campos compatíveis em um projeto Compose de referência. Não são enviadas senhas nem arquivos ao servidor; paths de host são transformados em volumes nomeados. Esta é uma prévia, não instalação com um clique. A instalação segura requer autenticação nativa, permissões e um daemon de gestão isolado.

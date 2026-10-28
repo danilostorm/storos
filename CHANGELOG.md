@@ -86,3 +86,4 @@
 - Funcionalidades administrativas ainda não implementadas têm aviso explícito, sem botões falsamente operacionais.
 - Estudo estático reproduzível do código PHP/Page da Main e plugin Unassigned Devices presente no AEROCOOL. Nada de código proprietário foi incorporado ao StorOS.
 - Mantida a política HTTP de somente leitura, API no loopback, gateway HTTPS autenticado. A atualização é web; RAW USB v0.4 anterior não foi recompilado.
+- Adicionada a importação local de templates Unraid XML v2 na Loja. Gera Compose de prévia sem upload, sem executar Docker ou copiar caminhos arbitrários do Unraid. Importações perigosas são sinalizadas para revisão.

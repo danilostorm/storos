@@ -24,3 +24,7 @@ O endpoint /api/storage acessa apenas os discos da instância StorOS onde roda, 
 Ações reais de array, pools, montagem, RAID, usuários, Docker Compose, loja com instalação, VMs e rede dependem de um daemon administrativo isolado com autenticação nativa, RBAC, auditoria, proteção CSRF, confirmação de discos e testes de rollback no laboratório. Não é seguro habilitar botões que operem com privilégios do host sem isso.
 
 A prévia web de laboratório permanece em modo de leitura, com gateway HTTPS autenticado, backend em 127.0.0.1 e requisições POST rejeitadas.
+
+## Importação local de templates da Loja
+
+O StorOS inclui um importador original de templates Container XML v2, baseado nos tipos observáveis de Community Applications. O arquivo selecionado é lido apenas pelo navegador; nenhuma credencial ou arquivo é enviado ao servidor. O importador transforma campos seguros em prévia Docker Compose (JSON compatível com YAML 1.2). Substitui caminhos externos por volumes nomeados, omite valores de variáveis sensíveis, rejeita privilégios automáticos e marca campos incompatíveis para revisão. Não instala aplicativos nem concede acesso ao Docker; a integração com daemon administrativo continua pendente.

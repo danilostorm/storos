@@ -1,0 +1,6 @@
+.ca-import{background:#0e2330;border:1px solid #2c5260;border-radius:9px;padding:16px;margin:18px 0}
+.ca-import h2{font-size:17px;margin:0 0 8px}
+.ca-import p{font-size:13px;color:#9eb9cb;line-height:1.5}
+.ca-import label{display:block;font-size:13px;font-weight:700;margin:12px 0 8px}
+.ca-import input[type=file]{max-width:100%;color:#cce7f1;background:#122b3b;border:1px solid #335462;padding:10px;border-radius:8px;font-size:13px}
+.ca-import .store-notice{margin-top:12px}
