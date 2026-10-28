@@ -121,6 +121,44 @@ class AppManager:
             raise AppActionError("Docker Compose failed; inspect local audit and logs")
         return result
 
+    def _ps_running(self, project: Path, config: Path) -> bool:
+        """Verify the actual Compose container, not merely the 'up -d' exit code.
+
+        docker compose ps produces either a JSON array or one JSON object per
+        line, depending on the plugin version. Reject unexpected identities
+        rather than trusting container output from another project.
+        """
+        if config.is_symlink() or not config.is_file():
+            raise AppActionError("Application configuration is unavailable")
+        slug = project.name.removeprefix("storos-")
+        if project.name != "storos-" + slug:
+            raise AppActionError("Unexpected project name")
+        manifest = _approved_manifest(slug)
+        service = next(iter(manifest["services"]))
+        argv = ["--project-directory", str(project), "-f", str(config),
+                "ps", "--all", "--format", "json"]
+        output = self._run(argv, timeout=15).stdout
+        if not isinstance(output, str) or len(output) > 65536:
+            raise AppActionError("Unexpected Compose status response")
+        if not output.strip():
+            return False
+        try:
+            items = json.loads(output)
+        except ValueError:
+            try:
+                items = [json.loads(line) for line in output.splitlines() if line.strip()]
+            except ValueError as exc:
+                raise AppActionError("Invalid Compose status response") from exc
+        if isinstance(items, dict):
+            items = [items]
+        if not isinstance(items, list) or len(items) > 4:
+            raise AppActionError("Unexpected Compose status structure")
+        if any(not isinstance(item, dict) or
+               item.get("Project") != project.name or
+               item.get("Service") != service for item in items):
+            raise AppActionError("Compose project identity mismatch")
+        return bool(items) and all(item.get("State") == "running" for item in items)
+
     @staticmethod
     def _write_state(project, state):
         if state not in ("prepared", "deploying", "deployed", "failed"):
@@ -171,6 +209,8 @@ class AppManager:
             self._run([*argv, "config", "--quiet"], timeout=25)
             self._write_state(project, "deploying")
             self._run([*argv, "up", "-d", "--pull", "always"], timeout=180)
+            if not self._ps_running(project, config):
+                raise AppActionError("Application did not stay running after Compose deployment")
             self._write_state(project, "deployed")
         except Exception:
             # Keep metadata on failed deployment for post-mortem; never
@@ -195,5 +235,13 @@ class AppManager:
                     "prepared", "deploying", "deployed", "failed") else "unknown"
             except (OSError, ValueError, TypeError):
                 pass
-            rows.append({"project": entry.name, "state": state, "running": None})
+            running = None
+            if state in ("deployed", "failed"):
+                try:
+                    running = self._ps_running(entry, entry / "compose.json")
+                except AppActionError:
+                    # The state on disk remains authoritative for deployment
+                    # history; daemon outages must not masquerade as stopped.
+                    pass
+            rows.append({"project": entry.name, "state": state, "running": running})
         return rows[:MAX_PROJECTS]

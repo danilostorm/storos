@@ -42,3 +42,8 @@ Este marco é uma base técnica de laboratório, NÃO um NAS pronto para dados d
 ## Controle de falhas do Compose
 
 O projeto mantém estado privado preparado, implantando, implantado ou falhou. Se o Docker Compose falhar, o StorOS registra falha e mantém o projeto para diagnóstico, sem apagar containers ou volumes automaticamente. A lista de projetos é um inventário de configurações: o campo running permanece vazio até existir uma sonda real do daemon.
+
+## Verificação de runtime pós-instalação (28/10/2026)
+- O gerenciamento privado exige uma resposta `docker compose ps --all --format json` associada ao projeto e serviço esperados após o `up -d`; retorno zero de `up -d` isoladamente não constitui sucesso.
+- Listagem de aplicativos consulta execução ao vivo para implantações prévias, preservando distinção entre `state` histórico e `running` observado. Falha de sonda gera `running: null`.
+- 115 testes passaram no AEROCOOL em checkout temporário com runners Docker simulados. Nenhum teste desta etapa iniciou container real ou habilitou instalação via navegador.

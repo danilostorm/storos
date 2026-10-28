@@ -120,3 +120,10 @@
 - Página Sistema > Segurança exibe formulário somente após habilitação expressa do serviço, não por padrão.
 - Integração testada com sockets temporários, sem liberar operações privilegiadas e sem criar contas do host.
 - Sem alteração da imagem USB existente; v0.5 ainda não compilada.
+
+## 2026-10-28 — Verificação real de containers no gerenciador (laboratório)
+- Após o `docker compose up -d`, o gerenciador valida via `docker compose ps --all --format json` se o serviço e projeto esperados estão efetivamente em estado `running`.
+- Se o container não estiver em execução, se a resposta for inesperada ou se o Docker falhar, a implantação é marcada como `failed`; os arquivos e volumes não são removidos automaticamente.
+- A listagem privada reconsulta o estado de execução dos projetos implantados ou falhos; quando o Docker está indisponível, apresenta `running: null` em vez de inferir uma condição falsa.
+- Novos testes cobrem parada imediata, identificação incorreta, mudança posterior de estado e JSON em linhas: 115 testes aprovados no AEROCOOL usando mocks para execução Docker.
+- **Nenhum container real foi instalado**, a instalação via HTTPS continua bloqueada e a imagem USB v0.5 não foi gerada nesta etapa.
