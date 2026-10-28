@@ -138,3 +138,7 @@
 ## 2026-10-28 — Teste de runtime independente do Docker no builder
 - O teste de consulta de estado do aplicativo mantém o mock de disponibilidade do Docker também na asserção de inventário, evitando depender de Docker instalado no Fedora BuildLab (que usa Podman).
 - A lógica de produção não foi alterada. Os 115 testes passaram na VM Fedora e no AEROCOOL; testes de Compose são simulados.
+
+## 2026-10-28 — Ensaio BIOS Legacy isolado para imagens USB
+- Adicionado `tools/test-boot-raw-bios.sh` para criar uma VM SeaBIOS descartável com overlay QCOW2 e sem placa de rede, sem anexar discos físicos e sem modificar a imagem RAW original.
+- VNC limitado a `127.0.0.1`; o script não considera a mera inicialização de QEMU como boot validado. Teste de screenshot e `guest-ping` são etapas separadas.
