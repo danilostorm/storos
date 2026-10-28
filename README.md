@@ -93,3 +93,6 @@ Os arquivos de construção estão em installer/Containerfile.ui-v05 e installer
 
 ### Fundamentos de autenticacao — etapa inicial
 A biblioteca backend/security_core.py contém os fundamentos de identidade; o painel permite consultar o estado em Sistema > Segurança. Scrypt com salt, sessões e CSRF, limite de tentativas e política de recusa de escrita estão cobertos por testes, mas login nativo e serviço administrativo ainda NÃO foram ativados. Detalhes em docs/ADMIN_SECURITY_FOUNDATION.md.
+
+### Autenticação por socket Unix (laboratório)
+O módulo backend/auth_socket.py oferece login, consulta de sessão e logout com CSRF em socket Unix privado. Ainda NÃO está conectado ao login web ou a serviços privilegiados, e nenhuma conta administrativa real foi provisionada. Consulte docs/AUTH_SOCKET_STAGE.md. A imagem USB v0.5 permanece pendente.

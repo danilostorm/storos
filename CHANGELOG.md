@@ -99,3 +99,9 @@
 - Auditoria com metadados permitidos, sem capturar senha, sessão ou cookies.
 - API somente leitura /api/security/status e página Sistema > Segurança mostram estado real, com login nativo e operações de escrita desativados.
 - Nenhum serviço privilegiado ou conta administrativa real criado; gateway de laboratório segue como único login web.
+
+## 2026-10-27 — Autenticação nativa isolada
+- Adicionado backend/auth_socket.py com socket Unix privado e endpoints locais de login, sessão, health e logout com CSRF.
+- Sem porta TCP, sem integração com o gateway e sem operações privilegiadas.
+- Testes HTTP reais em socket Unix cobrem CSRF, limite de tentativas, permissões e bloqueio de ações administrativas.
+- Nenhuma conta administrativa real ou operação de escrita foi ativada.

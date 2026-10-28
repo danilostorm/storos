@@ -26,6 +26,7 @@ READ_PERMISSIONS = frozenset((
     "system.status.read", "storage.inventory.read", "shares.inventory.read",
     "docker.inventory.read", "vm.inventory.read", "audit.own.read",
 ))
+AUTH_AUDIT_EVENTS = frozenset(("auth.login", "auth.logout"))
 MUTATING_ACTIONS = frozenset((
     "docker.compose.deploy", "docker.container.remove", "vm.create",
     "vm.destroy", "storage.format", "storage.pool.create",
@@ -258,7 +259,7 @@ class AuditLog:
 
     def record(self, actor: str, action: str, outcome: str) -> None:
         if (not isinstance(actor, str) or not USER_NAME.fullmatch(actor)
-                or action not in READ_PERMISSIONS | MUTATING_ACTIONS
+                or action not in READ_PERMISSIONS | MUTATING_ACTIONS | AUTH_AUDIT_EVENTS
                 or outcome not in ("allowed", "denied", "failed")):
             raise IdentityError("Invalid audit event")
         event = {
