@@ -52,6 +52,10 @@ class AppManagerTests(unittest.TestCase):
         self.commands = []
         def runner(argv, **kwargs):
             self.commands.append(argv)
+            if "ps" in argv:
+                payload = [{"Project": "storos-nginx", "Service": "nginx",
+                            "State": "running"}]
+                return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
             return subprocess.CompletedProcess(argv, 0, "", "")
         self.manager = app_manager.AppManager(self.root, runner=runner)
 
@@ -62,14 +66,15 @@ class AppManagerTests(unittest.TestCase):
                    return_value=subprocess.CompletedProcess(["systemd-detect-virt"],0)):
                 result = self.manager.install("nginx", accepted["sha256"])
         self.assertEqual(result["state"],"deployed")
-        self.assertEqual(len(self.commands),2)
+        self.assertEqual(len(self.commands),3)
         self.assertEqual(self.commands[0][-2:],["config","--quiet"])
         self.assertEqual(self.commands[1][-3:],["-d","--pull","always"])
+        self.assertEqual(self.commands[2][-3:],["--all","--format","json"])
         content = (self.root/"storos-nginx"/"compose.json")
         self.assertEqual(stat.S_IMODE(content.stat().st_mode),0o600)
         self.assertEqual(json.loads(content.read_text())["name"],"storos-nginx")
         self.assertEqual(self.manager.list_installed()[0]["state"], "deployed")
-        self.assertEqual(self.manager.list_installed()[0]["running"],None)
+        self.assertTrue(self.manager.list_installed()[0]["running"])
         with self.assertRaises(app_manager.AppActionError):
             self.manager.install("nginx",accepted["sha256"])
 
@@ -101,6 +106,67 @@ class AppManagerTests(unittest.TestCase):
         self.assertEqual(state["state"], "failed")
         self.assertIsNone(state["running"])
         self.assertTrue((self.root/"storos-nginx"/"compose.json").exists())
+
+    def test_successful_up_with_stopped_container_is_failed(self):
+        def stopped_runner(argv, **kwargs):
+            self.commands.append(argv)
+            output = json.dumps([{"Project": "storos-nginx", "Service": "nginx",
+                                  "State": "exited"}]) if "ps" in argv else ""
+            return subprocess.CompletedProcess(argv, 0, output, "")
+        self.manager.runner = stopped_runner
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            with mock.patch.object(app_manager.subprocess, "run",
+                   return_value=subprocess.CompletedProcess(["virt"], 0)):
+                with self.assertRaisesRegex(app_manager.AppActionError, "did not stay running"):
+                    self.manager.install("nginx", app_manager.plan("nginx")["sha256"])
+        row = self.manager.list_installed()[0]
+        self.assertEqual(row["state"], "failed")
+        self.assertFalse(row["running"])
+        self.assertTrue((self.root / "storos-nginx" / "compose.json").exists())
+
+    def test_foreign_or_corrupt_compose_status_is_not_trusted(self):
+        def foreign_runner(argv, **kwargs):
+            output = json.dumps([{"Project": "someone-else", "Service": "nginx",
+                                  "State": "running"}]) if "ps" in argv else ""
+            return subprocess.CompletedProcess(argv, 0, output, "")
+        self.manager.runner = foreign_runner
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            with mock.patch.object(app_manager.subprocess, "run",
+                   return_value=subprocess.CompletedProcess(["virt"], 0)):
+                with self.assertRaises(app_manager.AppActionError):
+                    self.manager.install("nginx", app_manager.plan("nginx")["sha256"])
+            self.assertEqual(self.manager.list_installed()[0]["state"], "failed")
+            self.assertIsNone(self.manager.list_installed()[0]["running"])
+
+    def test_running_probe_reflects_container_exit_after_install(self):
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            with mock.patch.object(app_manager.subprocess, "run",
+                   return_value=subprocess.CompletedProcess(["virt"], 0)):
+                self.manager.install("nginx", app_manager.plan("nginx")["sha256"])
+            self.assertTrue(self.manager.list_installed()[0]["running"])
+            def exited_runner(argv, **kwargs):
+                payload = [{"Project": "storos-nginx", "Service": "nginx",
+                            "State": "exited"}]
+                return subprocess.CompletedProcess(argv, 0, json.dumps(payload), "")
+            self.manager.runner = exited_runner
+            item = self.manager.list_installed()[0]
+        self.assertEqual(item["state"], "deployed")
+        self.assertFalse(item["running"])
+
+    def test_compose_ps_accepts_json_lines(self):
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            with mock.patch.object(app_manager.subprocess, "run",
+                   return_value=subprocess.CompletedProcess(["virt"], 0)):
+                def lines_runner(argv, **kwargs):
+                    if "ps" in argv:
+                        return subprocess.CompletedProcess(argv, 0, json.dumps({
+                            "Project": "storos-nginx", "Service": "nginx", "State": "running"
+                        }) + "\\n", "")
+                    return subprocess.CompletedProcess(argv, 0, "", "")
+                self.manager.runner = lines_runner
+                result = self.manager.install("nginx", app_manager.plan("nginx")["sha256"])
+                self.assertEqual(result["state"], "deployed")
+                self.assertTrue(self.manager.list_installed()[0]["running"])
 
     def test_private_state_required(self):
         self.root.chmod(0o755)
