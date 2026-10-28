@@ -26,7 +26,7 @@ READ_PERMISSIONS = frozenset((
     "system.status.read", "storage.inventory.read", "shares.inventory.read",
     "docker.inventory.read", "vm.inventory.read", "audit.own.read",
 ))
-AUTH_AUDIT_EVENTS = frozenset(("auth.login", "auth.logout"))
+AUTH_AUDIT_EVENTS = frozenset(("auth.login", "auth.logout", "apps.plan", "apps.install"))
 MUTATING_ACTIONS = frozenset((
     "docker.compose.deploy", "docker.container.remove", "vm.create",
     "vm.destroy", "storage.format", "storage.pool.create",
@@ -295,6 +295,7 @@ def security_status() -> dict:
             "sessions": "temporary in-memory and CSRF checks (not connected)",
             "policy": "default deny for all mutating actions",
             "audit": "append-only event metadata (not connected)",
+            "app_manager": "allowlisted Compose installer for VM lab (disabled by default)",
         },
         "warnings": [
             "O login do laboratório é do gateway HTTPS; não é login nativo do StorOS.",

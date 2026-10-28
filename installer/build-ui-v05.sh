@@ -7,11 +7,11 @@ systemd-detect-virt --vm >/dev/null || { echo 'Refusing non-VM' >&2;exit 2; }
 [[ "$#" -eq 0 ]] || { echo 'No disk arguments accepted' >&2;exit 2; }
 cd "$HOME/StorOS"
 python3 -m unittest discover -s tests -q
-for f in web/index.html web/app.js web/storage.js web/ca-import.js backend/storage.py; do test -s "$f"; done
+for f in web/index.html web/app.js web/storage.js web/ca-import.js backend/storage.py backend/app_manager.py backend/auth_socket.py tools/storosctl.py; do test -s "$f"; done
 sudo podman image exists localhost/storos:usb-preview
 sudo podman build --pull=never -f installer/Containerfile.ui-v05 -t localhost/storos:ui-v05 .
 sudo podman run --rm --entrypoint sh localhost/storos:ui-v05 -c \
-  'test "$(readlink /usr/lib/systemd/system/sshd.service)" = /dev/null && test -s /usr/lib/storos/web/ca-import.js && test -s /usr/lib/storos/web/modules.js && test -s /usr/lib/storos/backend/storage.py'
+  'test "$(readlink /usr/lib/systemd/system/sshd.service)" = /dev/null && test -s /usr/lib/storos/web/ca-import.js && test -s /usr/lib/storos/web/modules.js && test -s /usr/lib/storos/backend/storage.py && test -x /usr/local/bin/storosctl'
 echo 'STOROS_V05_OCI_VERIFIED'
 OUT="$HOME/StorOS/output/ui-v05"
 mkdir -p "$OUT"

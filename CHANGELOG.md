@@ -105,3 +105,10 @@
 - Sem porta TCP, sem integração com o gateway e sem operações privilegiadas.
 - Testes HTTP reais em socket Unix cobrem CSRF, limite de tentativas, permissões e bloqueio de ações administrativas.
 - Nenhuma conta administrativa real ou operação de escrita foi ativada.
+
+## 2026-10-27 — Apps e USB integrados no código de laboratório
+- Gerenciador de catálogo controlado com plano Docker Compose, volumes nomeados, SHA-256, execução opcional somente em VM e auditoria.
+- Endpoints privados de apps no serviço Unix com admin/CSRF, desabilitados por padrão.
+- CLI storosctl com getpass e confirmação; validador somente leitura de USB GPT/BIOS/EFI.
+- Compose Nginx aceito pelo parser real da VM sem criar containers.
+- Nenhuma VM nova ou disco de produção alterado; imagem USB v0.5 ainda não compilada.

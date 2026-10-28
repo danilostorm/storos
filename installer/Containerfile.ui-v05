@@ -5,4 +5,5 @@ LABEL org.opencontainers.image.title="StorOS USB Preview"
 LABEL org.opencontainers.image.version="0.5.0-ui-preview"
 COPY backend/ /usr/lib/storos/backend/
 COPY web/ /usr/lib/storos/web/
-RUN chmod -R a+rX /usr/lib/storos && ostree container commit
+COPY tools/storosctl.py /usr/local/bin/storosctl
+RUN chmod -R a+rX /usr/lib/storos && chmod 0755 /usr/local/bin/storosctl && ostree container commit

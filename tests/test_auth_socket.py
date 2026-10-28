@@ -112,6 +112,48 @@ class PrivateAuthIntegrationTests(unittest.TestCase):
             self.assertIn(self.req(method, path, headers=headers)[0], (404, 405))
         self.assertEqual(self.req("POST", "/v1/health")[0], 405)
 
+    def test_app_routes_disabled_by_default(self):
+        token, csrf = self.login()
+        headers = {"Authorization": "Bearer " + token, "X-StorOS-CSRF": csrf}
+        self.assertEqual(self.req("POST", "/v1/apps/plan",
+            {"slug":"nginx"}, headers=headers)[0], 403)
+        self.assertEqual(self.req("POST", "/v1/apps/install",
+            {"slug":"nginx","accepted_sha256":"0"*64}, headers=headers)[0], 403)
+        self.assertEqual(self.req("GET", "/v1/apps/installed",
+            headers={"Authorization": "Bearer " + token})[0], 403)
+
+    def test_app_plan_and_install_admin_csrf_when_explicitly_enabled(self):
+        from app_manager import plan
+        class FakeManager:
+            def __init__(self):
+                self.calls=[]
+            def list_installed(self):
+                return [{"project":"storos-nginx","state":"configured","running":None}]
+            def install(self, slug, accepted_sha256):
+                self.calls.append((slug, accepted_sha256))
+                return {"name":"storos-nginx","state":"deployed"}
+        fake=FakeManager()
+        self.server.app_manager=fake
+        token, csrf=self.login()
+        auth={"Authorization":"Bearer "+token}
+        self.assertEqual(self.req("POST", "/v1/apps/plan",{"slug":"nginx"},headers=auth)[0],403)
+        headers={**auth,"X-StorOS-CSRF":csrf}
+        code, app, _ = self.req("POST", "/v1/apps/plan",{"slug":"nginx"},headers=headers)
+        self.assertEqual(code,200)
+        self.assertEqual(app["project"],"storos-nginx")
+        self.assertEqual(app["sha256"],plan("nginx")["sha256"])
+        self.assertEqual(self.req("POST","/v1/apps/install",{
+            "slug":"nginx","accepted_sha256":app["sha256"]
+        },headers=headers)[0],200)
+        self.assertEqual(fake.calls,[("nginx",app["sha256"])])
+        code, rows, _=self.req("GET","/v1/apps/installed",headers=auth)
+        self.assertEqual(code,200)
+        self.assertEqual(rows["items"][0]["project"],"storos-nginx")
+        audit=(self.directory/"audit.jsonl").read_text()
+        self.assertIn('"action":"apps.install"',audit)
+        self.assertNotIn(token,audit)
+        self.assertNotIn(csrf,audit)
+
     def test_invalid_input_and_private_directory(self):
         self.assertEqual(self.req("POST", "/v1/login", {
             "username": "storadmin", "password": self.password, "role": "admin"})[0], 400)

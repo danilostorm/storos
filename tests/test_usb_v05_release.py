@@ -11,6 +11,7 @@ class USBV05ReleaseTests(unittest.TestCase):
         self.assertIn("FROM localhost/storos:usb-preview", docker)
         self.assertIn("COPY web/", docker)
         self.assertIn("COPY backend/", docker)
+        self.assertIn("COPY tools/storosctl.py", docker)
         self.assertNotIn("passwd", docker)
         self.assertNotIn("ssh-key", docker)
     def test_build_script_rejects_wrong_environment(self):

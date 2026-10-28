@@ -96,3 +96,6 @@ A biblioteca backend/security_core.py contém os fundamentos de identidade; o pa
 
 ### Autenticação por socket Unix (laboratório)
 O módulo backend/auth_socket.py oferece login, consulta de sessão e logout com CSRF em socket Unix privado. Ainda NÃO está conectado ao login web ou a serviços privilegiados, e nenhuma conta administrativa real foi provisionada. Consulte docs/AUTH_SOCKET_STAGE.md. A imagem USB v0.5 permanece pendente.
+
+### Docker Compose e USB: integração experimental
+O backend/app_manager.py e a CLI local tools/storosctl.py implementam plano/instalação controlados exclusivamente em VM, com autenticação Unix e confirmação SHA-256. O modo de instalação está desligado por padrão, não há botão Install operacional no navegador. O validador tools/check_usb_image.py verifica imagens sem montar nem gravar discos. Veja docs/INTEGRATED_MILESTONE_2026_10.md. A imagem USB v0.5 continua não compilada.
