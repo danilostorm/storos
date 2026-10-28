@@ -43,6 +43,15 @@ class USBV05ReleaseTests(unittest.TestCase):
                           "virsh undefine", "rm -rf"):
             self.assertNotIn(forbidden, source)
 
+    def test_notebook_guide_identifies_legacy_firmware_and_limitations(self):
+        guide = (ROOT / "docs/USB_V05_NOTEBOOK_GUIDE_PTBR.md").read_text(encoding="utf-8")
+        for value in ("BIOS Legacy", "balenaEtcher", "SHA-256",
+                      "de2ac025105f9b82e9fed350ba7664c9b46a3c19d905186cf93bbce59270d004",
+                      "não foi testado", "não instala automaticamente"):
+            self.assertIn(value.casefold(), guide.casefold())
+        self.assertIn("USB_V05_NOTEBOOK_GUIDE_PTBR.md",
+                      (ROOT/"docs/USB_NOTEBOOK_TEST.md").read_text(encoding="utf-8"))
+
     def test_documentation_does_not_misstate_release(self):
         content = (ROOT/"docs/USB_V05_BUILD_STATUS.md").read_text()
         self.assertIn("Boot UEFI/OVMF", content)

@@ -1,3 +1,9 @@
+# ATENÇÃO: versão atualizada v0.5
+
+Este arquivo mantém histórico de versões antigas. Para o teste em notebook (BIOS Legacy ou UEFI), use o guia atualizado [USB_V05_NOTEBOOK_GUIDE_PTBR.md](USB_V05_NOTEBOOK_GUIDE_PTBR.md). O RAW v0.5 foi testado em QEMU com os dois firmwares, mas não em pendrive físico. Não reutilize instruções antigas que indicavam suporte somente UEFI.
+
+---
+
 # StorOS — teste inicial em notebook pelo balenaEtcher (após homologação QCOW2/RAW)
 
 **Este documento é uma preparação. O build v0.3.0 contém credencial SSH pública de laboratório e ainda não está homologado para hardware real.** Não use como servidor de produção, nem exponha à internet.

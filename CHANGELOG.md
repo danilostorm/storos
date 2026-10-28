@@ -152,3 +152,8 @@
 ## 2026-10-28 — Ensaio BIOS Legacy isolado para imagens USB
 - Adicionado `tools/test-boot-raw-bios.sh` para criar uma VM SeaBIOS descartável com overlay QCOW2 e sem placa de rede, sem anexar discos físicos e sem modificar a imagem RAW original.
 - VNC limitado a `127.0.0.1`; o script não considera a mera inicialização de QEMU como boot validado. Teste de screenshot e `guest-ping` são etapas separadas.
+
+## 2026-10-28 — IMG v0.5 preparado para balenaEtcher
+- Criada cópia esparsa .img do RAW v0.5 com comparação integral de SHA-256, verificação GPT/BIOS/EFI/root e preservação do original.
+- Guia PT-BR para notebook Legacy/UEFI e balenaEtcher em docs/USB_V05_NOTEBOOK_GUIDE_PTBR.md.
+- Nenhum USB físico gravado; sem teste real em notebook, array, paridade ou autorização administrativa de produção.

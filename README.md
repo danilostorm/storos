@@ -102,3 +102,6 @@ O backend/app_manager.py e a CLI local tools/storosctl.py implementam plano/inst
 
 ### Login nativo no navegador — desativado por padrão
 O gateway do laboratório tem suporte opt-in a sessões nativas via Unix socket, com HTTPS, cookie seguro e CSRF. Em Sistema > Segurança a página só mostra o formulário quando o serviço for provisionado e habilitado. Essa ponte não expõe comandos administrativos. Consulte docs/NATIVE_HTTPS_AUTH_MILESTONE.md. Não há conta padrão nem operação administrativa web habilitada; o RAW v0.5 já passou por boot GUI em QEMU.
+
+### Teste de pendrive StorOS v0.5 — BIOS Legacy e UEFI
+A imagem RAW v0.5 passou no boot QEMU/OVMF e SeaBIOS com GUI. O arquivo IMG, preparado com checksum no AEROCOOL, pode ser usado pelo balenaEtcher. Leia docs/USB_V05_NOTEBOOK_GUIDE_PTBR.md antes de gravar. USB físico e notebook ainda precisam de homologação; não use como NAS de produção.

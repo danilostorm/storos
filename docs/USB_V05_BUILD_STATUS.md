@@ -38,6 +38,14 @@ Os screenshots são apenas evidências internas do laboratório; não são publi
 - A VM `StorOS-BootTest-RAW-v050-BIOS` (SeaBIOS) usou overlay QCOW2 diferente, sem NIC. O QEMU guest agent respondeu e a mesma GUI v0.5 foi vista no VNC.
 - BuildLab, VM UEFI e VM BIOS foram desligadas normalmente após os testes. Discos do Unraid e o RAW original não foram alterados.
 
+## Arquivo de distribuição para balenaEtcher (28/10/2026)
+
+- A partir do RAW validado foi criada uma cópia esparsa de disco inteiro: /mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.img.
+- A comparação SHA-256 de 10 GiB retornou o mesmo valor integral do RAW: de2ac025105f9b82e9fed350ba7664c9b46a3c19d905186cf93bbce59270d004.
+- A cópia contém GPT, BIOS Boot, EFI System e raiz Linux, inspecionadas com tools/check_usb_image.py. Arquivos .sha256 e .structure.json ficam ao lado.
+- Não foi gravado pendrive físico. O resultado de boot QEMU não comprova compatibilidade com BIOS/USB/GPU específicos.
+- Guia para notebook: docs/USB_V05_NOTEBOOK_GUIDE_PTBR.md; cópia no diretório output: StorOS-v0.5-LEIA-ME.txt.
+
 ## Reproduzir validações sem mexer em disco físico
 
 O script de build **não deve ser reexecutado sobre o destino atual**: recusa sobreposição do RAW. Para repetir os ensaios de boot, use as VMs já cadastradas ou crie novas VMs **com nomes inéditos**, overlays exclusivos e apenas o arquivo RAW regular abaixo. As VMs já criadas recusam redefinição pelos scripts de segurança.

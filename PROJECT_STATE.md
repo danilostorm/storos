@@ -1,5 +1,12 @@
 # Estado do StorOS — atualizado em 28/10/2026
 
+## Entrega pronta para gravação em pendrive descartável — 28/10/2026
+- Preparada cópia esparsa IMG idêntica ao RAW: /mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.img.
+- SHA-256 integral da cópia conferido: de2ac025105f9b82e9fed350ba7664c9b46a3c19d905186cf93bbce59270d004.
+- Estrutura GPT/BIOS Boot/EFI/raiz validada; fonte RAW original preservada. README acessível no output: StorOS-v0.5-LEIA-ME.txt.
+- Guia prático em docs/USB_V05_NOTEBOOK_GUIDE_PTBR.md. Não foi gravado nenhum USB físico e não há homologação de notebook ou armazenamento NAS.
+- Suíte de código atualmente com 117 testes aprovados.
+
 ## Estado mais recente — v0.5 USB Preview (QEMU/VM apenas)
 - A VM Fedora 44 `StorOS-BuildLab` compilou a OCI `localhost/storos:ui-v05` e o RAW v0.5 de 10 GiB; `installer/build-ui-v05.sh` concluiu com código 0 e `STOROS_V05_RAW_STRUCTURE_VERIFIED`.
 - O RAW foi transferido em modo esparso ao AEROCOOL e sua integridade foi revalidada integralmente por SHA-256 e GPT/BIOS/EFI/root: `de2ac025105f9b82e9fed350ba7664c9b46a3c19d905186cf93bbce59270d004`.
