@@ -68,6 +68,7 @@ class AppManagerTests(unittest.TestCase):
         content = (self.root/"storos-nginx"/"compose.json")
         self.assertEqual(stat.S_IMODE(content.stat().st_mode),0o600)
         self.assertEqual(json.loads(content.read_text())["name"],"storos-nginx")
+        self.assertEqual(self.manager.list_installed()[0]["state"], "deployed")
         self.assertEqual(self.manager.list_installed()[0]["running"],None)
         with self.assertRaises(app_manager.AppActionError):
             self.manager.install("nginx",accepted["sha256"])
@@ -86,6 +87,20 @@ class AppManagerTests(unittest.TestCase):
                 self.manager.install("nginx",accepted["sha256"])
         self.assertEqual(self.commands,[])
         self.assertEqual(list(self.root.iterdir()),[])
+
+    def test_failed_docker_does_not_claim_deployed(self):
+        def failing_runner(argv, **kwargs):
+            return subprocess.CompletedProcess(argv, 1, "", "fail")
+        self.manager.runner = failing_runner
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            with mock.patch.object(app_manager.subprocess, "run",
+                   return_value=subprocess.CompletedProcess(["vm"],0)):
+                with self.assertRaises(app_manager.AppActionError):
+                    self.manager.install("nginx", app_manager.plan("nginx")["sha256"])
+        state = self.manager.list_installed()[0]
+        self.assertEqual(state["state"], "failed")
+        self.assertIsNone(state["running"])
+        self.assertTrue((self.root/"storos-nginx"/"compose.json").exists())
 
     def test_private_state_required(self):
         self.root.chmod(0o755)

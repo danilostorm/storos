@@ -121,6 +121,23 @@ class AppManager:
             raise AppActionError("Docker Compose failed; inspect local audit and logs")
         return result
 
+    @staticmethod
+    def _write_state(project, state):
+        if state not in ("prepared", "deploying", "deployed", "failed"):
+            raise AppActionError("Invalid application state")
+        fd, tmp = tempfile.mkstemp(prefix=".app-state-", dir=project)
+        try:
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                json.dump({"state": state}, stream)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(tmp, project / "state.json")
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+
     def install(self, slug: str, accepted_sha256: str):
         self._check_dir()
         expected = plan(slug)
@@ -141,6 +158,7 @@ class AppManager:
             raise AppActionError("Application limit reached")
         project.mkdir(mode=0o700)
         config = project / "compose.json"
+        self._write_state(project, "prepared")
         try:
             fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
                          getattr(os, "O_NOFOLLOW", 0), 0o600)
@@ -151,10 +169,13 @@ class AppManager:
             # Parse locally with Compose before contacting registry.
             argv = ["--project-directory", str(project), "-f", str(config)]
             self._run([*argv, "config", "--quiet"], timeout=25)
+            self._write_state(project, "deploying")
             self._run([*argv, "up", "-d", "--pull", "always"], timeout=180)
+            self._write_state(project, "deployed")
         except Exception:
-            # Keep metadata on failed deployment for post-mortem/retry; no removal
-            # of Docker volumes or remote containers ever happens implicitly.
+            # Keep metadata on failed deployment for post-mortem; never
+            # silently delete Docker volumes or any partly-created container.
+            self._write_state(project, "failed")
             raise
         return {"name": expected["project"], "slug": slug,
                 "state": "deployed", "storage": "named Docker volumes"}
@@ -167,6 +188,12 @@ class AppManager:
                 continue
             if not (entry / "compose.json").is_file():
                 continue
-            rows.append({"project": entry.name, "state": "configured",
-                         "running": None})
+            state = "unknown"
+            try:
+                doc = json.loads((entry / "state.json").read_text(encoding="utf-8"))
+                state = doc.get("state") if doc.get("state") in (
+                    "prepared", "deploying", "deployed", "failed") else "unknown"
+            except (OSError, ValueError, TypeError):
+                pass
+            rows.append({"project": entry.name, "state": state, "running": None})
         return rows[:MAX_PROJECTS]

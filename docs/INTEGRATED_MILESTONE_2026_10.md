@@ -38,3 +38,7 @@ O modo --enable-lab-apps do daemon por socket exige uma conta criada separadamen
 - Eventual engenharia reversa binária com Ghidra. A análise existente cobre componentes de interface da Main, não toda a implementação do Unraid.
 
 Este marco é uma base técnica de laboratório, NÃO um NAS pronto para dados de produção. O painel 18444 permanece de leitura; o botão Install ainda não opera nele.
+
+## Controle de falhas do Compose
+
+O projeto mantém estado privado preparado, implantando, implantado ou falhou. Se o Docker Compose falhar, o StorOS registra falha e mantém o projeto para diagnóstico, sem apagar containers ou volumes automaticamente. A lista de projetos é um inventário de configurações: o campo running permanece vazio até existir uma sonda real do daemon.

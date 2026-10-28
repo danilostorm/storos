@@ -112,3 +112,4 @@
 - CLI storosctl com getpass e confirmação; validador somente leitura de USB GPT/BIOS/EFI.
 - Compose Nginx aceito pelo parser real da VM sem criar containers.
 - Nenhuma VM nova ou disco de produção alterado; imagem USB v0.5 ainda não compilada.
+- Projetos Compose agora preservam estado privado de preparação, deploy e falha; erros nunca são apresentados como implantação concluída.
