@@ -87,3 +87,6 @@ Consulte docs/FEATURE_STATUS_2026_10.md para a matriz de funções e docs/UNRAID
 
 ### Importar template XML do Unraid (prévia)
 Na Loja de Aplicativos, selecione um arquivo Container XML v2 para converter, somente no navegador, os campos compatíveis em um projeto Compose de referência. Não são enviadas senhas nem arquivos ao servidor; paths de host são transformados em volumes nomeados. Esta é uma prévia, não instalação com um clique. A instalação segura requer autenticação nativa, permissões e um daemon de gestão isolado.
+
+### v0.5 — fonte pronta, aguardando compilação
+Os arquivos de construção estão em installer/Containerfile.ui-v05 e installer/build-ui-v05.sh; o processo deve ser executado somente na VM Fedora BuildLab. Os testes de fonte passaram, mas a geração do RAW v0.5 ficou bloqueada pela conexão e nenhuma nova imagem foi publicada. A v0.4 anterior foi testada graficamente em QEMU tanto UEFI quanto Legacy BIOS, sem alteração de discos físicos. Consulte docs/USB_V05_BUILD_STATUS.md.

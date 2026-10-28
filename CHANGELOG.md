@@ -87,3 +87,9 @@
 - Estudo estático reproduzível do código PHP/Page da Main e plugin Unassigned Devices presente no AEROCOOL. Nada de código proprietário foi incorporado ao StorOS.
 - Mantida a política HTTP de somente leitura, API no loopback, gateway HTTPS autenticado. A atualização é web; RAW USB v0.4 anterior não foi recompilado.
 - Adicionada a importação local de templates Unraid XML v2 na Loja. Gera Compose de prévia sem upload, sem executar Docker ou copiar caminhos arbitrários do Unraid. Importações perigosas são sinalizadas para revisão.
+
+## 2026-10-27 — Preparação v0.5 e validação Legacy (sem release)
+- BIOS Legacy/SeaBIOS da imagem v0.4 finalmente confirmado até o Firefox kiosk com QEMU temporário (3 GiB RAM, 2 vCPU, NIC desconectada, overlay QCOW2). UEFI da mesma imagem já havia sido confirmado.
+- A imagem existente do AEROCOOL não foi modificada. Portanto o notebook antigo pode estar falhando na detecção USB/firmware, e não na etapa do GRUB.
+- Preparada fonte StorOS v0.5 com os módulos recentes e receita uCore/bootc baseada na imagem SSH-disabled; testes executados no AEROCOOL e Fedora BuildLab.
+- A execução do build remoto foi bloqueada pelos controles da conexão, por isso **não existe IMG v0.5 para gravar**. Consulte docs/USB_V05_BUILD_STATUS.md antes de rodar em laboratório.

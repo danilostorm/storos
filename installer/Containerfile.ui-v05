@@ -1,0 +1,8 @@
+# Development preview: original StorOS dashboard and observational backends.
+# Derives from previously verified SSH-disabled and unprivileged USB image.
+FROM localhost/storos:usb-preview
+LABEL org.opencontainers.image.title="StorOS USB Preview"
+LABEL org.opencontainers.image.version="0.5.0-ui-preview"
+COPY backend/ /usr/lib/storos/backend/
+COPY web/ /usr/lib/storos/web/
+RUN chmod -R a+rX /usr/lib/storos && ostree container commit
