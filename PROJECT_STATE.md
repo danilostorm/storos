@@ -76,7 +76,7 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 ## 2026-10-28 — Preflight da imagem USB v0.5
 - Script v0.5 endurecido: checagem Fedora/VM, lock para concorrência, staging isolado, validação GPT/BIOS/EFI/root e checksum antes de publicar caminho final.
 - Um resultado `.structure-ok` comprovará somente estrutura do RAW, não inicialização, drivers, persistência, instalação física ou segurança de produção.
-- 115 testes locais e `bash -n` aprovados; imagem v0.5 ainda não gerada. A última imagem com boot GUI validado em QEMU permanece v0.4.
+- Na etapa de preflight, 115 testes e `bash -n` tinham sido aprovados, mas a imagem v0.5 ainda não havia sido gerada. Situação superada pela validação UEFI/BIOS registrada no início deste arquivo.
 
 ## 2026-10-28 — Validação cruzada no Fedora BuildLab
 - O BuildLab Fedora 44 iniciou em VM isolada e o código atualizado foi sincronizado sem substituir imagens de saída existentes.
