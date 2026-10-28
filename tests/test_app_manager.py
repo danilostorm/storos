@@ -161,7 +161,7 @@ class AppManagerTests(unittest.TestCase):
                     if "ps" in argv:
                         return subprocess.CompletedProcess(argv, 0, json.dumps({
                             "Project": "storos-nginx", "Service": "nginx", "State": "running"
-                        }) + "\\n", "")
+                        }) + "\n", "")
                     return subprocess.CompletedProcess(argv, 0, "", "")
                 self.manager.runner = lines_runner
                 result = self.manager.install("nginx", app_manager.plan("nginx")["sha256"])
