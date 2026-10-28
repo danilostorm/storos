@@ -54,3 +54,9 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 - QEMU guest agent respondeu, porta SSH 22 e portas HTTP 80/8765 não estão acessíveis na LAN da VM. SSH está mascarado na imagem OCI e nenhum blueprint de usuário/chave é utilizado nesta versão.
 - `tools/verify-usb-vm.sh` implementa teste externo não privilegiado da VM e salva captura. Não foi necessário enfraquecer SELinux.
 - **Status de release**: preview para boot/GUI de notebook; não é NAS para produção nem possui instalação de apps com um clique, controle de discos, conta de administrador configurável ou suporte validado de Wi-Fi/Secure Boot.
+
+## 2026-10-28 — Checagem pós-deploy de aplicativos (código)
+- Implementado controle de execução do Compose: um `up -d` com retorno zero não é mais suficiente para registrar `deployed` se o serviço não continuar em `running`.
+- O inventário privado pode retornar `running: true/false/null` conforme resposta real do Docker; `null` significa ausência de observação confiável, não parada confirmada.
+- 115 testes unitários executados em cópia temporária do repositório no AEROCOOL e aprovados; testes Docker usam runner simulado.
+- Sem habilitação do daemon de apps no Unraid, sem instalação web, sem manipulação de discos físicos e sem nova imagem USB. A aprovação desses testes não equivale a homologação de deployment real.
