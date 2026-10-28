@@ -1,5 +1,7 @@
 # StorOS: integração de login, Apps e USB (laboratório)
 
+> **Atualização em 28/10/2026:** as notas abaixo descrevem o marco anterior à compilação. A v0.5 **já foi gerada**, transferida com SHA-256 verificado e inicializada com GUI em QEMU/OVMF e SeaBIOS. Consulte [o status atual de USB](USB_V05_BUILD_STATUS.md). Instalação web de aplicativos, USB físico e NAS de produção continuam pendentes.
+
 ## Implementações
 
 - backend/app_manager.py: templates do catálogo interno, plano Docker Compose determinístico, confirmação SHA-256 e somente volumes nomeados. Sem aceitar entradas arbitrárias ou montagem de diretórios do host.
