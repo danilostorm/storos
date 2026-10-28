@@ -16,7 +16,7 @@
 - O Compose de Nginx foi produzido e validado pelo Docker Compose real dentro da VM StorOS, com a opção config --quiet. Nenhuma imagem baixada nem container iniciado.
 - Não foi habilitado o daemon administrativo. O usuário storadmin da VM não tem acesso ao grupo Docker; a execução real exige um serviço com permissões separadas e auditoria/rollback. Não vamos conceder privilégio equivalente a root automaticamente.
 - A imagem StorOS v0.4 de 10 GiB passou na inspeção de GPT com partições BIOS/EFI/root. Em trabalhos anteriores, v0.4 alcançou a GUI em QEMU SeaBIOS e OVMF.
-- A nova imagem USB v0.5 ainda não existe. A tentativa anterior de compilação foi bloqueada pela conexão e não foi contornada.
+- Naquela etapa do projeto, a imagem USB v0.5 ainda não existia; a tentativa de compilação tinha sido bloqueada. A compilação posterior foi concluída e está documentada no status de USB atualizado.
 
 ## Operação de laboratório
 
