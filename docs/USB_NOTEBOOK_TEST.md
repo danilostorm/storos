@@ -53,3 +53,18 @@ Arquivo final no Unraid: `/mnt/user/rea/StorOS/output/StorOS-v0.3.1-USB-Preview.
 SHA256: `e1050333df2f3d421e9858be41973188b71ddc165e32f19441587ff05850fce4`.
 
 Primeiro teste físico: gravar no **pendrive vazio** (mínimo 16 GB), selecionar USB pelo menu UEFI, deixar disco interno desligado/desconectado quando possível e validar painel na tela. O sistema ainda não conta com onboarding administrativo, auto-configuração de Wi-Fi, tolerância a falhas ou controle completo de volumes. Não usá-lo como substituto de Unraid.
+
+## 2026-10-27 — v0.4 USB com layout redesenhado
+
+Arquivo: /mnt/user/rea/StorOS/output/StorOS-v0.4-USB-Preview.img
+
+- Tamanho lógico 10 GiB; aproximadamente 4,3 GiB realmente ocupados no AEROCOOL (sparse).
+- SHA-256: 3999ccc910da41052f7ba6e683249a526fbaf3ef4140711b768922e74312cae8.
+- GPT com BIOS boot, EFI System (127 MiB), Linux boot (384 MiB) e raiz (9,5 GiB).
+- Imagem inicializou por UEFI na VM preexistente StorOS-BootTest-RAW-Preview031. Novo overlay qcow2, definição e NVRAM antigos preservados. Nenhuma VM adicional criada.
+- Firefox kiosk mostrou a nova interface, agente QEMU respondeu guest-ping e interface ens3 recebeu 192.168.122.136.
+- Portas TCP 22, 80 e 8765 não ficaram disponíveis pela rede NAT; painel permanece somente no loopback.
+- Limitações encontradas: o rótulo gráfico do RAW já compilado ainda diz v0.3 Preview, corrigido depois no repositório; o painel de rede pode estar indisponível sem comando ip. Fallback socket/sysfs implementado no código-fonte para a próxima compilação.
+- Não é NAS de produção: gerenciamento de discos, paridade, RBAC, persistência e gestão de containers ainda não estão homologados.
+
+Para teste físico: pendrive vazio >= 16 GB via balenaEtcher, selecionar somente o dispositivo USB e dar boot em UEFI. Secure Boot, vídeo, Wi-Fi e drivers do notebook ainda dependem de ensaio físico.

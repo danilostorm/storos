@@ -36,6 +36,24 @@ class RealObservabilityTests(unittest.TestCase):
         result=observability.mount_usage('/path/that/does/not/exist')
         self.assertIsNone(result)
 
+    def test_network_without_ip_command_falls_back_to_kernel(self):
+        class SocketStub:
+            def __enter__(self): return self
+            def __exit__(self, *_): return None
+            def fileno(self): return 5
+        with mock.patch.object(observability, '_command', return_value=None):
+            with mock.patch.object(observability.socket, 'if_nameindex',
+                                   return_value=[(1, 'lo'), (2, 'ens3')]):
+                with mock.patch.object(observability.socket, 'socket', return_value=SocketStub()):
+                    with mock.patch.object(observability.fcntl, 'ioctl',
+                         return_value=bytes(20) + bytes((192, 168, 122, 136))):
+                        with mock.patch.object(observability, '_read', return_value='up'):
+                            d=observability.network_overview()
+        self.assertTrue(d['available'])
+        self.assertEqual([x['name'] for x in d['interfaces']], ['ens3'])
+        self.assertEqual(d['interfaces'][0]['ip'], '192.168.122.136')
+        self.assertEqual(d['interfaces'][0]['state'], 'UP')
+
     def test_compose_unavailable_does_not_invent_stacks(self):
         with mock.patch.object(observability, '_command', return_value=None):
             d=observability.compose_overview()

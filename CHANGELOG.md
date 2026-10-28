@@ -54,3 +54,9 @@
 - Prévia HTTPS separada na porta 18444 com autenticação, usando a VM v0.3 já existente. Versão 18443 e imagem USB v0.3.1 permanecem sem alterações.
 - Cinco VMs antigas StorOS foram desligadas normalmente; discos e definições permanecem intactos.
 - Iniciado estudo estático documentado do boot Unraid 7.3.4 a partir do menu de Syslinux, com script independente e sem executar componentes proprietários. Ghidra ainda pendente.
+
+## 2026-10-27 — RAW v0.4 com novo painel validado
+- RAW transferido ao AEROCOOL, hash SHA-256 confirmado e GPT/EFI verificados.
+- Boot GUI UEFI confirmado na VM de teste existente, preservando definição antiga, NVRAM e disco de teste para rollback.
+- BuildLab desligado após compilação, liberando memória. Duas VMs StorOS permanecem ligadas.
+- Fonte corrigida depois do RAW: UI passa a exibir v0.4 e rede tem leitura alternativa sem iproute2. Próximo RAW necessário para incorporá-las.

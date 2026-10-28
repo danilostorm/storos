@@ -31,3 +31,12 @@ Referência: captura do usuário de 1536 × 1024 pixels, 27/10/2026, com sidebar
 
 ## Variante USB com layout atualizado
 O Containerfile.ui-v04 deriva da base USB Preview v0.3.1 que já mascara SSH e não injeta administrador. Só acrescenta os arquivos HTML/CSS/JS, imagem de banner e observabilidade atual. O script installer/build-ui-v04.sh recompila a imagem RAW em VM Fedora; **não** grava pendrives nem atualiza a imagem antiga automaticamente.
+
+## Resultado de boot RAW v0.4 em QEMU
+
+- A imagem de 10 GiB passou SHA-256 e inicializou por UEFI em uma VM de testes já existente, com overlay novo e backup integral do libvirt XML antigo e NVRAM.
+- Firefox local apresentou o novo painel inspirado no mockup, com CPU/RAM/uso real e campos não disponíveis sem valores inventados.
+- Captura de boot exibiu CPU transitória alta (medição real durante inicialização), não valor do mockup.
+- Rede real ens3/IPv4 confirmada pelo QEMU, mas ausente na API se comando ip estiver indisponível. Código fonte foi corrigido com leitura via ioctl/sysfs, posterior ao RAW v0.4.
+- A imagem RAW v0.4 ainda rotula a tela v0.3. O HTML no GitHub foi corrigido após a compilação, entrando numa próxima imagem.
+- A fidelidade pixel por pixel permanece sujeita à revisão visual e à resolução física usada.

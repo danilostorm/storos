@@ -4,6 +4,9 @@ Missing sensors are returned as null. No privileged actions and no synthetic val
 """
 import json
 import os
+import socket
+import struct
+import fcntl
 from pathlib import Path
 import shutil
 import subprocess
@@ -127,11 +130,36 @@ def storage_overview():
 def network_overview():
     addresses = _command(["ip", "-j", "addr", "show"])
     if addresses is None:
-        return {"available": False, "interfaces": []}
-    try:
-        records = json.loads(addresses)
-    except (TypeError, ValueError):
-        return {"available": False, "interfaces": []}
+        records = None
+    else:
+        try:
+            records = json.loads(addresses)
+        except (TypeError, ValueError):
+            records = None
+    # Fedora CoreOS minimalist builds might lack the iproute2 CLI. Interface
+    # names, IPv4 and link state can still be read from Linux APIs without
+    # requiring a privileged service or injecting invented addresses.
+    if records is None:
+        try:
+            records = []
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                for _, ifname in socket.if_nameindex():
+                    if not ifname or len(ifname.encode()) > 15:
+                        continue
+                    addr = None
+                    try:
+                        data = fcntl.ioctl(sock.fileno(), 0x8915,
+                                           struct.pack("256s", ifname.encode()))
+                        addr = socket.inet_ntoa(data[20:24])
+                    except OSError:
+                        pass
+                    state = _read("/sys/class/net/" + ifname + "/operstate").upper() or None
+                    records.append({"ifname": ifname,
+                                    "operstate": state,
+                                    "addr_info": ([{"family": "inet", "local": addr}]
+                                                  if addr else [])})
+        except (OSError, ValueError):
+            return {"available": False, "interfaces": []}
     routes = _read("/proc/net/route")
     main_iface = None
     for row in routes.splitlines()[1:]:
