@@ -18,7 +18,17 @@ class USBV05ReleaseTests(unittest.TestCase):
         source = (ROOT/"installer/build-ui-v05.sh").read_text()
         self.assertIn("systemd-detect-virt --vm", source)
         self.assertIn("image-builder build", source)
-        self.assertIn("test ! -e", source)
+        self.assertIn('[[ ! -e "$artifact"', source)
+        self.assertIn("flock -n 9", source)
+        self.assertIn('mktemp -d "$OUT/.build-staging.', source)
+        self.assertIn('python3 tools/check_usb_image.py "$STAGE/$NAME"', source)
+        self.assertIn('sha256sum "$NAME" > "$NAME.sha256"', source)
+        self.assertIn('mv -- "$STAGE/$NAME" "$RAW"', source)
+        self.assertIn('printf \'Structure and SHA-256 recorded.', source)
+        self.assertLess(source.index("python3 tools/check_usb_image.py"),
+                        source.index('mv -- "$STAGE/$NAME"'))
+        self.assertLess(source.index('mv -- "$STAGE/$NAME.structure.json"'),
+                        source.index("STOROS_V05_RAW_STRUCTURE_VERIFIED"))
         self.assertNotIn("dd if=", source)
         self.assertNotIn("of=/dev/", source)
     def test_documentation_does_not_misstate_release(self):

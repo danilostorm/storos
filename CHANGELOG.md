@@ -127,3 +127,10 @@
 - A listagem privada reconsulta o estado de execução dos projetos implantados ou falhos; quando o Docker está indisponível, apresenta `running: null` em vez de inferir uma condição falsa.
 - Novos testes cobrem parada imediata, identificação incorreta, mudança posterior de estado e JSON em linhas: 115 testes aprovados no AEROCOOL usando mocks para execução Docker.
 - **Nenhum container real foi instalado**, a instalação via HTTPS continua bloqueada e a imagem USB v0.5 não foi gerada nesta etapa.
+
+## 2026-10-28 — Segurança no empacotamento USB v0.5 (código, sem build)
+- Build v0.5 recebe lock exclusivo e trabalha em diretório temporário privado; evita publicar saída parcial como imagem final.
+- Antes de apresentar o RAW de saída, valida tabela GPT com partições BIOS, EFI e Linux via verificador somente leitura, além de gravar SHA-256 relativo ao próprio arquivo.
+- Os arquivos de relatório e marcador `.structure-ok` são publicados apenas após validação de estrutura; o marcador **não** significa boot homologado nem autoriza gravação em pendrive de produção.
+- Em falha, a área temporária é preservada para diagnóstico. A fonte e a imagem v0.4 não foram alteradas por essa preparação.
+- Script passou por `bash -n` e 115 testes no AEROCOOL; **o build Fedora da v0.5 não foi executado nesta etapa**.
