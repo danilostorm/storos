@@ -1,0 +1,142 @@
+/* StorOS UI step 1: readable typography, collapsible desktop sidebar and mobile drawer.
+   Does not modify data, APIs, or server privileges. */
+:root { --nav-width: 236px; --font-boost: 0px; }
+body[data-text-size="1"] { --font-boost: 2px; }
+body[data-text-size="2"] { --font-boost: 4px; }
+.sidebar { flex: 0 0 var(--nav-width); width: var(--nav-width); padding: 15px 12px; transition: width .22s ease, flex-basis .22s ease, transform .22s ease; }
+.brand { margin: 0 8px 17px; gap: 12px; }
+.brand-type small { font-size: calc(12px + var(--font-boost)); }
+.side-menu { gap: 3px; }
+.nav-link { min-height: 42px; height: auto; padding: 9px 12px; font-size: calc(14px + var(--font-boost)); gap: 12px; }
+.nav-link svg { width: 18px; height: 18px; }
+.subnav { margin: 3px 0 8px; padding-left: 16px; }
+.subnav a { min-height: 36px; padding: 7px 11px; font-size: calc(13px + var(--font-boost)); gap: 11px; }
+.subnav svg { width: 16px; height: 16px; }
+.nav-label { flex: 1; min-width: 0; white-space: normal; line-height: 1.25; }
+.nav-link .chevron { display: none; }
+.nav-parent { position: relative; }
+.nav-parent > .nav-link { padding-right: 39px; }
+.submenu-toggle { position: absolute; top: 4px; right: 2px; height: 35px; width: 34px; border: 0; border-radius: 7px; color: #c3d7e7; background: transparent; font-size: 21px; display: grid; place-items: center; }
+.submenu-toggle:hover, .submenu-toggle:focus-visible { background: #1c3446; color: #6ff0cd; }
+.nav-parent.section-closed > .subnav { display: none; }
+.nav-parent.section-closed > .submenu-toggle { transform: rotate(-90deg); }
+.side-foot { font-size: calc(12px + var(--font-boost)); line-height: 1.4; }
+
+.sidebar-toggle { width: 39px; height: 38px; flex: none; display: grid; place-items: center; background: #102434; border: 1px solid #2b4658; border-radius: 9px; color: #d9e9f7; cursor: pointer; }
+.sidebar-toggle:hover, .sidebar-toggle:focus-visible { background: #1b4350; border-color: #3b927f; }
+.sidebar-toggle svg { height: 23px; width: 23px; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; fill: none; }
+.sidebar-backdrop { display: none; }
+.font-size-toggle { width: auto; min-width: 39px; padding: 0 7px; height: 38px; background: #102434; border: 1px solid #28485c; border-radius: 7px; font-weight: 800; font-size: 14px; }
+.font-size-toggle:hover { background: #1b4350; }
+
+/* Legibility: the original mockup implementation used 8–11px across the UI. */
+.topbar { gap: 13px; height: 64px; }
+.top-search { height: 39px; width: min(385px, 42vw); }
+.top-search input { font-size: calc(14px + var(--font-boost)); }
+.top-search kbd { font-size: 11px; }
+.user-pill { font-size: calc(13px + var(--font-boost)); }
+.hero { min-height: 148px; height: auto; }
+.hero-copy { padding-top: 24px; padding-bottom: 20px; }
+.hero-copy > p:last-child { font-size: calc(14px + var(--font-boost)); }
+.hero-app small, .hero-stats span, .hero-stats b, .version { font-size: calc(12px + var(--font-boost)); }
+.hero-details { width: 355px; }
+.stat { min-height: 132px; height: auto; }
+.stat-head { font-size: calc(13px + var(--font-boost)); }
+.stat-value { font-size: 27px; }
+.stat-note { font-size: calc(12px + var(--font-boost)); white-space: normal; }
+.meter { top: 80px; }
+.card-heading { height: auto; min-height: 59px; }
+.heading-title strong { font-size: calc(15px + var(--font-boost)); }
+.heading-title small { font-size: calc(12px + var(--font-boost)); white-space: normal; }
+.outline-button, .store-action { font-size: calc(12px + var(--font-boost)); padding: 9px 13px; }
+.data-table th { font-size: calc(11px + var(--font-boost)); padding: 10px; }
+.data-table td { font-size: calc(12px + var(--font-boost)); padding: 10px; }
+.catalog-toolbar input { font-size: calc(13px + var(--font-boost)); }
+.chip { font-size: calc(12px + var(--font-boost)); padding: 7px 12px; }
+.app-card { flex-basis: 155px; min-height: 156px; }
+.app-card-icon { font-size: 32px; line-height: 35px; height: 38px; }
+.app-card-name { font-size: calc(13px + var(--font-boost)); }
+.app-card-desc { font-size: calc(11px + var(--font-boost)); height: auto; min-height: 30px; }
+.app-card button { font-size: calc(12px + var(--font-boost)); min-height: 30px; }
+.duo-market .data-panel { height: auto; min-height: 257px; }
+.stack-tabs, .stack-row { font-size: calc(12px + var(--font-boost)); }
+.stack-row { min-height: 35px; }
+.compact { min-height: 145px; }
+.compact-title, .text-link, .mini-link, .chart-footer, .empty-work { font-size: calc(12px + var(--font-boost)); }
+.page-heading p, .details-content { font-size: calc(14px + var(--font-boost)); }
+.page-heading small { font-size: calc(12px + var(--font-boost)); }
+.market-card p, .store-caption, .store-notice, .billing-field span { font-size: calc(13px + var(--font-boost)); }
+.full-panel .card-heading { font-size: calc(15px + var(--font-boost)); }
+
+/* Compact rail: icons remain clickable and title/aria-labels identify destinations. */
+@media (min-width: 721px) {
+  body.sidebar-collapsed .sidebar { flex-basis: 74px; width: 74px; padding: 12px 9px; }
+  body.sidebar-collapsed .brand { margin: 0 0 16px; justify-content: center; }
+  body.sidebar-collapsed .brand-type, body.sidebar-collapsed .nav-label,
+  body.sidebar-collapsed .nav-parent .subnav, body.sidebar-collapsed .submenu-toggle,
+  body.sidebar-collapsed .side-foot, body.sidebar-collapsed .nav-link .chevron { display: none !important; }
+  body.sidebar-collapsed .nav-link, body.sidebar-collapsed .nav-parent > .nav-link {
+    padding: 12px 0; justify-content: center; min-height: 46px; }
+  body.sidebar-collapsed .nav-link svg { width: 21px; height: 21px; }
+  body.sidebar-collapsed .nav-parent { margin: 0; }
+}
+@media (max-width: 1390px) {
+  .hero-copy > p:last-child { white-space: normal; }
+  .stat { min-height: 132px; }
+}
+@media (max-width: 1050px) and (min-width: 721px) {
+  .sidebar { flex-basis: var(--nav-width); width: var(--nav-width); }
+  .stat-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+@media (max-width: 720px) {
+  .shell { display: flex; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: min(88vw, 310px); max-height: none;
+    height: 100dvh; padding: 14px 12px; overflow-y: auto; overflow-x: hidden;
+    transform: translateX(-110%); z-index: 70;
+  }
+  body.sidebar-open .sidebar { transform: translateX(0); }
+  .main-area { width: 100%; }
+  .side-menu { flex-direction: column; width: auto; }
+  .nav-parent { display: block; }
+  .nav-parent .subnav { display: flex; }
+  .nav-link { min-height: 44px; height: auto; }
+  .nav-parent > .nav-link { padding-right: 42px; }
+  .submenu-toggle { display: grid; }
+  .side-foot { display: block; }
+  .sidebar-backdrop { position: fixed; inset: 0; border: 0; background: #000b; z-index: 65; cursor: pointer; }
+  body.sidebar-open .sidebar-backdrop { display: block; }
+  body.nav-dialog-open { overflow: hidden; }
+  .topbar { gap: 10px; padding: 0 10px; }
+  .top-search { width: auto; flex: 1; max-width: none; min-width: 0; }
+  .hero { min-height: 160px; }
+  .hero-copy { padding: 15px; }
+  .stat-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .data-panel { min-width: 0; }
+  .top-actions { gap: 3px; }
+}
+@media (max-width: 420px) {
+  .top-actions .icon-button:not(.font-size-toggle) { display: none; }
+  .font-size-toggle { min-width: 36px; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .hero h1 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar-backdrop { transition: none; }
+}
+
+/* Keep active subsections discoverable when their group is represented by one icon. */
+@media (min-width: 721px) {
+  body.sidebar-collapsed .nav-parent:has(.subnav a.selected) > .nav-link {
+    background: #16493f;
+    color: #79eac9;
+  }
+}
+/* Native horizontal table scroller was glaring white on Firefox mobile. */
+.table-scroll, .app-cards, .sidebar {
+  scrollbar-color: #365365 #0b1725;
+  scrollbar-width: thin;
+}
+.table-scroll::-webkit-scrollbar, .app-cards::-webkit-scrollbar { height: 7px; }
+.table-scroll::-webkit-scrollbar-thumb, .app-cards::-webkit-scrollbar-thumb { background: #365365; border-radius: 8px; }
+.table-scroll::-webkit-scrollbar-track, .app-cards::-webkit-scrollbar-track { background: #0b1725; }

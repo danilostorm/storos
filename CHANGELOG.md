@@ -60,3 +60,12 @@
 - Boot GUI UEFI confirmado na VM de teste existente, preservando definição antiga, NVRAM e disco de teste para rollback.
 - BuildLab desligado após compilação, liberando memória. Duas VMs StorOS permanecem ligadas.
 - Fonte corrigida depois do RAW: UI passa a exibir v0.4 e rede tem leitura alternativa sem iproute2. Próximo RAW necessário para incorporá-las.
+
+## 2026-10-28 — Etapa 1: navegação recolhível e legibilidade
+- Menu lateral desktop agora recolhe a uma barra de 74px e pode ser expandido novamente; ícones preservam títulos e rótulos acessíveis.
+- Grupos Armazenamento, Docker, Aplicativos, VMs e Sistema podem recolher/expandir submenus de forma independente.
+- Layout móvel usa gaveta com botão de abertura, fechamento ao selecionar item, clicar fora ou pressionar Escape.
+- Aumentados textos padrão de menus, subtítulos, tabelas, botões e cartões. Controle A+ alterna três níveis de tamanho e lembra a preferência neste navegador.
+- Nova folha CSS corrige barra de rolagem horizontal de tabelas no Firefox.
+- Prévia HTTPS 18444 atualizada sem criar VM ou reconstruir USB. Imagem v0.4 USB existente permanece inalterada.
+- Interface continua apenas de leitura; páginas não integradas mostram campos vazios, sem fingir que são gerenciadores ativos.

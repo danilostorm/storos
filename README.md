@@ -69,3 +69,8 @@ Durante os ensaios, cinco VMs antigas foram desligadas normalmente, preservando 
 
 ### Imagem StorOS v0.4 para testar GUI pelo USB
 A imagem inicializável verificada está em output/StorOS-v0.4-USB-Preview.img no AEROCOOL. O teste de boot UEFI pela VM existente foi aprovado. Consulte docs/USB_NOTEBOOK_TEST.md para SHA256, limitações e cuidados. Esta é uma edição de teste de GUI e observabilidade, não um substituto homologado para Unraid.
+
+### Navegação e fontes na prévia web
+A partir da etapa 1 de interface, o menu pode ser recolhido com o botão no canto superior esquerdo, e os grupos da barra lateral podem ser expandidos de forma independente. O controle **A+** no topo aumenta os textos em até dois níveis adicionais, com preferências salvas apenas no navegador. No celular, o botão abre uma gaveta lateral. Veja [o escopo e os testes](docs/NAVIGATION_STAGE_1.md).
+
+O recurso está disponível na prévia web do AEROCOOL, porta **18444**. Ainda precisa entrar em uma nova imagem de instalação USB; a imagem v0.4 já gerada anteriormente não muda.
