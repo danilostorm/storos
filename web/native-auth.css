@@ -1,0 +1,7 @@
+.native-auth-panel{margin-top:18px;border:1px solid #285061;border-radius:10px;background:#0e2330;padding:15px}
+.native-auth-panel h3{font-size:16px;margin:0 0 9px;color:#e7f4fc}
+.native-auth-panel p{font-size:13px;color:#abc6d7;line-height:1.5}
+.native-auth-form{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:13px}
+.native-auth-form input{background:#0b1725;border:1px solid #315263;border-radius:7px;padding:11px;min-width:140px;flex:1;color:#ecf7ff;font-size:13px}
+.native-auth-form button{min-height:40px;font-size:12px}
+.native-auth-feedback{min-height:20px}

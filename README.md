@@ -99,3 +99,6 @@ O módulo backend/auth_socket.py oferece login, consulta de sessão e logout com
 
 ### Docker Compose e USB: integração experimental
 O backend/app_manager.py e a CLI local tools/storosctl.py implementam plano/instalação controlados exclusivamente em VM, com autenticação Unix e confirmação SHA-256. O modo de instalação está desligado por padrão, não há botão Install operacional no navegador. O validador tools/check_usb_image.py verifica imagens sem montar nem gravar discos. Veja docs/INTEGRATED_MILESTONE_2026_10.md. A imagem USB v0.5 continua não compilada.
+
+### Login nativo no navegador — desativado por padrão
+O gateway do laboratório tem suporte opt-in a sessões nativas via Unix socket, com HTTPS, cookie seguro e CSRF. Em Sistema > Segurança a página só mostra o formulário quando o serviço for provisionado e habilitado. Essa ponte não expõe comandos administrativos. Consulte docs/NATIVE_HTTPS_AUTH_MILESTONE.md. Não há conta padrão nem imagem USB v0.5 compilada.

@@ -1,9 +1,11 @@
 import unittest
 import importlib.util
+import sys
 import ipaddress
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
 spec = importlib.util.spec_from_file_location("storos_gateway", ROOT / "tools" / "lan_gateway.py")
 gw = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gw)

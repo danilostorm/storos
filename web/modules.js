@@ -59,6 +59,7 @@
         ["Auditoria", security.foundations && security.foundations.audit],
       ]);
       for (const warning of security.warnings || []) notice(box, warning);
+      if (typeof window.renderNativeLogin === "function") window.renderNativeLogin(box);
       return true;
     }
     const d = data && data.modules;

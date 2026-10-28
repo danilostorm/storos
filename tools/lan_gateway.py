@@ -8,13 +8,16 @@ import argparse
 import base64
 import hmac
 import http.client
+import json
+import re
 import ipaddress
 import ssl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit, urlencode, parse_qs
+from native_auth_bridge import AuthBridge, AuthBridgeError, CSRF_TOKEN, cookie_token, session_cookie, EXPIRED_COOKIE
 
-ALLOWED = frozenset({"/", "/index.html", "/app.js", "/apps.js", "/style.css", "/navigation.js", "/navigation.css", "/storage.js", "/storage.css", "/hero.webp", "/api/status", "/api/disks", "/api/containers", "/api/vms", "/api/apps/catalog", "/api/apps/engine", "/api/apps/compose", "/api/apps/hub", "/api/billing/model", "/api/billing/estimate", "/api/overview", "/api/storage", "/api/modules", "/api/security/status", "/modules.js", "/modules.css", "/ca-import.js", "/ca-import.css"})
+ALLOWED = frozenset({"/", "/index.html", "/app.js", "/apps.js", "/style.css", "/navigation.js", "/navigation.css", "/storage.js", "/storage.css", "/hero.webp", "/api/status", "/api/disks", "/api/containers", "/api/vms", "/api/apps/catalog", "/api/apps/engine", "/api/apps/compose", "/api/apps/hub", "/api/billing/model", "/api/billing/estimate", "/api/overview", "/api/storage", "/api/modules", "/api/security/status", "/modules.js", "/modules.css", "/native-auth.js", "/native-auth.css", "/ca-import.js", "/ca-import.css"})
 LAN = ipaddress.ip_network("192.168.30.0/24")
 
 class Gateway(BaseHTTPRequestHandler):
@@ -29,17 +32,14 @@ class Gateway(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self._route(True)
 
-    def do_POST(self):
-        self.send_error(405, "This laboratory gateway is read only")
-
-    def _route(self, head):
+    def _authorized(self):
         try:
             if ipaddress.ip_address(self.client_address[0]) not in LAN:
                 self.send_error(403, "LAN clients only")
-                return
+                return False
         except ValueError:
             self.send_error(403, "LAN clients only")
-            return
+            return False
         auth = self.headers.get("Authorization", "")
         ok = False
         if auth.startswith("Basic ") and len(auth) < 256:
@@ -54,9 +54,92 @@ class Gateway(BaseHTTPRequestHandler):
             self._security_headers()
             self.send_header("Content-Length", "0")
             self.end_headers()
+        return ok
+
+    def _json_reply(self, status, payload, head=False, cookie=None):
+        content = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self._security_headers()
+        if cookie is not None:
+            self.send_header("Set-Cookie", cookie)
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        if not head:
+            self.wfile.write(content)
+
+    def do_POST(self):
+        parts = urlsplit(self.path)
+        if parts.path not in ("/api/native/login", "/api/native/logout"):
+            self.send_error(405, "This laboratory gateway does not allow host changes")
+            return
+        if not self._authorized():
+            return
+        if parts.query or parts.fragment or self.server.native_auth_bridge is None:
+            self._json_reply(403, {"error": "Native web login is disabled"})
+            return
+        expected_origin = "https://192.168.30.10:" + str(self.server.server_port)
+        if (self.headers.get("Origin") != expected_origin or
+            self.headers.get("Host") != "192.168.30.10:" + str(self.server.server_port)):
+            self._json_reply(403, {"error": "Origin not allowed"})
+            return
+        raw_length = self.headers.get("Content-Length", "")
+        if not raw_length.isdigit() or int(raw_length) > 2048:
+            self._json_reply(400, {"error": "Invalid request length"})
+            return
+        if parts.path.endswith("/login") and self.headers.get("Content-Type", "").strip().lower() != "application/json":
+            self._json_reply(400, {"error": "JSON required"})
+            return
+        data = self.rfile.read(int(raw_length))
+        try:
+            bridge = self.server.native_auth_bridge
+            if parts.path.endswith("/login"):
+                request = json.loads(data)
+                status, response = bridge.request("POST", "/v1/login", request)
+                if status != 200:
+                    return self._json_reply(status, {"error": response.get("error", "Login denied")})
+                token, csrf = response["session_token"], response["csrf_token"]
+                cookie = session_cookie(token)
+                return self._json_reply(200, {"signed_in": True, "role": response.get("role"),
+                                               "csrf_token": csrf}, cookie=cookie)
+            if data:
+                return self._json_reply(400, {"error": "Logout body must be empty"})
+            token = cookie_token(self.headers.get("Cookie", ""))
+            csrf = self.headers.get("X-StorOS-CSRF", "")
+            if not token:
+                return self._json_reply(401, {"error": "Not signed in"})
+            if not CSRF_TOKEN.fullmatch(csrf):
+                return self._json_reply(403, {"error": "Invalid CSRF"})
+            status, response = bridge.request("POST", "/v1/logout", token=token, csrf=csrf)
+            if status != 200:
+                return self._json_reply(status, {"error": "Logout denied"})
+            return self._json_reply(200, {"signed_out": True}, cookie=EXPIRED_COOKIE)
+        except (AuthBridgeError, OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return self._json_reply(503, {"error": "Native authentication unavailable"})
+
+    def _route(self, head):
+        if not self._authorized():
             return
         parts = urlsplit(self.path)
         target = parts.path
+        if target in ("/api/native/status", "/api/native/me"):
+            if parts.query or parts.fragment:
+                return self._json_reply(400, {"error": "Queries not supported"}, head=head)
+            bridge = self.server.native_auth_bridge
+            if target == "/api/native/status":
+                return self._json_reply(200, {"enabled": bridge is not None,
+                    "mode": "private-unix-auth" if bridge is not None else "disabled",
+                    "host_mutations": False}, head=head)
+            if bridge is None:
+                return self._json_reply(403, {"error": "Native web login is disabled"}, head=head)
+            token = cookie_token(self.headers.get("Cookie", ""))
+            if not token:
+                return self._json_reply(401, {"error": "Not signed in"}, head=head)
+            try:
+                status, info = bridge.request("GET", "/v1/me", token=token)
+            except AuthBridgeError:
+                return self._json_reply(503, {"error": "Native authentication unavailable"}, head=head)
+            return self._json_reply(status, info if status == 200 else {"error": "Not signed in"}, head=head)
         if target not in ALLOWED:
             self.send_error(404, "Unsupported read-only resource")
             return
@@ -122,6 +205,8 @@ def main():
     parser.add_argument("--credentials", type=Path, required=True)
     parser.add_argument("--cert", type=Path, required=True)
     parser.add_argument("--key", type=Path, required=True)
+    parser.add_argument("--auth-socket", type=Path,
+                        help="Opt-in private Unix auth socket; no native auth by default")
     args = parser.parse_args()
     if args.bind != "192.168.30.10" or args.port not in (18443, 18444):
         parser.error("Refusing unsafe binding; laboratory gateway restricted to AEROCOOL LAN IP and port")
@@ -133,6 +218,11 @@ def main():
     server = LabServer((args.bind, args.port), Gateway)
     server.user_password = credentials
     server.upstream_port = args.upstream_port
+    server.native_auth_bridge = None
+    if args.auth_socket:
+        candidate = AuthBridge(args.auth_socket)
+        candidate._check()
+        server.native_auth_bridge = candidate
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(args.cert, args.key)

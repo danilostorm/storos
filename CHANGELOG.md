@@ -113,3 +113,10 @@
 - Compose Nginx aceito pelo parser real da VM sem criar containers.
 - Nenhuma VM nova ou disco de produção alterado; imagem USB v0.5 ainda não compilada.
 - Projetos Compose agora preservam estado privado de preparação, deploy e falha; erros nunca são apresentados como implantação concluída.
+
+## 2026-10-28 — Ponte HTTPS de login nativo opcional
+- Gateway dispõe de rotas restritas de sessão/login/logout via Unix socket habilitáveis apenas por --auth-socket.
+- Cookie Secure, HttpOnly, SameSite=Strict, controles Origin/Host e CSRF; Basic Auth original obrigatório.
+- Página Sistema > Segurança exibe formulário somente após habilitação expressa do serviço, não por padrão.
+- Integração testada com sockets temporários, sem liberar operações privilegiadas e sem criar contas do host.
+- Sem alteração da imagem USB existente; v0.5 ainda não compilada.
