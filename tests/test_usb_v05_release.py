@@ -31,6 +31,18 @@ class USBV05ReleaseTests(unittest.TestCase):
                         source.index("STOROS_V05_RAW_STRUCTURE_VERIFIED"))
         self.assertNotIn("dd if=", source)
         self.assertNotIn("of=/dev/", source)
+    def test_seabios_smoke_is_non_destructive(self):
+        source = (ROOT/"tools/test-boot-raw-bios.sh").read_text()
+        self.assertIn('qemu-img create -f qcow2 -F raw -b "$RAW"', source)
+        self.assertIn('test ! -L "$RAW"', source)
+        self.assertIn('test ! -e "$file"', source)
+        self.assertIn("virsh -c qemu:///system start", source)
+        self.assertIn("listen='127.0.0.1'", source)
+        for forbidden in ("<interface", "<hostdev", "<loader", "<nvram",
+                          "dd if=", "of=/dev/", "mkfs.", "virsh destroy",
+                          "virsh undefine", "rm -rf"):
+            self.assertNotIn(forbidden, source)
+
     def test_documentation_does_not_misstate_release(self):
         content = (ROOT/"docs/USB_V05_BUILD_STATUS.md").read_text()
         self.assertIn("No v0.5 RAW/IMG", content)
