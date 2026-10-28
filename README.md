@@ -1,12 +1,12 @@
 # StorOS
 
-**Status:** versão 0.1, laboratório. Alternativa NAS e virtualização construída de forma independente sobre o Fedora Server.
+**Status (28/10/2026):** StorOS USB Preview **v0.5**, uCore/Fedora CoreOS, inicializável em QEMU via UEFI/OVMF e BIOS Legacy/SeaBIOS. É um protótipo de laboratório, **não** um NAS nem substituto do Unraid em produção.
 
 ## Objetivo
 
 Desenvolver um sistema de armazenamento e gerenciamento de servidores mais simples, confiável e observável, com painel único para discos, pools, containers, VMs, redes, backups e alertas.
 
-A primeira entrega atual é um **protótipo funcional de painel e API SOMENTE LEITURA**. **O requisito principal do produto é ser um sistema operacional independente e inicializável pelo pendrive.** O builder inicial de RAW/QCOW2 está preparado, mas ainda não compilou uma imagem testada e não gerencia discos.
+A entrega atual possui **painel e API de consulta**, imagem RAW de 10 GiB compilada e verificada em máquinas virtuais, e um gerenciador Docker Compose privado experimental, **desabilitado por padrão**. O objetivo é um sistema operacional independente em USB; **boot em pendrive físico e notebook ainda não foi testado**, assim como administração confiável de discos, paridade e pools.
 
 ## Desenvolvimento no AEROCOOL
 
@@ -65,7 +65,7 @@ O protocolo de homologação e gravação via balenaEtcher está em [docs/USB_NO
 ## Interface renovada inspirada no mockup do projeto
 A prévia web de desenvolvimento em `https://192.168.30.10:18444/` usa a VM de testes `StorOS-BootTest-v030`, com os mesmos dados reais do uCore e autenticação do gateway local. Não é a interface incorporada ao USB v0.3.1 já compilado: será incorporada em build posterior, quando testada visualmente. Funcionalidades sem integração exibem vazio/indisponível e não simulam VMs, Docker, RAID, custos ou tarefas. Consulte [fidelidade e dados reais](docs/UI_MOCKUP_FIDELITY.md) e [engenharia reversa estrutural](docs/REVERSE_ENGINEERING_PROGRESS.md).
 
-Durante os ensaios, cinco VMs antigas foram desligadas normalmente, preservando os arquivos das imagens. O AEROCOOL manteve somente o BuildLab, a v030 utilizada pelo painel e a USB Preview mais recente em execução. Sem exclusão de discos.
+Durante ensaios anteriores, cinco VMs antigas foram desligadas sem apagar suas imagens. Os novos testes da v0.5 em UEFI e BIOS foram executados com overlays separados, e BuildLab, UEFI v0.5 e BIOS v0.5 terminaram desligadas normalmente, preservando discos de produção.
 
 ### Imagem StorOS v0.4 para testar GUI pelo USB
 A imagem inicializável verificada está em output/StorOS-v0.4-USB-Preview.img no AEROCOOL. O teste de boot UEFI pela VM existente foi aprovado. Consulte docs/USB_NOTEBOOK_TEST.md para SHA256, limitações e cuidados. Esta é uma edição de teste de GUI e observabilidade, não um substituto homologado para Unraid.
@@ -73,7 +73,7 @@ A imagem inicializável verificada está em output/StorOS-v0.4-USB-Preview.img n
 ### Navegação e fontes na prévia web
 A partir da etapa 1 de interface, o menu pode ser recolhido com o botão no canto superior esquerdo, e os grupos da barra lateral podem ser expandidos de forma independente. O controle **A+** no topo aumenta os textos em até dois níveis adicionais, com preferências salvas apenas no navegador. No celular, o botão abre uma gaveta lateral. Veja [o escopo e os testes](docs/NAVIGATION_STAGE_1.md).
 
-O recurso está disponível na prévia web do AEROCOOL, porta **18444**. Ainda precisa entrar em uma nova imagem de instalação USB; a imagem v0.4 já gerada anteriormente não muda.
+O recurso está disponível na prévia web do AEROCOOL, porta **18444**, e a fonte atual foi incorporada à imagem USB v0.5 gerada e inicializada em QEMU. A imagem v0.4 anterior permanece intacta.
 
 ### Armazenamento — etapa 2 na prévia web
 O painel em https://192.168.30.10:18444/#storage inclui inventário real do StorOS convidado, com partições, montagens, ocupação e SMART quando disponível. Em #shares, mostra configurações SMB/NFS detectadas. Nenhuma destas páginas controla os discos Unraid do hospedeiro ou executa alterações. Detalhes e limites: docs/STORAGE_STAGE_2.md. A imagem USB v0.4 anterior ainda não inclui este módulo.
@@ -83,22 +83,22 @@ A página de Discos tem seções distintas para array, pools, boot, outros dispo
 
 As páginas de Usuários, Imagens Docker, Redes Docker, Volumes Docker, Redes libvirt, Sistema e Monitoramento receberam consultas reais somente leitura quando permitidas. Recursos administrativos ausentes mostram limites explícitos.
 
-Consulte docs/FEATURE_STATUS_2026_10.md para a matriz de funções e docs/UNRAID_MAIN_REVERSE_ENGINEERING.md para evidências da análise estrutural do Unraid. Não se trata de paridade funcional completa nem de um NAS homologado. A imagem USB antiga não inclui esta atualização.
+Consulte docs/FEATURE_STATUS_2026_10.md para a matriz de funções e docs/UNRAID_MAIN_REVERSE_ENGINEERING.md para evidências da análise estrutural do Unraid. Não se trata de paridade funcional completa nem de um NAS homologado. A imagem USB v0.4 anterior não inclui esta atualização; a v0.5 foi recompilada com a fonte atual e sua GUI foi verificada em QEMU.
 
 ### Importar template XML do Unraid (prévia)
 Na Loja de Aplicativos, selecione um arquivo Container XML v2 para converter, somente no navegador, os campos compatíveis em um projeto Compose de referência. Não são enviadas senhas nem arquivos ao servidor; paths de host são transformados em volumes nomeados. Esta é uma prévia, não instalação com um clique. A instalação segura requer autenticação nativa, permissões e um daemon de gestão isolado.
 
-### v0.5 — fonte pronta, aguardando compilação
-Os arquivos de construção estão em installer/Containerfile.ui-v05 e installer/build-ui-v05.sh; o processo deve ser executado somente na VM Fedora BuildLab. Os testes de fonte passaram, mas a geração do RAW v0.5 ficou bloqueada pela conexão e nenhuma nova imagem foi publicada. A v0.4 anterior foi testada graficamente em QEMU tanto UEFI quanto Legacy BIOS, sem alteração de discos físicos. Consulte docs/USB_V05_BUILD_STATUS.md.
+### v0.5 — RAW gerado, validado e inicializado em VM
+A imagem `output/StorOS-v0.5-USB-Preview.raw` foi compilada na VM Fedora BuildLab e transferida ao AEROCOOL. O arquivo integral teve SHA-256 idêntico na origem e no destino, GPT/BIOS/EFI/root verificados, e a GUI do StorOS foi confirmada em **UEFI/OVMF e BIOS Legacy/SeaBIOS** por screenshot VNC e agente QEMU. A v0.4 foi preservada. **USB físico ainda não foi testado**, nem persistência/recovery, Secure Boot ou hardware de notebook. Evidências e limites: [status v0.5](docs/USB_V05_BUILD_STATUS.md).
 
 ### Fundamentos de autenticacao — etapa inicial
 A biblioteca backend/security_core.py contém os fundamentos de identidade; o painel permite consultar o estado em Sistema > Segurança. Scrypt com salt, sessões e CSRF, limite de tentativas e política de recusa de escrita estão cobertos por testes, mas login nativo e serviço administrativo ainda NÃO foram ativados. Detalhes em docs/ADMIN_SECURITY_FOUNDATION.md.
 
 ### Autenticação por socket Unix (laboratório)
-O módulo backend/auth_socket.py oferece login, consulta de sessão e logout com CSRF em socket Unix privado. Ainda NÃO está conectado ao login web ou a serviços privilegiados, e nenhuma conta administrativa real foi provisionada. Consulte docs/AUTH_SOCKET_STAGE.md. A imagem USB v0.5 permanece pendente.
+O módulo backend/auth_socket.py oferece login, consulta de sessão e logout com CSRF em socket Unix privado. O gateway HTTPS dispõe de ponte nativa **opcional e desativada por padrão**, sem expor operações privilegiadas ou criar conta administrativa. Consulte docs/AUTH_SOCKET_STAGE.md e docs/NATIVE_HTTPS_AUTH_MILESTONE.md.
 
 ### Docker Compose e USB: integração experimental
-O backend/app_manager.py e a CLI local tools/storosctl.py implementam plano/instalação controlados exclusivamente em VM, com autenticação Unix e confirmação SHA-256. O modo de instalação está desligado por padrão, não há botão Install operacional no navegador. O validador tools/check_usb_image.py verifica imagens sem montar nem gravar discos. Veja docs/INTEGRATED_MILESTONE_2026_10.md. A imagem USB v0.5 continua não compilada.
+O backend/app_manager.py e a CLI local tools/storosctl.py implementam plano/instalação controlados exclusivamente em VM, com autenticação Unix e confirmação SHA-256. O modo de instalação está desligado por padrão, não há botão Install operacional no navegador. O validador tools/check_usb_image.py verifica imagens sem montar nem gravar discos. Veja docs/INTEGRATED_MILESTONE_2026_10.md. A imagem USB v0.5 já foi compilada, mas a instalação real de containers continua pendente.
 
 ### Login nativo no navegador — desativado por padrão
-O gateway do laboratório tem suporte opt-in a sessões nativas via Unix socket, com HTTPS, cookie seguro e CSRF. Em Sistema > Segurança a página só mostra o formulário quando o serviço for provisionado e habilitado. Essa ponte não expõe comandos administrativos. Consulte docs/NATIVE_HTTPS_AUTH_MILESTONE.md. Não há conta padrão nem imagem USB v0.5 compilada.
+O gateway do laboratório tem suporte opt-in a sessões nativas via Unix socket, com HTTPS, cookie seguro e CSRF. Em Sistema > Segurança a página só mostra o formulário quando o serviço for provisionado e habilitado. Essa ponte não expõe comandos administrativos. Consulte docs/NATIVE_HTTPS_AUTH_MILESTONE.md. Não há conta padrão nem operação administrativa web habilitada; o RAW v0.5 já passou por boot GUI em QEMU.
