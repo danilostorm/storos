@@ -60,3 +60,8 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 - O inventário privado pode retornar `running: true/false/null` conforme resposta real do Docker; `null` significa ausência de observação confiável, não parada confirmada.
 - 115 testes unitários executados em cópia temporária do repositório no AEROCOOL e aprovados; testes Docker usam runner simulado.
 - Sem habilitação do daemon de apps no Unraid, sem instalação web, sem manipulação de discos físicos e sem nova imagem USB. A aprovação desses testes não equivale a homologação de deployment real.
+
+## 2026-10-28 — Preflight da imagem USB v0.5
+- Script v0.5 endurecido: checagem Fedora/VM, lock para concorrência, staging isolado, validação GPT/BIOS/EFI/root e checksum antes de publicar caminho final.
+- Um resultado `.structure-ok` comprovará somente estrutura do RAW, não inicialização, drivers, persistência, instalação física ou segurança de produção.
+- 115 testes locais e `bash -n` aprovados; imagem v0.5 ainda não gerada. A última imagem com boot GUI validado em QEMU permanece v0.4.
