@@ -49,7 +49,8 @@ python3 tools/check_usb_image.py "$STAGE/$NAME" > "$STAGE/$NAME.structure.json"
 mv -- "$STAGE/$NAME" "$RAW"
 mv -- "$STAGE/$NAME.sha256" "$RAW.sha256"
 mv -- "$STAGE/$NAME.structure.json" "$RAW.structure.json"
-printf 'Structure and SHA-256 recorded. Boot testing still required.\n' > "$RAW.structure-ok"
-rmdir "$STAGE"
+printf 'Structure and SHA-256 recorded. Boot testing still required.\n' > "$STAGE/$NAME.structure-ok"
+mv -- "$STAGE/$NAME.structure-ok" "$RAW.structure-ok"
+rmdir "$STAGE" 2>/dev/null || echo 'Build staging metadata retained for inspection' >&2
 trap - ERR
 echo 'STOROS_V05_RAW_STRUCTURE_VERIFIED'
