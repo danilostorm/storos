@@ -90,3 +90,6 @@ Na Loja de Aplicativos, selecione um arquivo Container XML v2 para converter, so
 
 ### v0.5 — fonte pronta, aguardando compilação
 Os arquivos de construção estão em installer/Containerfile.ui-v05 e installer/build-ui-v05.sh; o processo deve ser executado somente na VM Fedora BuildLab. Os testes de fonte passaram, mas a geração do RAW v0.5 ficou bloqueada pela conexão e nenhuma nova imagem foi publicada. A v0.4 anterior foi testada graficamente em QEMU tanto UEFI quanto Legacy BIOS, sem alteração de discos físicos. Consulte docs/USB_V05_BUILD_STATUS.md.
+
+### Fundamentos de autenticacao — etapa inicial
+A biblioteca backend/security_core.py contém os fundamentos de identidade; o painel permite consultar o estado em Sistema > Segurança. Scrypt com salt, sessões e CSRF, limite de tentativas e política de recusa de escrita estão cobertos por testes, mas login nativo e serviço administrativo ainda NÃO foram ativados. Detalhes em docs/ADMIN_SECURITY_FOUNDATION.md.

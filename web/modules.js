@@ -41,6 +41,26 @@
     readonly(box);
   }
   window.renderModuleDetails = function (view, box, data) {
+    if (view === "security") {
+      heading(box, "Segurança e administração", "Estado real dos mecanismos do StorOS");
+      const security = data && data.security;
+      if (!security || !security.available) {
+        notice(box, "O módulo de segurança não está disponível nesta versão.");
+        return true;
+      }
+      grid(box, ["RECURSO", "ESTADO"], [
+        ["Login nativo do StorOS", security.login_enabled ? "Ativo" : "Não habilitado"],
+        ["Sessões nativas", security.native_sessions_enabled ? "Ativas" : "Não habilitadas"],
+        ["Serviço de administração", security.privileged_service_enabled ? "Ativo" : "Não instalado"],
+        ["Operações de alteração", security.mutations_enabled ? "Habilitadas" : "Bloqueadas"],
+        ["Senhas", security.foundations && security.foundations.password_hash],
+        ["Sessões e CSRF", security.foundations && security.foundations.sessions],
+        ["Permissões", security.foundations && security.foundations.policy],
+        ["Auditoria", security.foundations && security.foundations.audit],
+      ]);
+      for (const warning of security.warnings || []) notice(box, warning);
+      return true;
+    }
     const d = data && data.modules;
     if (!d) {
       heading(box, "Módulo StorOS", "Aguardando dados da instância");

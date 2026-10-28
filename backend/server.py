@@ -14,6 +14,7 @@ import billing
 import observability
 import storage
 import modules
+import security_core
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
@@ -105,7 +106,8 @@ API = {"/api/status": system_status, "/api/disks": disk_status,
        "/api/billing/model": billing.configured_model,
        "/api/overview": observability.live_overview,
        "/api/storage": storage.inventory,
-       "/api/modules": modules.inventory}
+       "/api/modules": modules.inventory,
+       "/api/security/status": security_core.security_status}
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):

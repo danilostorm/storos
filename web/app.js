@@ -31,6 +31,7 @@ const ICONS = {
   memory:'<rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 10v4m4-4v4m4-4v4m4-4v4M6 4v3m5-3v3m5-3v3M6 17v3m5-3v3m5-3v3"/>',
   wallet:'<rect x="3" y="6" width="18" height="15" rx="2"/><path d="M3 10h18M6 6V4h13m-4 12h3"/>'
 };
+ICONS.shield='<path d="M12 2 20 5v6c0 5-3.7 8.5-8 11-4.3-2.5-8-6-8-11V5z"/><path d="m9 12 2 2 4-4"/>';
 const NODE_SVG = 'http://www.w3.org/2000/svg';
 function applyIcons(container=document) {
   container.querySelectorAll('[data-icon]').forEach(i => {
@@ -42,7 +43,7 @@ function applyIcons(container=document) {
     i.replaceWith(svg);
   });
 }
-const VIEW_NAMES={overview:'Visão geral',storage:'Armazenamento',shares:'Compartilhamentos',users:'Usuários',containers:'Containers',compose:'Docker Compose',images:'Imagens Docker','docker-network':'Redes Docker',volumes:'Volumes Docker',logs:'Logs Docker',catalog:'Loja de aplicativos',installed:'Aplicativos instalados',updates:'Atualizações',vms:'Máquinas virtuais',isos:'ISOs','vm-networks':'Redes de VMs',templates:'Modelos',network:'Rede',system:'Sistema',settings:'Configurações',notifications:'Notificações',tasks:'Tarefas em segundo plano',backup:'Backup',monitoring:'Monitoramento',billing:'Custos',terminal:'Terminal'};
+const VIEW_NAMES={overview:'Visão geral',storage:'Armazenamento',shares:'Compartilhamentos',users:'Usuários',containers:'Containers',compose:'Docker Compose',images:'Imagens Docker','docker-network':'Redes Docker',volumes:'Volumes Docker',logs:'Logs Docker',catalog:'Loja de aplicativos',installed:'Aplicativos instalados',updates:'Atualizações',vms:'Máquinas virtuais',isos:'ISOs','vm-networks':'Redes de VMs',templates:'Modelos',network:'Rede',system:'Sistema',settings:'Configurações',security:'Segurança',notifications:'Notificações',tasks:'Tarefas em segundo plano',backup:'Backup',monitoring:'Monitoramento',billing:'Custos',terminal:'Terminal'};
 let currentView='overview';let latest={};const samples=[];let catalogue=[];let category='Todos';
 function text(id,value){const e=$(id);if(e)e.textContent=value===null||value===undefined||value===''?'—':String(value)}
 function bytes(value){const n=Number(value);if(!Number.isFinite(n)||n<0)return '—';if(!n)return '0 B';const names=['B','KiB','MiB','GiB','TiB','PiB'];const idx=Math.min(5,Math.floor(Math.log(n)/Math.log(1024)));return (n/1024**idx).toFixed(idx?1:0)+' '+names[idx]}
@@ -89,6 +90,6 @@ function renderDetail(view){
  box.append(node('p','','Comandos de criação, exclusão, administração e instalação permanecem desativados nesta prévia.'));
 }
 async function getJSON(path){const control=new AbortController();const timer=setTimeout(()=>control.abort(),7500);try{const response=await fetch(path,{cache:'no-store',signal:control.signal});if(!response.ok)throw Error('HTTP '+response.status);return await response.json()}finally{clearTimeout(timer)}}
-async function refresh(){const paths=[['modules','/api/modules'],['storage','/api/storage'],['status','/api/status'],['overview','/api/overview'],['disks','/api/disks'],['containers','/api/containers'],['vms','/api/vms'],['catalog','/api/apps/catalog']];const res=await Promise.allSettled(paths.map(x=>getJSON(x[1])));res.forEach((item,i)=>{latest[paths[i][0]]=item.status==='fulfilled'?item.value:null});if(latest.status)renderSystem(latest.status,latest.overview);if(latest.overview){renderStorage(latest.overview.storage);renderNetworks(latest.overview.network);renderStacks(latest.overview.compose)}else{emptyRow($('overview-disks'),5,'Dados indisponíveis');emptyRow($('overview-networks'),4,'Dados indisponíveis')}
+async function refresh(){const paths=[['security','/api/security/status'],['modules','/api/modules'],['storage','/api/storage'],['status','/api/status'],['overview','/api/overview'],['disks','/api/disks'],['containers','/api/containers'],['vms','/api/vms'],['catalog','/api/apps/catalog']];const res=await Promise.allSettled(paths.map(x=>getJSON(x[1])));res.forEach((item,i)=>{latest[paths[i][0]]=item.status==='fulfilled'?item.value:null});if(latest.status)renderSystem(latest.status,latest.overview);if(latest.overview){renderStorage(latest.overview.storage);renderNetworks(latest.overview.network);renderStacks(latest.overview.compose)}else{emptyRow($('overview-disks'),5,'Dados indisponíveis');emptyRow($('overview-networks'),4,'Dados indisponíveis')}
  renderContainers(latest.containers);renderVMs(latest.vms);if(latest.catalog&&Array.isArray(latest.catalog.items)){catalogue=latest.catalog.items;renderCatalogPreview()}if(!['overview','catalog','billing'].includes(currentView))renderDetail(currentView)}
 applyIcons();bindNav();refresh();setInterval(()=>{if(!document.hidden)refresh()},15000);

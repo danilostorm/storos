@@ -93,3 +93,9 @@
 - A imagem existente do AEROCOOL não foi modificada. Portanto o notebook antigo pode estar falhando na detecção USB/firmware, e não na etapa do GRUB.
 - Preparada fonte StorOS v0.5 com os módulos recentes e receita uCore/bootc baseada na imagem SSH-disabled; testes executados no AEROCOOL e Fedora BuildLab.
 - A execução do build remoto foi bloqueada pelos controles da conexão, por isso **não existe IMG v0.5 para gravar**. Consulte docs/USB_V05_BUILD_STATUS.md antes de rodar em laboratório.
+
+## 2026-10-27 — Fundamentos de segurança administrativa
+- Primitivas de identidade com scrypt+salt, arquivo privado de criação única, limitação de falhas, sessões temporárias/CSRF, papéis e autorização negada para alterações.
+- Auditoria com metadados permitidos, sem capturar senha, sessão ou cookies.
+- API somente leitura /api/security/status e página Sistema > Segurança mostram estado real, com login nativo e operações de escrita desativados.
+- Nenhum serviço privilegiado ou conta administrativa real criado; gateway de laboratório segue como único login web.
