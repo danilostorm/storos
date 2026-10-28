@@ -39,3 +39,9 @@ Array/parity, writable pools, SMB/NFS administration, native authentication/RBAC
 - BuildLab was shut down normally after the 61-test initial build-source check.
 - A further 64 tests in the source tree pass with the v0.5 release-status tests added.
 - No version 0.5 image artifact is present in AEROCOOL output; no claim of completing the blocked build.
+
+## Checagem adicional do script de build (28/10/2026)
+
+O `installer/build-ui-v05.sh` agora exige ferramentas de checagem, usa `flock`, gera a saída numa pasta temporária e só move o RAW para `output/ui-v05/StorOS-v0.5-USB-Preview.raw` depois de validar GPT/BIOS/EFI/root e calcular SHA-256. No diretório final, `.raw.sha256` usa caminho relativo e `.raw.structure.json` documenta o resultado; `.raw.structure-ok` indica **somente validação estrutural**.
+
+Se a compilação falhar, os arquivos temporários permanecem para diagnóstico e não há marcador final. Não renomeie artefatos parciais nem ignore o validador. A compilação ainda **não foi executada**; verificações de boot SeaBIOS/OVMF, GUI, serviços, persistência e notebook real continuam obrigatórias antes de divulgação.
