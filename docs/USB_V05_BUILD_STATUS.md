@@ -45,3 +45,11 @@ Array/parity, writable pools, SMB/NFS administration, native authentication/RBAC
 O `installer/build-ui-v05.sh` agora exige ferramentas de checagem, usa `flock`, gera a saída numa pasta temporária e só move o RAW para `output/ui-v05/StorOS-v0.5-USB-Preview.raw` depois de validar GPT/BIOS/EFI/root e calcular SHA-256. No diretório final, `.raw.sha256` usa caminho relativo e `.raw.structure.json` documenta o resultado; `.raw.structure-ok` indica **somente validação estrutural**.
 
 Se a compilação falhar, os arquivos temporários permanecem para diagnóstico e não há marcador final. Não renomeie artefatos parciais nem ignore o validador. A compilação ainda **não foi executada**; verificações de boot SeaBIOS/OVMF, GUI, serviços, persistência e notebook real continuam obrigatórias antes de divulgação.
+
+## Roteiro de teste SeaBIOS (quando existir RAW v0.5)
+
+Após gerar, transferir e checar SHA-256 no AEROCOOL, usar exclusivamente um arquivo RAW regular não simbólico em `/mnt/user/rea/StorOS/output`:
+
+    bash tools/test-boot-raw-bios.sh /mnt/user/rea/StorOS/output/StorOS-v0.5-USB-Preview.raw StorOS-BootTest-RAW-v050-BIOS
+
+A VM usa SeaBIOS, disco QCOW2 overlay, VNC apenas em loopback e nenhuma interface de rede. Inspecionar a GUI no VNC e o agente QEMU; iniciar QEMU **não significa** que houve boot ou GUI. Para UEFI, usar `tools/test-boot-raw.sh` com nome de VM distinto. Não anexar a imagem a disco físico.

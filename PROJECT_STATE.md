@@ -70,3 +70,7 @@ O planejamento original de setembro permanece acessível no GitHub em `archive/a
 - O BuildLab Fedora 44 iniciou em VM isolada e o código atualizado foi sincronizado sem substituir imagens de saída existentes.
 - Corrigido teste unitário sensível à presença de Docker na máquina hospedeira. 115 testes passaram dentro do Fedora BuildLab após correção.
 - Essa evidência valida somente o código e o harness de testes; não certifica boot USB ou instalação real de containers.
+
+## 2026-10-28 — Ferramenta de prova Legacy em ambiente isolado
+- O teste SeaBIOS pode usar uma VM com overlay, sem NIC, com VNC apenas local, após existir imagem v0.5 íntegra. Não conecta discos reais nem substitui VMs preexistentes.
+- Inicialização da VM não é prova de login, GUI ou usabilidade; verificar a tela e o agente após boot.
