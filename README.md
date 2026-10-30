@@ -105,3 +105,6 @@ O gateway do laboratório tem suporte opt-in a sessões nativas via Unix socket,
 
 ### Teste de pendrive StorOS v0.5 — BIOS Legacy e UEFI
 A imagem RAW v0.5 passou no boot QEMU/OVMF e SeaBIOS com GUI. O arquivo IMG, preparado com checksum no AEROCOOL, pode ser usado pelo balenaEtcher. Leia docs/USB_V05_NOTEBOOK_GUIDE_PTBR.md antes de gravar. USB físico e notebook ainda precisam de homologação; não use como NAS de produção.
+
+### Ciclo de vida dos apps - laboratorio
+O servico Unix experimental permite start/stop/restart para projetos do catalogo, mediante admin, CSRF e confirmacao SHA-256. A CLI storosctl fornece os comandos correspondentes. Modulo desativado por padrao, sem escrita no gateway HTTPS. A imagem USB v0.5 atual nao incorpora estes novos controles. Consulte docs/APP_LIFECYCLE_STAGE.md.

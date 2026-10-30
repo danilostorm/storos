@@ -154,6 +154,36 @@ class PrivateAuthIntegrationTests(unittest.TestCase):
         self.assertNotIn(token,audit)
         self.assertNotIn(csrf,audit)
 
+    def test_lifecycle_control_requires_admin_csrf_and_explicit_enable(self):
+        class FakeManager:
+            def __init__(self):
+                self.requests = []
+            def control(self, slug, action, digest):
+                self.requests.append((slug, action, digest))
+                return {"slug": slug, "action": action, "state": "stopped"}
+        token, csrf = self.login()
+        auth = {"Authorization": "Bearer " + token}
+        payload = {"slug": "nginx", "action": "stop",
+                   "accepted_sha256": __import__("app_manager").plan("nginx")["sha256"]}
+        self.assertEqual(self.req("POST", "/v1/apps/control", payload,
+                                  headers={**auth, "X-StorOS-CSRF": csrf})[0], 403)
+        fake = FakeManager()
+        self.server.app_manager = fake
+        self.assertEqual(self.req("POST", "/v1/apps/control", payload,
+                                  headers=auth)[0], 403)
+        self.assertEqual(self.req("POST", "/v1/apps/control", payload,
+                                  headers={**auth, "X-StorOS-CSRF": "invalid"})[0], 403)
+        self.assertEqual(fake.requests, [])
+        ok, response, _ = self.req("POST", "/v1/apps/control", payload,
+                                  headers={**auth, "X-StorOS-CSRF": csrf})
+        self.assertEqual(ok, 200)
+        self.assertEqual(response["action"], "stop")
+        self.assertEqual(fake.requests, [("nginx", "stop", payload["accepted_sha256"])])
+        audit = (self.directory / "audit.jsonl").read_text()
+        self.assertIn('"action":"apps.stop"', audit)
+        self.assertNotIn(token, audit)
+        self.assertNotIn(csrf, audit)
+
     def test_invalid_input_and_private_directory(self):
         self.assertEqual(self.req("POST", "/v1/login", {
             "username": "storadmin", "password": self.password, "role": "admin"})[0], 400)

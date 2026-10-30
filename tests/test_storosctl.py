@@ -41,6 +41,49 @@ class LocalOperatorTests(unittest.TestCase):
                 with self.assertRaises(storosctl.OperatorError):
                     storosctl.main(["--socket",str(self.folder/"auth.sock"),"plan","nginx"])
 
+    def test_lifecycle_cli_requires_typed_name_and_uses_csrf(self):
+        from app_manager import plan
+        calls = []
+        approved = plan("nginx")
+        def fake_request(sock, method, endpoint, payload=None, token=None, csrf=None):
+            calls.append((endpoint, payload, token, csrf))
+            if endpoint == "/v1/login":
+                return {"role":"admin", "session_token":"token-test", "csrf_token":"csrf-test"}
+            if endpoint == "/v1/apps/plan":
+                return approved
+            if endpoint == "/v1/apps/control":
+                return {"project":"storos-nginx","action":"stop","state":"stopped"}
+            if endpoint == "/v1/logout":
+                return {"signed_out": True}
+            raise AssertionError(endpoint)
+        with patch.object(storosctl, "request", side_effect=fake_request):
+            with patch("builtins.input", side_effect=["storadmin", "nginx"]):
+                with patch.object(storosctl.getpass, "getpass",
+                                  return_value="test password not shared"):
+                    result = storosctl.main(["--socket", "/tmp/test-auth.sock", "stop", "nginx"])
+        self.assertEqual(result, 0)
+        control = next(item for item in calls if item[0] == "/v1/apps/control")
+        self.assertEqual(control[1]["action"], "stop")
+        self.assertEqual(control[1]["accepted_sha256"], approved["sha256"])
+        self.assertEqual(control[2:], ("token-test", "csrf-test"))
+        self.assertEqual(calls[-1][0], "/v1/logout")
+
+    def test_lifecycle_cli_wrong_confirmation_never_controls(self):
+        from app_manager import plan
+        calls = []
+        def fake_request(sock, method, endpoint, payload=None, token=None, csrf=None):
+            calls.append(endpoint)
+            return ({"role":"admin", "session_token":"t", "csrf_token":"c"}
+                    if endpoint == "/v1/login" else plan("nginx")
+                    if endpoint == "/v1/apps/plan" else {"signed_out":True})
+        with patch.object(storosctl, "request", side_effect=fake_request):
+            with patch("builtins.input", side_effect=["storadmin", "wrong-name"]):
+                with patch.object(storosctl.getpass, "getpass", return_value="dummy"):
+                    with self.assertRaises(storosctl.OperatorError):
+                        storosctl.main(["--socket", "/tmp/test-auth.sock", "restart", "nginx"])
+        self.assertNotIn("/v1/apps/control", calls)
+        self.assertEqual(calls[-1], "/v1/logout")
+
     def test_password_not_in_command_line(self):
         import inspect
         source=inspect.getsource(storosctl)

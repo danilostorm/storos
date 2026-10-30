@@ -26,7 +26,7 @@ READ_PERMISSIONS = frozenset((
     "system.status.read", "storage.inventory.read", "shares.inventory.read",
     "docker.inventory.read", "vm.inventory.read", "audit.own.read",
 ))
-AUTH_AUDIT_EVENTS = frozenset(("auth.login", "auth.logout", "apps.plan", "apps.install"))
+AUTH_AUDIT_EVENTS = frozenset(("auth.login", "auth.logout", "apps.plan", "apps.install", "apps.start", "apps.stop", "apps.restart"))
 MUTATING_ACTIONS = frozenset((
     "docker.compose.deploy", "docker.container.remove", "vm.create",
     "vm.destroy", "storage.format", "storage.pool.create",

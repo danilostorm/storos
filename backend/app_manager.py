@@ -8,6 +8,7 @@ and an authenticated administrator. Never invoke on the Unraid host.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -134,6 +135,17 @@ class AppManager:
         if project.name != "storos-" + slug:
             raise AppActionError("Unexpected project name")
         manifest = _approved_manifest(slug)
+        # A status query must not parse a tampered Compose file either.
+        expected = plan(slug)
+        try:
+            st = config.stat()
+            if not stat.S_ISREG(st.st_mode) or st.st_mode & 0o077 or st.st_size > 100000:
+                raise AppActionError("Unsafe Compose status source")
+            if not hmac.compare_digest(
+                    hashlib.sha256(config.read_bytes()).hexdigest(), expected["sha256"]):
+                raise AppActionError("Compose status source differs from approved catalog")
+        except OSError as exc:
+            raise AppActionError("Compose status source cannot be read") from exc
         service = next(iter(manifest["services"]))
         argv = ["--project-directory", str(project), "-f", str(config),
                 "ps", "--all", "--format", "json"]
@@ -161,7 +173,7 @@ class AppManager:
 
     @staticmethod
     def _write_state(project, state):
-        if state not in ("prepared", "deploying", "deployed", "failed"):
+        if state not in ("prepared", "deploying", "deployed", "stopped", "failed"):
             raise AppActionError("Invalid application state")
         fd, tmp = tempfile.mkstemp(prefix=".app-state-", dir=project)
         try:
@@ -220,6 +232,64 @@ class AppManager:
         return {"name": expected["project"], "slug": slug,
                 "state": "deployed", "storage": "named Docker volumes"}
 
+    def control(self, slug: str, action: str, accepted_sha256: str):
+        """Control ONLY a previously registered Compose app inside a VM.
+
+        Does not delete or recreate project files, containers or named volumes.
+        Every request verifies the original catalog config SHA to prevent a
+        modified compose file from becoming an arbitrary privileged command.
+        """
+        self._check_dir()
+        if action not in ("start", "stop", "restart"):
+            raise AppActionError("Unsupported lifecycle action")
+        expected = plan(slug)
+        if (not isinstance(accepted_sha256, str)
+                or not hmac.compare_digest(accepted_sha256, expected["sha256"])):
+            raise AppActionError("Confirmation does not match approved application")
+        project = self.root / ("storos-" + slug)
+        if project.is_symlink() or not project.is_dir():
+            raise AppActionError("Application has not been installed by StorOS")
+        project_stat = project.stat()
+        if project_stat.st_mode & 0o077:
+            raise AppActionError("Project permissions are unsafe")
+        config = project / "compose.json"
+        try:
+            fd = os.open(config, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            try:
+                st = os.fstat(fd)
+                if not stat.S_ISREG(st.st_mode) or st.st_mode & 0o077 or st.st_size > 100000:
+                    raise AppActionError("Unsafe application configuration")
+                with os.fdopen(fd, "rb", closefd=False) as stream:
+                    content = stream.read(100001)
+            finally:
+                os.close(fd)
+        except OSError as exc:
+            raise AppActionError("Cannot read approved application configuration") from exc
+        if not hmac.compare_digest(hashlib.sha256(content).hexdigest(), expected["sha256"]):
+            raise AppActionError("Application config differs from approved catalog")
+        try:
+            probe = subprocess.run(["systemd-detect-virt", "--vm"],
+                                   capture_output=True, timeout=4, check=False)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise AppActionError("Cannot verify VM isolation") from exc
+        if probe.returncode != 0:
+            raise AppActionError("App controls are restricted to a VM laboratory")
+        argv = ["--project-directory", str(project), "-f", str(config)]
+        try:
+            self._run([*argv, action], timeout=60)
+            running = self._ps_running(project, config)
+            if action in ("start", "restart") and not running:
+                raise AppActionError("Application did not reach running state")
+            if action == "stop" and running:
+                raise AppActionError("Application is still running")
+            self._write_state(project, "stopped" if action == "stop" else "deployed")
+        except Exception:
+            self._write_state(project, "failed")
+            raise
+        return {"project": expected["project"], "slug": slug,
+                "action": action, "state": "stopped" if action == "stop" else "deployed",
+                "running": running}
+
     def list_installed(self):
         self._check_dir()
         rows = []
@@ -232,11 +302,11 @@ class AppManager:
             try:
                 doc = json.loads((entry / "state.json").read_text(encoding="utf-8"))
                 state = doc.get("state") if doc.get("state") in (
-                    "prepared", "deploying", "deployed", "failed") else "unknown"
+                    "prepared", "deploying", "deployed", "stopped", "failed") else "unknown"
             except (OSError, ValueError, TypeError):
                 pass
             running = None
-            if state in ("deployed", "failed"):
+            if state in ("deployed", "stopped", "failed"):
                 try:
                     running = self._ps_running(entry, entry / "compose.json")
                 except AppActionError:

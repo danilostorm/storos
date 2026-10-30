@@ -73,6 +73,9 @@ def main(argv=None):
     app.add_argument("slug")
     app = sub.add_parser("install", help="Install catalog app after confirmation (VM lab only)")
     app.add_argument("slug")
+    for action in ("start", "stop", "restart"):
+        cmd = sub.add_parser(action, help="Control managed Compose app (VM lab only)")
+        cmd.add_argument("slug")
     args = parser.parse_args(argv)
     if not args.socket.startswith("/"):
         parser.error("An absolute Unix socket path is required")
@@ -83,7 +86,7 @@ def main(argv=None):
     try:
         if args.action == "installed":
             result = request(args.socket, "GET", "/v1/apps/installed", token=token)
-        elif args.action in ("plan", "install"):
+        elif args.action in ("plan", "install", "start", "stop", "restart"):
             result = request(args.socket, "POST", "/v1/apps/plan",
                              {"slug": args.slug}, token=token, csrf=csrf)
             print("App:", result["slug"], "\nImagem:", result["image"])
@@ -91,13 +94,20 @@ def main(argv=None):
             print("SHA-256:", result["sha256"])
             for warning in result["warnings"]:
                 print("AVISO:", warning)
-            if args.action == "install":
-                confirm = input("Para instalar no laboratório, digite o nome do app: ").strip()
+            if args.action != "plan":
+                confirm = input(
+                    "Para " + args.action + " no laboratório, digite o nome do app: ").strip()
                 if confirm != args.slug:
-                    raise OperatorError("Installation cancelled")
-                result = request(args.socket, "POST", "/v1/apps/install",
-                                 {"slug": args.slug, "accepted_sha256": result["sha256"]},
-                                 token=token, csrf=csrf)
+                    raise OperatorError("Application action cancelled")
+                if args.action == "install":
+                    result = request(args.socket, "POST", "/v1/apps/install",
+                                     {"slug": args.slug, "accepted_sha256": result["sha256"]},
+                                     token=token, csrf=csrf)
+                else:
+                    result = request(args.socket, "POST", "/v1/apps/control",
+                                     {"slug": args.slug, "action": args.action,
+                                      "accepted_sha256": result["sha256"]},
+                                     token=token, csrf=csrf)
         else:
             raise OperatorError("Unsupported command")
         print(json.dumps(result, indent=2, ensure_ascii=False))

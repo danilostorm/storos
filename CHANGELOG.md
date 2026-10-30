@@ -157,3 +157,9 @@
 - Criada cópia esparsa .img do RAW v0.5 com comparação integral de SHA-256, verificação GPT/BIOS/EFI/root e preservação do original.
 - Guia PT-BR para notebook Legacy/UEFI e balenaEtcher em docs/USB_V05_NOTEBOOK_GUIDE_PTBR.md.
 - Nenhum USB físico gravado; sem teste real em notebook, array, paridade ou autorização administrativa de produção.
+
+## 2026-10-30 - Ciclo de vida Docker Compose (laboratorio)
+- Start/stop/restart de projetos cadastrados, com SHA-256, arquivo privado, verificacao de VM, admin/CSRF e auditoria.
+- Estados reais parado/implantado/falhou aferidos via docker compose ps, nunca simulados.
+- CLI storosctl oferece comandos com confirmacao digitada; gateway HTTPS continua em leitura, nenhum container alterado.
+- Imagem USB v0.5 existente foi novamente validada por SHA-256/GPT/BIOS/EFI, mas novo codigo ainda nao faz parte dela.

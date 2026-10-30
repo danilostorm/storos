@@ -26,7 +26,7 @@ from security_core import (
 MAX_BODY = 2048
 MAX_AUTH = 192
 ALLOWED_PATHS = frozenset(("/v1/health", "/v1/login", "/v1/me", "/v1/logout",
-                             "/v1/apps/plan", "/v1/apps/install", "/v1/apps/installed"))
+                             "/v1/apps/plan", "/v1/apps/install", "/v1/apps/installed", "/v1/apps/control"))
 BEARER = re.compile(r"^Bearer ([A-Za-z0-9_-]{40,128})$")
 
 
@@ -184,7 +184,7 @@ class AuthHandler(BaseHTTPRequestHandler):
                 "session_token": token, "csrf_token": csrf,
                 "role": role, "host_mutations": False,
             })
-        if path in ("/v1/apps/plan", "/v1/apps/install"):
+        if path in ("/v1/apps/plan", "/v1/apps/install", "/v1/apps/control"):
             # Bounded body read before authorization avoids terminating the
             # connection while an authorized/unauthorized client is uploading.
             try:
@@ -200,7 +200,9 @@ class AuthHandler(BaseHTTPRequestHandler):
             if self.server.app_manager is None:
                 return self._reply(403, {"error": "App management disabled"})
             try:
-                required = {"slug"} if path.endswith("/plan") else {"slug", "accepted_sha256"}
+                required = ({"slug"} if path.endswith("/plan") else
+                            {"slug", "action", "accepted_sha256"} if path.endswith("/control")
+                            else {"slug", "accepted_sha256"})
                 if set(data) != required:
                     raise AppActionError("Invalid application request")
                 slug = data["slug"]
@@ -210,14 +212,28 @@ class AuthHandler(BaseHTTPRequestHandler):
                     return self._reply(200, result)
                 if not isinstance(data["accepted_sha256"], str):
                     raise AppActionError("Invalid confirmation")
+                if path.endswith("/control"):
+                    action = data["action"]
+                    if action not in ("start", "stop", "restart"):
+                        raise AppActionError("Invalid lifecycle action")
+                    # Audit the approved request before touching Docker.
+                    self._audit(principal, "apps." + action, "allowed")
+                    result = self.server.app_manager.control(
+                        slug, action, data["accepted_sha256"])
+                    return self._reply(200, result)
                 # This action must not run without a successful durable audit entry.
                 self._audit(principal, "apps.install", "allowed")
                 result = self.server.app_manager.install(slug, data["accepted_sha256"])
                 return self._reply(200, result)
             except (ValueError, TypeError):
                 try:
-                    self._audit(principal, "apps.install" if path.endswith("/install")
-                                else "apps.plan", "denied")
+                    attempt_action = (("apps." + data.get("action"))
+                                      if path.endswith("/control")
+                                      and isinstance(data.get("action"), str)
+                                      and data.get("action") in ("start", "stop", "restart")
+                                      else "apps.install" if path.endswith("/install")
+                                      else "apps.plan")
+                    self._audit(principal, attempt_action, "denied")
                 except (OSError, IdentityError):
                     return self._reply(503, {"error": "Audit unavailable"})
                 return self._reply(400, {"error": "Invalid or unsupported application configuration"})

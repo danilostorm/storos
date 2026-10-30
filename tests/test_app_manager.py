@@ -169,6 +169,87 @@ class AppManagerTests(unittest.TestCase):
                 self.assertEqual(result["state"], "deployed")
                 self.assertTrue(self.manager.list_installed()[0]["running"])
 
+    def _install_test_nginx(self):
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            with mock.patch.object(app_manager.subprocess, "run",
+                 return_value=subprocess.CompletedProcess(["virt"], 0)):
+                self.manager.install("nginx", app_manager.plan("nginx")["sha256"])
+
+    def test_start_stop_restart_managed_compose(self):
+        self._install_test_nginx()
+        status = {"running": True}
+        commands = []
+        def lifecycle_runner(argv, **kwargs):
+            commands.append(argv)
+            if argv[-1] == "stop":
+                status["running"] = False
+            elif argv[-1] in ("start", "restart"):
+                status["running"] = True
+            if "ps" in argv:
+                data = ([{"Project": "storos-nginx", "Service": "nginx",
+                          "State": "running"}] if status["running"] else [])
+                return subprocess.CompletedProcess(argv, 0, json.dumps(data), "")
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        self.manager.runner = lifecycle_runner
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            with mock.patch.object(app_manager.subprocess, "run",
+                 return_value=subprocess.CompletedProcess(["virt"], 0)):
+                for action, expected_running in (
+                    ("stop", False), ("start", True), ("restart", True)
+                ):
+                    result = self.manager.control("nginx", action, app_manager.plan("nginx")["sha256"])
+                    self.assertEqual(result["action"], action)
+                    self.assertEqual(result["running"], expected_running)
+                    self.assertEqual(self.manager.list_installed()[0]["state"],
+                                     "stopped" if action == "stop" else "deployed")
+        effects = [cmd[-1] for cmd in commands if cmd[-1] in ("stop", "start", "restart")]
+        self.assertEqual(effects, ["stop", "start", "restart"])
+        self.assertFalse(any("down" in command for command in commands))
+
+    def test_lifecycle_rejects_unregistered_tampered_and_symlinked_compose(self):
+        accepted = app_manager.plan("nginx")["sha256"]
+        with self.assertRaises(app_manager.AppActionError):
+            self.manager.control("nginx", "stop", accepted)
+        self._install_test_nginx()
+        config = self.root / "storos-nginx" / "compose.json"
+        config.write_text('{"name":"dangerous"}')
+        with self.assertRaisesRegex(app_manager.AppActionError, "differs"):
+            self.manager.control("nginx", "stop", accepted)
+        config.unlink()
+        outside = Path(self.temp.name) / "other.json"
+        outside.write_text('{"name":"foreign"}')
+        config.symlink_to(outside)
+        with self.assertRaises(app_manager.AppActionError):
+            self.manager.control("nginx", "restart", accepted)
+
+    def test_lifecycle_wrong_hash_and_action_never_calls_docker(self):
+        self._install_test_nginx()
+        count = len(self.commands)
+        with self.assertRaises(app_manager.AppActionError):
+            self.manager.control("nginx", "start", "wrong")
+        with self.assertRaises(app_manager.AppActionError):
+            self.manager.control("nginx", "remove", app_manager.plan("nginx")["sha256"])
+        self.assertEqual(len(self.commands), count)
+
+    def test_tampered_config_is_never_trusted_for_status(self):
+        self._install_test_nginx()
+        config = self.root / "storos-nginx" / "compose.json"
+        config.write_text('{"name":"unexpected"}')
+        call_count = len(self.commands)
+        with mock.patch.object(app_manager.shutil, "which", return_value="/usr/bin/docker"):
+            result = self.manager.list_installed()[0]
+        self.assertIsNone(result["running"])
+        self.assertEqual(len(self.commands), call_count)
+
+    def test_lifecycle_vm_guard_blocks_host(self):
+        self._install_test_nginx()
+        count = len(self.commands)
+        with mock.patch.object(app_manager.subprocess, "run",
+                 return_value=subprocess.CompletedProcess(["virt"], 1)):
+            with self.assertRaises(app_manager.AppActionError):
+                self.manager.control("nginx", "stop", app_manager.plan("nginx")["sha256"])
+        self.assertEqual(len(self.commands), count)
+
     def test_private_state_required(self):
         self.root.chmod(0o755)
         with self.assertRaises(app_manager.AppActionError):
